@@ -4,7 +4,8 @@ Try the AI simulation here https://nomarcus.github.io/SnakeAI/
 
 An intelligent Snake game with sophisticated AI algorithms and real-time parameter tuning. Experience perfect gameplay through advanced pathfinding and adaptive strategies.
 
-![image](https://github.com/user-attachments/assets/70ca6565-ae8b-4562-a563-59610897cfa6)
+![image](https://github.com/user-attachments/assets/1813b35b-1039-436f-b93e-65ea9753dcad)
+
 
 ## ✨ Features
 
