@@ -662,6 +662,11 @@
               <button id="restartBtn" class="button danger" style="width: 100%;">🔄 Restart</button>
             </div>
           </div>
+          <div class="controls-section">
+            <h3>Sound</h3>
+            <button id="soundToggleBtn" class="button" style="width: 100%;">🔊 Sound On</button>
+          </div>
+
 
           <div class="controls-section">
             <h3>Grid Size</h3>
@@ -1102,6 +1107,11 @@
         loopHandle=null, currentStrategy="Initializing";
     let gameRunning = false;
 
+    /* ===== SOUND ===== */
+    let audioCtx;
+    let musicInterval;
+    let soundEnabled = true;
+
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
     const pages = document.querySelectorAll('.page');
@@ -1207,6 +1217,45 @@
       document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
     });
 
+    function playEatSound(){
+      if(!soundEnabled) return;
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.value = 880;
+      gain.gain.value = 0.1;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function startMusic(){
+      if(!soundEnabled) return;
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(musicInterval) return;
+      const notes=[392,523,392,330,392,262];
+      let idx=0;
+      musicInterval=setInterval(()=>{
+        if(!soundEnabled) return;
+        const o=audioCtx.createOscillator();
+        const g=audioCtx.createGain();
+        o.type="square";
+        o.frequency.value=notes[idx%notes.length];
+        g.gain.value=0.05;
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start();
+        o.stop(audioCtx.currentTime+0.2);
+        idx++;
+      },250);
+    }
+
+    function stopMusic(){
+      if(musicInterval){clearInterval(musicInterval);musicInterval=null;}
+    }
+
     /* ===== RESTART FUNCTION ===== */
     function restartGame() {
       // Reset game state
@@ -1250,6 +1299,7 @@
       gameRunning = true;
       draw();
       loopHandle = setInterval(update, SPEED);
+      startMusic();
     }
 
     document.getElementById('restartBtn').addEventListener('click', restartGame);
@@ -1875,6 +1925,7 @@
       snakeSet.add(`${nxt.x},${nxt.y}`);
       
       if(ate){
+        playEatSound();
         if(snake.length === COLS * ROWS){
           fruit = {x: -1, y: -1};
           draw();
@@ -1913,6 +1964,12 @@
     document.getElementById('slowerBtn').onclick = () => changeSpeed(SPEED + SPEED_STEP);
     document.getElementById('fasterBtn').onclick = () => changeSpeed(SPEED - SPEED_STEP);
     
+    const soundToggleBtn = document.getElementById("soundToggleBtn");
+    soundToggleBtn.onclick = () => {
+      soundEnabled = !soundEnabled;
+      soundToggleBtn.textContent = soundEnabled ? "🔊 Sound On" : "🔇 Sound Off";
+      if(soundEnabled) startMusic(); else stopMusic();
+    };
     function changeSpeed(v){
       v = Math.max(MIN_SPEED, Math.min(MAX_SPEED, v));
       if(v !== SPEED){
@@ -1921,7 +1978,6 @@
         if(gameRunning) {
           clearInterval(loopHandle);
           loopHandle = setInterval(update, SPEED);
-        }
       }
     }
 
