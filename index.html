@@ -636,6 +636,7 @@
         <h1>Snake AI</h1>
         <p>Experience the perfect Snake AI algorithms</p>
 		<p>Your goal is to find the best adjustments to complete the board</p>
+		<p>If the snake get stuck in a lopp just restart</p>
       </div>
 
       <div class="game-wrapper">
@@ -872,9 +873,9 @@
             <ul>
               <li>Grid: 10x10</li>
               <li>Loop Threshold: 1</li>
-              <li>No Progress: 25</li>
-              <li>Endgame: 40</li>
-              <li>Compact Steps: 50</li>
+              <li>No Progress: 50</li>
+              <li>Endgame: 10</li>
+              <li>Compact Steps: 100</li>
               <li>Speed: 150ms</li>
             </ul>
             <button class="button load-preset" data-preset="small">Load this</button>
@@ -888,7 +889,7 @@
               <li>Grid: 20x20</li>
               <li>Loop Threshold: 3</li>
               <li>No Progress: 70</li>
-              <li>Endgame: 50</li>
+              <li>Endgame: 30</li>
               <li>Compact Steps: 200</li>
               <li>Speed: 75ms</li>
             </ul>
@@ -1912,9 +1913,9 @@ Date: ${combo.date} ${combo.time}`;
       speedrun: { cols: 15, rows: 15, loop: 5, progress: 80, endgame: 30, compact: 150, speed: 50 },
       safe: { cols: 15, rows: 15, loop: 1, progress: 40, endgame: 60, compact: 80, speed: 100 },
       balanced: { cols: 20, rows: 20, loop: 3, progress: 70, endgame: 50, compact: 200, speed: 75 },
-      small: { cols: 10, rows: 10, loop: 1, progress: 25, endgame: 40, compact: 50, speed: 150 },
-      large: { cols: 25, rows: 25, loop: 6, progress: 150, endgame: 80, compact: 300, speed: 25 },
-      ultra: { cols: 30, rows: 30, loop: 8, progress: 200, endgame: 100, compact: 450, speed: 10 }
+      small: { cols: 10, rows: 10, loop: 1, progress: 50, endgame: 10, compact: 100, speed: 150 },
+      large: { cols: 25, rows: 25, loop: 6, progress: 150, endgame: 20, compact: 300, speed: 25 },
+      ultra: { cols: 30, rows: 30, loop: 8, progress: 200, endgame: 40, compact: 450, speed: 10 }
     };
 
     presetButtons.forEach(btn => {
@@ -1970,9 +1971,9 @@ Date: ${combo.date} ${combo.time}`;
           document.getElementById('game-page').classList.add('active');
           
           // Flash button
-          btn.textContent = '✅ Laddat!';
+          btn.textContent = '✅ Loaded!';
           setTimeout(() => {
-            btn.textContent = 'Ladda denna';
+            btn.textContent = 'Load this';
           }, 2000);
         }
       });
