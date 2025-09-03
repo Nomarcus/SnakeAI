@@ -1075,7 +1075,7 @@
     /* ===== KONFIGURATION ===== */
     let COLS = 10, ROWS = 10;
     let CELL = 60;
-    let SPEED = 150;
+    let SPEED = 100;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
     const MAX_SPEED = 500, MIN_SPEED = 1, SPEED_STEP = 10;
 
@@ -1083,7 +1083,6 @@
     let ENDGAME_THRESHOLD = 5;
     let MAX_LOOP_DETECTION = Math.max(8,(COLS+ROWS)/2|0);
     let WINDOW_SIZE = 0;
-	//let WINDOW_SIZE = MAX_LOOP_DETECTION; // ≈ 15 för 15x15
     let FILL_POCKET_LIMIT = COLS * 4;
 
     /* ===== CANVAS ===== */
@@ -2049,6 +2048,7 @@ Date: ${combo.date} ${combo.time}`;
   </script>
 </body>
 </html>
+
 
 
 
