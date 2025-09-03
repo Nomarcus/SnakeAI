@@ -666,11 +666,11 @@
           <div class="controls-section">
             <h3>Grid Size</h3>
             <div class="param-control">
-              <label>Columns (COLS): <span id="colsValue">15</span></label>
+              <label>Columns (COLS): <span id="colsValue">10</span></label>
               <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="10" step="10">
             </div>
             <div class="param-control">
-              <label>Rows (ROWS): <span id="rowsValue">15</span></label>
+              <label>Rows (ROWS): <span id="rowsValue">10</span></label>
               <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="10" step="10">
             </div>
             <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
@@ -780,10 +780,10 @@
           <p><strong>What it does:</strong> Determines the game size - number of cells horizontally and vertically.</p>
           <ul>
             <li><strong>Small grids (10x10):</strong> Fast games, AI must be very careful</li>
-            <li><strong>Medium (15x15 - 20x20):</strong> Balanced gameplay, standard setting</li>
-            <li><strong>Large (25x25 - 30x30):</strong> Long games requiring patience, AI can take more risks</li>
+            <li><strong>Medium (20x20):</strong> Balanced gameplay, standard setting</li>
+            <li><strong>Large (30x30):</strong> Long games requiring patience, AI can take more risks</li>
           </ul>
-          <p><strong>Tip:</strong> Start with 15x15 to learn the parameters.</p>
+          <p><strong>Tip:</strong> Start with 10x10 to learn the parameters.</p>
         </div>
 
         <div class="info-section">
@@ -865,41 +865,22 @@
         <h1>Presets - Proven Combinations</h1>
         <p>Test these optimized settings for different game types</p>
       </div>
-
-      <div class="info-content">
-        <div class="info-section">
-          <h2>🏆 Speed Run (15x15)</h2>
-          <p><strong>Goal:</strong> Fastest possible completion with acceptable risk</p>
+     <div class="info-section">
+          <h2>🐜 Small Grid (10x10)</h2>
+          <p><strong>Goal:</strong> Optimized for small, tight spaces</p>
           <div class="combo-preset">
             <ul>
-              <li>Grid: 15x15</li>
-              <li>Loop Threshold: 5</li>
-              <li>No Progress: 80</li>
-              <li>Endgame: 30</li>
-              <li>Compact Steps: 150</li>
-              <li>Speed: 50ms</li>
-            </ul>
-            <button class="button load-preset" data-preset="speedrun">Load this</button>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <h2>🛡️ Safe & Stable (15x15)</h2>
-          <p><strong>Goal:</strong> Almost guaranteed win, slow but safe</p>
-          <div class="combo-preset">
-            <ul>
-              <li>Grid: 15x15</li>
+              <li>Grid: 10x10</li>
               <li>Loop Threshold: 1</li>
-              <li>No Progress: 40</li>
-              <li>Endgame: 60</li>
-              <li>Compact Steps: 80</li>
-              <li>Speed: 100ms</li>
+              <li>No Progress: 25</li>
+              <li>Endgame: 40</li>
+              <li>Compact Steps: 50</li>
+              <li>Speed: 150ms</li>
             </ul>
-            <button class="button load-preset" data-preset="safe">Load this</button>
+            <button class="button load-preset" data-preset="small">Load this</button>
           </div>
         </div>
-
-        <div class="info-section">
+            <div class="info-section">
           <h2>⚖️ Balanced (20x20)</h2>
           <p><strong>Goal:</strong> Good balance between speed and safety</p>
           <div class="combo-preset">
@@ -915,37 +896,7 @@
           </div>
         </div>
 
-        <div class="info-section">
-          <h2>🐜 Small Grid (10x10)</h2>
-          <p><strong>Goal:</strong> Optimized for small, tight spaces</p>
-          <div class="combo-preset">
-            <ul>
-              <li>Grid: 10x10</li>
-              <li>Loop Threshold: 1</li>
-              <li>No Progress: 25</li>
-              <li>Endgame: 40</li>
-              <li>Compact Steps: 50</li>
-              <li>Speed: 150ms</li>
-            </ul>
-            <button class="button load-preset" data-preset="small">Load this</button>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <h2>🐘 Large Grid (25x25)</h2>
-          <p><strong>Goal:</strong> Long-distance marathon with smart navigation</p>
-          <div class="combo-preset">
-            <ul>
-              <li>Grid: 25x25</li>
-              <li>Loop Threshold: 6</li>
-              <li>No Progress: 150</li>
-              <li>Endgame: 80</li>
-              <li>Compact Steps: 300</li>
-              <li>Speed: 25ms</li>
-            </ul>
-            <button class="button load-preset" data-preset="large">Load this</button>
-          </div>
-        </div>
+   
 
         <div class="info-section">
           <h2>🎯 Ultra Challenge (30x30)</h2>
@@ -1009,30 +960,11 @@
             <li><strong>Compact Mode Steps:</strong> Maximum steps in compact zig-zag mode</li>
           </ul>
         </div>
+	
 
-        <div class="info-section">
-          <h2>🎨 Modern Design</h2>
-          <p>The game has been rebuilt from the ground up with:</p>
-          <ul>
-            <li>2.5D graphics with gradients and shadows</li>
-            <li>Glassmorphism effects for a modern feel</li>
-            <li>Smooth animations and transitions</li>
-            <li>Responsive design that works on all devices</li>
-            <li>Dynamic color palette with neon accents</li>
-          </ul>
-        </div>
+  
 
-        <div class="info-section">
-          <h2>⚡ Technical Implementation</h2>
-          <p>Built with modern web technology:</p>
-          <ul>
-            <li>Vanilla JavaScript for optimal performance</li>
-            <li>Canvas API for smooth rendering</li>
-            <li>CSS3 animations and effects</li>
-            <li>Intelligent pathfinding with BFS and A*</li>
-            <li>Real-time game state analysis</li>
-          </ul>
-        </div>
+
       </div>
     </div>
   </div>
@@ -2048,7 +1980,6 @@ Date: ${combo.date} ${combo.time}`;
   </script>
 </body>
 </html>
-
 
 
 
