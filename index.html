@@ -11,7 +11,6 @@
       padding: 0;
       box-sizing: border-box;
     }
-
     :root {
       --primary: #667eea;
       --secondary: #764ba2;
@@ -26,7 +25,6 @@
       --glass: rgba(255, 255, 255, 0.1);
       --glass-border: rgba(255, 255, 255, 0.2);
     }
-
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
@@ -35,7 +33,6 @@
       overflow-x: hidden;
       position: relative;
     }
-
     body::before {
       content: '';
       position: fixed;
@@ -48,11 +45,9 @@
       animation: rotate 60s linear infinite;
       z-index: -1;
     }
-
     @keyframes rotate {
       to { transform: rotate(360deg); }
     }
-
     /* Navigation */
     nav {
       background: var(--glass);
@@ -64,7 +59,6 @@
       z-index: 1000;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
-
     .nav-container {
       max-width: 1400px;
       margin: 0 auto;
@@ -72,7 +66,6 @@
       justify-content: space-between;
       align-items: center;
     }
-
     .logo {
       font-size: 1.8rem;
       font-weight: 800;
@@ -83,19 +76,16 @@
       align-items: center;
       gap: 0.5rem;
     }
-
     .logo::before {
       content: '🐍';
       font-size: 2rem;
       -webkit-text-fill-color: initial;
     }
-
     .nav-links {
       display: flex;
       gap: 2rem;
       list-style: none;
     }
-
     .nav-links a {
       color: var(--text);
       text-decoration: none;
@@ -105,45 +95,37 @@
       padding: 0.5rem 1rem;
       border-radius: 0.5rem;
     }
-
     .nav-links a:hover {
       color: var(--accent);
       background: var(--glass);
     }
-
     .nav-links a.active {
       color: var(--accent);
       background: var(--glass);
     }
-
     /* Page transitions */
     .page {
       display: none;
       animation: fadeIn 0.5s ease-in-out;
     }
-
     .page.active {
       display: block;
     }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     /* Main container */
     .container {
       max-width: 1400px;
       margin: 0 auto;
       padding: 3rem 2rem;
     }
-
     /* Hero section */
     .hero {
       text-align: center;
       margin-bottom: 3rem;
     }
-
     .hero h1 {
       font-size: 3.5rem;
       font-weight: 900;
@@ -154,12 +136,10 @@
       animation: gradient 3s ease-in-out infinite;
       background-size: 200%;
     }
-
     @keyframes gradient {
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
     }
-
     .hero p {
       font-size: 1.2rem;
       color: var(--text);
@@ -167,7 +147,6 @@
       max-width: 600px;
       margin: 0 auto;
     }
-
     /* Game section */
     .game-wrapper {
       display: flex;
@@ -176,7 +155,6 @@
       justify-content: center;
       flex-wrap: wrap;
     }
-
     .game-container {
       background: var(--glass);
       backdrop-filter: blur(20px);
@@ -187,7 +165,6 @@
       position: relative;
       overflow: hidden;
     }
-
     .game-container::before {
       content: '';
       position: absolute;
@@ -201,21 +178,17 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
-
     .game-container:hover::before {
       opacity: 0.5;
     }
-
     #game {
       border-radius: 1rem;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       transition: transform 0.3s;
     }
-
     #game:hover {
       transform: scale(1.02);
     }
-
     /* Controls panel */
     .controls-panel {
       background: var(--glass);
@@ -229,25 +202,20 @@
       max-height: 90vh;
       overflow-y: auto;
     }
-
     .controls-panel::-webkit-scrollbar {
       width: 8px;
     }
-
     .controls-panel::-webkit-scrollbar-track {
       background: var(--darker);
       border-radius: 4px;
     }
-
     .controls-panel::-webkit-scrollbar-thumb {
       background: var(--primary);
       border-radius: 4px;
     }
-
     .controls-section {
       margin-bottom: 2rem;
     }
-
     .controls-section h3 {
       font-size: 1.2rem;
       margin-bottom: 1rem;
@@ -256,12 +224,10 @@
       align-items: center;
       gap: 0.5rem;
     }
-
     .controls-section h3::before {
       content: '⚡';
       font-size: 1.5rem;
     }
-
     /* Modern buttons */
     .button {
       background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
@@ -277,7 +243,6 @@
       position: relative;
       overflow: hidden;
     }
-
     .button::before {
       content: '';
       position: absolute;
@@ -288,29 +253,23 @@
       background: rgba(255, 255, 255, 0.2);
       transition: left 0.5s;
     }
-
     .button:hover::before {
       left: 100%;
     }
-
     .button:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
     }
-
     .button:active {
       transform: translateY(0);
     }
-
     .button.danger {
       background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
       box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
     }
-
     .button.danger:hover {
       box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
     }
-
     /* Speed controls */
     .speed-controls {
       display: flex;
@@ -319,7 +278,6 @@
       justify-content: center;
       margin: 1rem 0;
     }
-
     .speed-btn {
       display: flex;
       flex-direction: column;
@@ -328,11 +286,9 @@
       padding: 0.8rem 1.2rem;
       min-width: 100px;
     }
-
     .speed-btn span {
       display: block;
     }
-
     .speed-display {
       background: var(--darker);
       padding: 0.8rem 1.5rem;
@@ -343,7 +299,6 @@
       border: 1px solid var(--primary);
       box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
     }
-
     /* Size controls */
     .size-controls {
       display: flex;
@@ -351,7 +306,6 @@
       gap: 1rem;
       margin: 1rem 0;
     }
-
     .size-slider {
       flex: 1;
       -webkit-appearance: none;
@@ -361,7 +315,6 @@
       outline: none;
       position: relative;
     }
-
     .size-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 20px;
@@ -372,17 +325,14 @@
       box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
       transition: all 0.3s;
     }
-
     .size-slider::-webkit-slider-thumb:hover {
       transform: scale(1.2);
       box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
     }
-
     /* Parameter controls */
     .param-control {
       margin-bottom: 1.5rem;
     }
-
     .param-control label {
       display: flex;
       justify-content: space-between;
@@ -390,14 +340,12 @@
       font-weight: 500;
       color: var(--text);
     }
-
     .param-control label span {
       color: var(--accent);
       font-weight: 700;
       min-width: 40px;
       text-align: right;
     }
-
     .param-control small {
       display: block;
       margin-top: 0.3rem;
@@ -405,11 +353,9 @@
       opacity: 0.6;
       font-size: 0.8rem;
     }
-
     .param-control .size-slider {
       width: 100%;
     }
-
     /* Status display */
     .status-display {
       background: var(--darker);
@@ -419,7 +365,6 @@
       border: 1px solid var(--glass-border);
       box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
     }
-
     .status-item {
       display: flex;
       justify-content: space-between;
@@ -427,21 +372,17 @@
       padding: 0.5rem 0;
       border-bottom: 1px solid var(--glass-border);
     }
-
     .status-item:last-child {
       border-bottom: none;
     }
-
     .status-label {
       color: var(--text);
       opacity: 0.8;
     }
-
     .status-value {
       font-weight: 600;
       color: var(--accent);
     }
-
     /* AI Status messages */
     #statusMessages {
       background: var(--darker);
@@ -452,29 +393,24 @@
       border: 1px solid var(--glass-border);
       box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
     }
-
     #statusMessages p {
       margin: 0.3rem 0;
       font-size: 0.9rem;
       opacity: 0.9;
     }
-
     #strategyStatus {
       color: var(--accent);
       font-weight: 600;
       font-size: 1rem;
     }
-
     #hamStatus { color: #4ade80; }
     #loopStatus { color: #fbbf24; }
     #compactStatus { color: #f97316; }
-
     /* Info page */
     .info-content {
       max-width: 800px;
       margin: 0 auto;
     }
-
     .info-section {
       background: var(--glass);
       backdrop-filter: blur(20px);
@@ -484,34 +420,28 @@
       margin-bottom: 2rem;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
-
     .info-section h2 {
       color: var(--accent);
       margin-bottom: 1rem;
       font-size: 1.8rem;
     }
-
     .info-section h3 {
       color: var(--primary);
       margin: 1.5rem 0 1rem;
     }
-
     .info-section p, .info-section li {
       line-height: 1.8;
       opacity: 0.9;
     }
-
     .info-section ul {
       list-style: none;
       padding-left: 0;
     }
-
     .info-section li {
       position: relative;
       padding-left: 2rem;
       margin-bottom: 0.5rem;
     }
-
     .info-section li::before {
       content: '→';
       position: absolute;
@@ -519,14 +449,12 @@
       color: var(--accent);
       font-weight: bold;
     }
-
     /* Contact page */
     .contact-content {
       max-width: 600px;
       margin: 0 auto;
       text-align: center;
     }
-
     .contact-card {
       background: var(--glass);
       backdrop-filter: blur(20px);
@@ -535,18 +463,15 @@
       padding: 3rem;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
-
     .contact-card h2 {
       color: var(--accent);
       margin-bottom: 2rem;
       font-size: 2rem;
     }
-
     .contact-info {
       font-size: 1.2rem;
       margin: 2rem 0;
     }
-
     .contact-email {
       display: inline-block;
       background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
@@ -559,12 +484,10 @@
       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
       margin-top: 1rem;
     }
-
     .contact-email:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
     }
-
     /* Combo preset styling */
     .combo-preset {
       background: var(--darker);
@@ -573,38 +496,31 @@
       margin-top: 1rem;
       border: 1px solid var(--primary);
     }
-
     .combo-preset ul {
       margin-bottom: 1rem;
     }
-
     .combo-preset li {
       padding-left: 1.5rem;
       font-family: monospace;
       font-size: 1.1rem;
       color: var(--accent);
     }
-
     .load-preset {
       width: 100%;
       background: linear-gradient(135deg, var(--primary), var(--accent));
     }
-
     /* Responsive */
     @media (max-width: 768px) {
       .nav-container {
         flex-direction: column;
         gap: 1rem;
       }
-
       .hero h1 {
         font-size: 2.5rem;
       }
-
       .game-wrapper {
         flex-direction: column;
       }
-
       .controls-panel {
         width: 100%;
         max-width: none;
@@ -613,7 +529,6 @@
     }
   </style>
 </head>
-
 <body>
   <!-- Navigation -->
   <nav>
@@ -623,21 +538,20 @@
         <li><a href="#" class="nav-link active" data-page="game">Game</a></li>
         <li><a href="#" class="nav-link" data-page="guide">Guide</a></li>
         <li><a href="#" class="nav-link" data-page="facit">Presets</a></li>
-        <li><a href="#" class="nav-link" data-page="info">About</a></li>
         <li><a href="#" class="nav-link" data-page="contact">Contact</a></li>
       </ul>
     </div>
   </nav>
-
   <!-- Game Page -->
   <div id="game-page" class="page active">
     <div class="container">
       <div class="hero">
         <h1>Snake Simulation</h1>
         <p>Experience the perfect Snake AI algorithms</p>
-		<p>Your goal is to find the best adjustments to complete the board</p>
+        <p>Your goal is to find the best adjustments to complete the board</p>
+        <!-- Added hint for players: follow the guide when the snake struggles -->
+        <p style="color: var(--warning); opacity: 0.9;">If the snake doesn't cooperate and complete the game, you can follow the guide to adjust the parameters for a winning strategy. Or just just presets</p>
       </div>
-
       <div class="game-wrapper">
         <div class="game-container">
           <canvas id="game" width="600" height="600"></canvas>
@@ -645,7 +559,6 @@
         <div class="controls-panel">
           <div class="controls-section">
             <h3>Game Controls</h3>
-            
             <div class="speed-controls">
               <button id="slowerBtn" class="button speed-btn">
                 <span style="font-size: 1.2rem;">🐌</span>
@@ -657,12 +570,10 @@
                 <span>Faster</span>
               </button>
             </div>
-
             <div style="margin-top: 1rem;">
               <button id="restartBtn" class="button danger" style="width: 100%;">🔄 Restart</button>
             </div>
           </div>
-
           <div class="controls-section">
             <h3>Grid Size</h3>
             <div class="param-control">
@@ -674,10 +585,9 @@
               <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="10" step="10">
             </div>
             <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
-              ⚡ Change this for bigger or smaller game simulation, Changing grid size will restart the game
+              ⚡Changing grid size will restart the game
             </small>
           </div>
-
           <div class="controls-section">
             <h3>Canvas Size</h3>
             <div class="size-controls">
@@ -686,29 +596,23 @@
               <span>Large</span>
             </div>
           </div>
-
           <div class="controls-section">
             <h3>AI Parameters</h3>
-            
-			 <div class="param-control">
+            <div class="param-control">
               <label>Endgame Threshold: <span id="endgameValue">5</span></label>
               <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="5" step="5">
               <small>Free cells for endgame mode</small>
             </div>
-			
             <div class="param-control">
               <label>Loop Streak Threshold: <span id="loopThreshValue">1</span></label>
               <input type="range" id="loopThreshSlider" class="size-slider" min="1" max="10" value="1" step="1">
               <small>Loops detected before → Hamilton mode</small>
             </div>
-            
             <div class="param-control">
               <label>No Progress Threshold: <span id="progThreshValue">50</span></label>
               <input type="range" id="progThreshSlider" class="size-slider" min="10" max="200" value="50" step="5">
               <small>Moves without progress → Hamilton mode</small>
             </div>
-                      
-            
             <div class="param-control">
               <label>Compact Mode Steps: <span id="compactValue">100</span></label>
               <input type="range" id="compactSlider" class="size-slider" min="0" max="300" value="112" step="10">
@@ -732,7 +636,6 @@
               </div>
             </div>
           </div>
-
           <div class="controls-section">
             <h3>AI Status</h3>
             <div id="statusMessages">
@@ -743,23 +646,11 @@
               <p id="compactStepStatus"></p>
             </div>
           </div>
-		  <div class="info-section" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
-          <h2>💾 Save Your Combination</h2>
-          <p>Found the perfect combination? Share it with us!</p>
-          <button id="saveComboBtn" class="button" style="background: white; color: var(--primary); margin-top: 1rem;">
-            📤 Save & Send Combination
-          </button>
-          <div id="savedCombo" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 0.5rem;">
-            <p style="font-weight: bold;">Your combination:</p>
-            <pre id="comboText" style="font-family: monospace; margin: 0.5rem 0;"></pre>
-            <p style="font-size: 0.9rem; opacity: 0.8;">Copy and send to: nomarcus@hotmail.com</p>
-          </div>
-        </div>
+          
         </div>
       </div>
     </div>
   </div>
-
   <!-- Guide Page -->
   <div id="guide-page" class="page">
     <div class="container">
@@ -767,17 +658,14 @@
         <h1>Parameter Guide</h1>
         <p>Learn to fine-tune the AI for optimal performance</p>
       </div>
-
       <div class="info-content">
         <div class="info-section">
           <h2>🎯 Quick Guide</h2>
-          <p>Each parameter affects how cautious or aggressive the AI is. Find the balance between speed and safety!</p>
+          <p>Each parameter affects how cautious or aggressive the AI is. Start by adjusting <strong>Endgame Threshold</strong>, as it has the biggest impact on whether the snake plays safely or takes risks. Find the balance between speed and safety!</p>
         </div>
-
         <div class="info-section">
           <h2>📏 Grid Size</h2>
-          
-          <h3>Columns & Rows (10-60)</h3>
+          <h3>Columns &amp; Rows (10-60)</h3>
           <p><strong>What it does:</strong> Determines the game size - number of cells horizontally and vertically.</p>
           <ul>
             <li><strong>Small grids (10x10):</strong> Fast games, AI must be very careful</li>
@@ -786,58 +674,55 @@
           </ul>
           <p><strong>Tip:</strong> Start with 10x10 to learn the parameters.</p>
         </div>
-
         <div class="info-section">
           <h2>🤖 AI Parameters</h2>
-          
-          <h3>1. Loop Streak Threshold (1-10)</h3>
-          <p><strong>What it does:</strong> Number of times AI can loop before switching to safe Hamilton mode.</p>
+          <!-- Endgame parameter first -->
+          <h3>1. Endgame Threshold (5-100+)</h3>
+          <p><strong>Why it matters most:</strong> This setting determines when the AI abandons risky fruit-hunting and switches to a safe Hamilton cycle. A lower value means the AI will stay aggressive until there are very few free cells left; a higher value makes it switch earlier.</p>
+          <p><strong>What it does:</strong> When the number of free cells remaining drops below this threshold, the AI enters "endgame" mode. In endgame it follows a pre‑built Hamilton cycle to avoid trapping itself and ensure it can eventually fill the board.</p>
           <ul>
-            <li><strong>Low value (1-3):</strong> Quickly switches to safe mode, good for small grids</li>
-            <li><strong>Medium (4-6):</strong> Balanced, allows some loops</li>
-            <li><strong>High (7-10):</strong> Allows many loops, risky but faster</li>
+            <li><strong>Low value (10-30):</strong> Endgame only at the very end – faster but riskier on tight grids</li>
+            <li><strong>Medium (40-60):</strong> Safer and suitable for medium grids</li>
+            <li><strong>High (70+):</strong> Very cautious – ideal for large boards or when you want maximum safety</li>
           </ul>
-          <p><strong>When to adjust:</strong> Increase if snake gets stuck in Hamilton too often. Decrease if it dies in loops.</p>
-
-          <h3>2. No Progress Threshold (10-200+)</h3>
-          <p><strong>What it does:</strong> Number of moves without getting closer to fruit before AI gives up and goes safe.</p>
+          <p><strong>When to adjust:</strong> On small grids, keep this low so the AI grabs fruit until the last moments. For bigger boards, increase it so the snake enters endgame earlier and follows a safe route.</p>
+          
+          <h3>2. Loop Streak Threshold (1-10)</h3>
+          <p><strong>What it does:</strong> Number of times the AI can detect a looping pattern before forcing a switch to the safe Hamilton mode. A loop happens when the snake keeps revisiting the same area.</p>
           <ul>
-            <li><strong>Low value (10-50):</strong> Gives up quickly, very safe</li>
+            <li><strong>Low value (1-3):</strong> Quickly switches to safe mode, good for small grids or when loops are deadly</li>
+            <li><strong>Medium (4-6):</strong> Balanced, allows some loops</li>
+            <li><strong>High (7-10):</strong> Allows many loops, risky but faster on open boards</li>
+          </ul>
+          <p><strong>When to adjust:</strong> Increase if the snake gets stuck in Hamilton too often. Decrease if it dies while looping.</p>
+          
+          <h3>3. No Progress Threshold (10-200+)</h3>
+          <p><strong>What it does:</strong> Number of moves without getting closer to the fruit before the AI gives up and goes safe. This helps avoid wasting time when fruit is inaccessible.</p>
+          <ul>
+            <li><strong>Low value (10-50):</strong> Gives up quickly, very safe but slower on large boards</li>
             <li><strong>Medium (50-100):</strong> Standard patience</li>
             <li><strong>High (100+):</strong> Persistent, keeps trying for a long time</li>
           </ul>
-          <p><strong>When to adjust:</strong> Increase for larger grids where navigation takes time. Decrease if snake "wanders" too much.</p>
-
-          <h3>3. Endgame Threshold (10-100+)</h3>
-          <p><strong>What it does:</strong> When there are fewer than X free cells left, endgame strategy activates.</p>
-          <ul>
-            <li><strong>Low value (10-30):</strong> Endgame only at the very end</li>
-            <li><strong>Medium (40-60):</strong> Safer, activates earlier</li>
-            <li><strong>High (70+):</strong> Very cautious, goes safe early</li>
-          </ul>
-          <p><strong>When to adjust:</strong> Increase for harder/larger grids. Decrease for faster games on small grids.</p>
-
+          <p><strong>When to adjust:</strong> Increase for larger grids where navigation takes time. Decrease if the snake "wanders" too much without making progress.</p>
+          
           <h3>4. Compact Mode Steps (50-300+)</h3>
-          <p><strong>What it does:</strong> Max steps AI can use zig-zag pattern in tight spaces.</p>
+          <p><strong>What it does:</strong> Maximum number of steps the AI can spend in compact zig‑zag mode when the fruit is trapped in a small pocket. This helps it navigate tight spaces without colliding.</p>
           <ul>
-            <li><strong>Low value (50-100):</strong> Short zig-zag, switches quickly</li>
+            <li><strong>Low value (50-100):</strong> Short zig‑zag, switches quickly back to other strategies</li>
             <li><strong>Medium (100-200):</strong> Standard length</li>
-            <li><strong>High (200+):</strong> Long zig-zag sequences</li>
+            <li><strong>High (200+):</strong> Long zig‑zag sequences – useful on large boards</li>
           </ul>
-          <p><strong>When to adjust:</strong> Increase for larger grids. Decrease if snake "vibrates" too much.</p>
+          <p><strong>When to adjust:</strong> Increase for larger grids. Decrease if the snake seems to "vibrate" too much in one area.</p>
         </div>
-
         <div class="info-section">
           <h2>⚡ Optimization Strategy</h2>
-          
           <h3>For fastest possible game:</h3>
           <ul>
             <li>Loop Threshold: 5-7</li>
             <li>No Progress: 80-120</li>
-            <li>Endgame: 20-30</li>
+            <li>Endgame: 5-30</li>
             <li>Compact Steps: 150-200</li>
           </ul>
-
           <h3>For safest possible game:</h3>
           <ul>
             <li>Loop Threshold: 1-2</li>
@@ -845,7 +730,6 @@
             <li>Endgame: 60-80</li>
             <li>Compact Steps: 50-100</li>
           </ul>
-
           <h3>Balanced (recommended):</h3>
           <ul>
             <li>Loop Threshold: 3-4</li>
@@ -854,12 +738,24 @@
             <li>Compact Steps: 100-150</li>
           </ul>
         </div>
-        
+        <!-- Detailed algorithm explanations moved from About -->
+        <div class="info-section">
+          <h2>🔍 Algorithm Overview</h2>
+          <h3>Hamilton Cycle</h3>
+          <p>The Hamilton cycle is a pre‑computed path that visits every cell on the board exactly once. Following this path guarantees that the snake never crosses its own body. This path acts as a safety net when other strategies fail or when the board is nearly full. In endgame mode the AI follows the Hamilton cycle to fill the remaining cells without dying.</p>
+          <h3>Greedy Pathfinding</h3>
+          <p>When there is plenty of open space, the AI uses a greedy approach: it picks moves that reduce the Manhattan distance to the fruit. This allows quick fruit collection. However, greedy movement is only used if it keeps the snake’s tail reachable. Before each greedy move, the AI checks that it can still eventually reach the tail so it doesn’t trap itself.</p>
+          <h3>Loop Detection</h3>
+          <p>If the snake moves in circles without making progress, the AI identifies this as a loop. After a certain number of loops (controlled by the Loop Streak Threshold) it forces a switch to the Hamilton cycle. Breaking loops prevents the snake from wasting time or creating dead ends.</p>
+          <h3>Compact Mode</h3>
+          <p>When the fruit appears in a confined area or is surrounded by the snake’s body, the AI enters compact mode. In this mode the snake performs a zig‑zag pattern to efficiently fill small pockets of space and avoid cutting itself off. The maximum steps spent in this mode are controlled by the Compact Mode Steps parameter.</p>
+          <h3>Endgame Strategy</h3>
+          <p>As the board fills up, the risk of collision increases. Once the number of free cells falls below the endgame threshold, the AI commits to the Hamilton cycle. This ensures the snake can reach every remaining cell and eventually achieve a perfect game.</p>
+        </div>
       </div>
     </div>
   </div>
-
-  <!-- Facit Page -->
+  <!-- Facit Page (Presets) -->
   <div id="facit-page" class="page">
     <div class="container">
       <div class="hero">
@@ -873,15 +769,15 @@
             <ul>
               <li>Grid: 10x10</li>
               <li>Loop Threshold: 1</li>
-              <li>No Progress: 50</li>
-              <li>Endgame: 10</li>
-              <li>Compact Steps: 100</li>
-              <li>Speed: 150ms</li>
+              <li>No Progress: 30</li>
+              <li>Endgame: 5</li>
+              <li>Compact Steps: 50</li>
+              <li>Speed: 120ms</li>
             </ul>
             <button class="button load-preset" data-preset="small">Load this</button>
           </div>
         </div>
-            <div class="info-section">
+        <div class="info-section">
           <h2>⚖️ Balanced (20x20)</h2>
           <p><strong>Goal:</strong> Good balance between speed and safety</p>
           <div class="combo-preset">
@@ -889,32 +785,28 @@
               <li>Grid: 20x20</li>
               <li>Loop Threshold: 3</li>
               <li>No Progress: 70</li>
-              <li>Endgame: 30</li>
+              <li>Endgame: 40</li>
               <li>Compact Steps: 200</li>
-              <li>Speed: 75ms</li>
+              <li>Speed: 80ms</li>
             </ul>
             <button class="button load-preset" data-preset="balanced">Load this</button>
           </div>
         </div>
-
-   
-
         <div class="info-section">
           <h2>🎯 Ultra Challenge (30x30)</h2>
-          <p><strong>Goal:</strong> For experts - maximum grid with aggressive settings</p>
+          <p><strong>Goal:</strong> For experts – maximum grid with aggressive settings</p>
           <div class="combo-preset">
             <ul>
               <li>Grid: 30x30</li>
-              <li>Loop Threshold: 8</li>
-              <li>No Progress: 200</li>
-              <li>Endgame: 100</li>
+              <li>Loop Threshold: 5</li>
+              <li>No Progress: 150</li>
+              <li>Endgame: 80</li>
               <li>Compact Steps: 450</li>
-              <li>Speed: 10ms</li>
+              <li>Speed: 40ms</li>
             </ul>
             <button class="button load-preset" data-preset="ultra">Load this</button>
           </div>
         </div>
-
         <div class="info-section" style="background: var(--glass); border: 2px solid var(--accent);">
           <h2>💡 Tips for Custom Combinations</h2>
           <ul>
@@ -928,82 +820,26 @@
       </div>
     </div>
   </div>
-
-  <!-- Info Page -->
-  <div id="info-page" class="page">
+  <!-- Contact Page -->
+  <div id="contact-page" class="page">
     <div class="container">
       <div class="hero">
-        <h1>About Snake AI</h1>
-        <p>A deep dive into the technology behind the intelligent game</p>
+        <h1>Contact Me</h1>
+        <p>Have questions or feedback?</p>
       </div>
-
-      <div class="info-content">
-        <div class="info-section">
-          <h2>🧠 AI Technology</h2>
-          <p>Snake AI uses a sophisticated combination of algorithms to navigate efficiently:</p>
-          
-          <h3>Hamilton Cycle</h3>
-          <p>A guaranteed path that visits every cell exactly once. This is used as a fallback when other strategies fail.</p>
-          
-          <h3>Adaptive Strategy</h3>
-          <ul>
-            <li>Greedy pathfinding for quick fruit collection</li>
-            <li>Loop detection to avoid dead ends</li>
-            <li>Compact mode for tight navigation</li>
-            <li>Endgame optimization when the board fills up</li>
-          </ul>
-
-          <h3>Adjustable Parameters</h3>
-          <ul>
-            <li><strong>Loop Streak Threshold:</strong> How many times a loop must be detected before Hamilton mode activates</li>
-            <li><strong>No Progress Threshold:</strong> Number of moves without progress before Hamilton mode is forced</li>
-            <li><strong>Endgame Threshold:</strong> Number of free cells that triggers endgame strategy</li>
-            <li><strong>Compact Mode Steps:</strong> Maximum steps in compact zig-zag mode</li>
-          </ul>
+      <div class="contact-content">
+        <div class="contact-card">
+          <h2>📬 Get in Touch</h2>
+          <p class="contact-info"></p>
+          <a href="mailto:nomarcus@hotmail.com" class="contact-email">✉️ nomarcus@hotmail.com</a>
+          <p style="margin-top:2rem;font-size:.9rem;opacity:.7;text-align:center;">
+            Last change by <strong>Marcus Petersson</strong> · 2025-09-08
+          </p>
         </div>
-	
-
-  
-
-
       </div>
     </div>
   </div>
-
-  <!-- Contact Page -->
-<div id="contact-page" class="page">
-  <div class="container">
-    <div class="hero">
-      <h1>Contact Me</h1>
-      <p>Have questions or feedback?</p>
-    </div>
-
-    <div class="contact-content">
-      <div class="contact-card">
-        <h2>📬 Get in Touch</h2>
-        <p class="contact-info">
-        </p>
-
-        <a href="mailto:nomarcus@hotmail.com" class="contact-email">
-          ✉️ nomarcus@hotmail.com
-        </a>
-
-        <!-- ──────────────────────────────────────────────── -->
-        <p style="
-            margin-top:2rem;
-            font-size:.9rem;
-            opacity:.7;
-            text-align:center;
-        ">
-          Last change by <strong>Marcus Petersson</strong> · 2025-09-03
-        </p>
-        <!-- ──────────────────────────────────────────────── -->
-      </div>
-    </div>
-  </div>
-</div>
-
-
+  <!-- Embedded updated JS logic -->
   <script>
     /* ===== KONFIGURATION ===== */
     let COLS = 10, ROWS = 10;
@@ -1011,22 +847,20 @@
     let SPEED = 100;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
     const MAX_SPEED = 500, MIN_SPEED = 1, SPEED_STEP = 10;
-
     /* ===== DYNAMISKA TRÖSKLAR ===== */
+    // Initialize endgame threshold; dynamic updates will override when grid changes
     let ENDGAME_THRESHOLD = 5;
     let MAX_LOOP_DETECTION = Math.max(8,(COLS+ROWS)/2|0);
-    let WINDOW_SIZE = 0;
+    let WINDOW_SIZE = Math.max(10, COLS + ROWS);
     let FILL_POCKET_LIMIT = COLS * 4;
-
     /* ===== CANVAS ===== */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-    
     /* ===== AI-PARAMETRAR ===== */
     let LOOP_STREAK_THRESHOLD = 1;
     let NO_PROGRESS_THRESHOLD = 50;
     let COMPACT_MODE_MAX_STEPS = 100;
-
+    let loopCountAdjust = 0;
     /* ===== SPELSTATE ===== */
     let snake=[], snakeSet=new Set();
     let fruit, prevFruitDist=Infinity, noProgressMoves=0;
@@ -1034,26 +868,19 @@
         hamMode=false, compactMode=false, compactModeSteps=0,
         loopHandle=null, currentStrategy="Initializing";
     let gameRunning = false;
-
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
     const pages = document.querySelectorAll('.page');
-
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const targetPage = link.dataset.page;
-        
-        // Update active states
         navLinks.forEach(l => l.classList.remove('active'));
         link.classList.add('active');
-        
-        // Show target page
         pages.forEach(p => p.classList.remove('active'));
         document.getElementById(`${targetPage}-page`).classList.add('active');
       });
     });
-
     /* ===== SIZE CONTROL ===== */
     const sizeSlider = document.getElementById('sizeSlider');
     sizeSlider.addEventListener('input', (e) => {
@@ -1063,106 +890,76 @@
       CELL = size / COLS;
       if (gameRunning) draw();
     });
-
     /* ===== GRID CONTROLS ===== */
     const colsSlider = document.getElementById('colsSlider');
     const rowsSlider = document.getElementById('rowsSlider');
-    
     function updateGridSize() {
       const newCols = parseInt(colsSlider.value);
       const newRows = parseInt(rowsSlider.value);
-      
-      // Only update if actually changed
-      if(newCols !== COLS || newRows !== ROWS) {
+      if (newCols !== COLS || newRows !== ROWS) {
         COLS = newCols;
         ROWS = newRows;
         document.getElementById('colsValue').textContent = COLS;
         document.getElementById('rowsValue').textContent = ROWS;
-        
-        // Recalculate dependent values
         CELL = canvas.width / COLS;
-        
-        // Only auto-adjust if not loading a preset
-        if(!window.loadingPreset) {
+        // When not loading a preset, update dynamic thresholds based on grid size
+        if (!window.loadingPreset) {
           ENDGAME_THRESHOLD = Math.min(40, Math.floor((COLS * ROWS) * 0.2));
           MAX_LOOP_DETECTION = Math.max(8, (COLS + ROWS) / 2 | 0);
           FILL_POCKET_LIMIT = COLS * 4;
+          WINDOW_SIZE = Math.max(10, COLS + ROWS);
           NO_PROGRESS_THRESHOLD = Math.max(30, (COLS * ROWS) / 6);
           COMPACT_MODE_MAX_STEPS = Math.floor((COLS * ROWS) / 2);
-          
-          // Update displayed values
           document.getElementById('progThreshValue').textContent = Math.floor(NO_PROGRESS_THRESHOLD);
           document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
           document.getElementById('endgameValue').textContent = ENDGAME_THRESHOLD;
-          
-          // Update slider ranges based on grid size
           document.getElementById('progThreshSlider').max = Math.max(200, COLS * ROWS);
           document.getElementById('progThreshSlider').value = Math.floor(NO_PROGRESS_THRESHOLD);
           document.getElementById('compactSlider').max = Math.max(300, COLS * ROWS);
           document.getElementById('compactSlider').value = COMPACT_MODE_MAX_STEPS;
           document.getElementById('endgameSlider').max = Math.max(100, Math.floor((COLS * ROWS) * 0.4));
         }
-        
-        // Restart game with new grid
         restartGame();
       }
     }
-    
     colsSlider.addEventListener('input', updateGridSize);
     rowsSlider.addEventListener('input', updateGridSize);
-
     /* ===== AI PARAMETER CONTROLS ===== */
-    // Loop Threshold
     const loopThreshSlider = document.getElementById('loopThreshSlider');
     loopThreshSlider.addEventListener('input', (e) => {
       LOOP_STREAK_THRESHOLD = parseInt(e.target.value);
       document.getElementById('loopThreshValue').textContent = LOOP_STREAK_THRESHOLD;
     });
-
-    // Progress Threshold
     const progThreshSlider = document.getElementById('progThreshSlider');
     progThreshSlider.addEventListener('input', (e) => {
       NO_PROGRESS_THRESHOLD = parseInt(e.target.value);
       document.getElementById('progThreshValue').textContent = NO_PROGRESS_THRESHOLD;
     });
-
-    // Endgame Threshold
     const endgameSlider = document.getElementById('endgameSlider');
     endgameSlider.addEventListener('input', (e) => {
       ENDGAME_THRESHOLD = parseInt(e.target.value);
       document.getElementById('endgameValue').textContent = ENDGAME_THRESHOLD;
     });
-
-    // Compact Mode Steps
     const compactSlider = document.getElementById('compactSlider');
     compactSlider.addEventListener('input', (e) => {
       COMPACT_MODE_MAX_STEPS = parseInt(e.target.value);
       document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
     });
-
     /* ===== RESTART FUNCTION ===== */
     function restartGame() {
-      // Reset game state
       snake = [];
       snakeSet = new Set();
       const sx = Math.floor(COLS/2), sy = Math.floor(ROWS/2);
-      
-      // Create initial snake (adjust size based on grid)
-      if(COLS >= 5) {
+      if (COLS >= 5) {
         snake.push({x:sx-2,y:sy},{x:sx-1,y:sy},{x:sx,y:sy});
-      } else if(COLS >= 3) {
+      } else if (COLS >= 3) {
         snake.push({x:sx-1,y:sy},{x:sx,y:sy});
       } else {
         snake.push({x:sx,y:sy});
       }
-      
       snake.reverse();
       snake.forEach(p => snakeSet.add(`${p.x},${p.y}`));
-      
-      // Rebuild Hamilton path
       HAM = buildHamilton();
-      
-      // Reset variables
       prevFruitDist = Infinity;
       noProgressMoves = 0;
       lastMoves = [];
@@ -1172,47 +969,40 @@
       hamMode = false;
       compactMode = false;
       compactModeSteps = 0;
+      loopCountAdjust = 0;
       currentStrategy = "Initializing";
-      
-      // Spawn new fruit
       fruit = spawnFruit();
-      if(fruit.x>=0) prevFruitDist = Math.abs(snake[0].x-fruit.x)+Math.abs(snake[0].y-fruit.y);
-      
-      // Clear and restart game loop
-      if(loopHandle) clearInterval(loopHandle);
+      if (fruit.x >= 0) prevFruitDist = Math.abs(snake[0].x - fruit.x) + Math.abs(snake[0].y - fruit.y);
+      if (loopHandle) clearInterval(loopHandle);
       gameRunning = true;
       draw();
       loopHandle = setInterval(update, SPEED);
     }
-
     document.getElementById('restartBtn').addEventListener('click', restartGame);
-
     /* ===== HAMILTON-SLINGA ===== */
     function buildHamilton(){
       const path=[]; let dir=1;
-      for(let y=0;y<ROWS;y++){
+      for(let y=0; y<ROWS; y++){
         if(dir>0){
-          for(let x=0;x<COLS;x++) if(!snakeSet.has(`${x},${y}`)) path.push({x,y});
-        }else{
-          for(let x=COLS-1;x>=0;x--) if(!snakeSet.has(`${x},${y}`)) path.push({x,y});
+          for(let x=0; x<COLS; x++) if(!snakeSet.has(`${x},${y}`)) path.push({x,y});
+        } else {
+          for(let x=COLS-1; x>=0; x--) if(!snakeSet.has(`${x},${y}`)) path.push({x,y});
         }
-        dir=-dir;
+        dir = -dir;
       }
       return path;
     }
     let HAM = buildHamilton();
     const idxOf = p => HAM.findIndex(q=>q.x===p.x&&q.y===p.y);
     const hamNext = p => {const i=idxOf(p); return i<0?null:HAM[(i+1)%HAM.length];};
-
     /* ===== HJÄLPFUNKTIONER ===== */
     function spawnFruit(){
       const free=[]; for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)
         if(!snakeSet.has(`${x},${y}`)) free.push({x,y});
       return free.length ? free[(Math.random()*free.length)|0] : {x:-1,y:-1};
     }
-    
     function isFruitAccessible(head){
-      if(!fruit||fruit.x<0) return false;
+      if(!fruit || fruit.x<0) return false;
       const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
       const Q=[{x:head.x,y:head.y}]; vis[head.y][head.x]=true;
       while(Q.length){
@@ -1229,7 +1019,6 @@
       }
       return false;
     }
-    
     function bfsWithAlternatives(sx,sy,gx,gy,allowTail,preferRandom=false){
       const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
       const prev=Array.from({length:ROWS},()=>Array(COLS).fill(null));
@@ -1253,9 +1042,8 @@
       }
       return path;
     }
-    
     function canReachTailFrom(head,body){
-      if(!body||body.length<2) return true;
+      if(!body || body.length<2) return true;
       const tail=body[body.length-1];
       if(head.x===tail.x&&head.y===tail.y) return true;
       const blocked=new Set(body.map(p=>`${p.x},${p.y}`));
@@ -1265,7 +1053,8 @@
         const {x,y}=Q.shift();
         if(x===tail.x&&y===tail.y) return true;
         for(const d of DIRS){
-          const nx=x+d.dx, ny=y+d.dy, key=`${nx},${ny}`;
+          const nx=x+d.dx, ny=y+d.dy;
+          const key=`${nx},${ny}`;
           if(nx<0||nx>=COLS||ny<0||ny>=ROWS||vis[ny][nx]) continue;
           if(blocked.has(key)&&!(nx===tail.x&&ny===tail.y)) continue;
           vis[ny][nx]=true; Q.push({x:nx,y:ny});
@@ -1273,7 +1062,6 @@
       }
       return false;
     }
-    
     const floodSize=(sx,sy,body)=>{
       const blocked=new Set(body.map(p=>`${p.x},${p.y}`));
       const startKey=`${sx},${sy}`;
@@ -1289,30 +1077,7 @@
       }
       return cnt;
     };
-    
-    function getMinStepsToFruit(){
-      if(!fruit||fruit.x<0) return Infinity;
-      const head=snake[0];
-      const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
-      const dist=Array.from({length:ROWS},()=>Array(COLS).fill(Infinity));
-      const Q=[{x:head.x,y:head.y}];
-      vis[head.y][head.x]=true; dist[head.y][head.x]=0;
-      while(Q.length){
-        const {x,y}=Q.shift();
-        if(x===fruit.x&&y===fruit.y) return dist[y][x];
-        for(const d of DIRS){
-          const nx=x+d.dx, ny=y+d.dy;
-          if(nx<0||nx>=COLS||ny<0||ny>=ROWS||vis[ny][nx]) continue;
-          const key=`${nx},${ny}`;
-          const isTailStep=snake.length>1&&nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
-          if(snakeSet.has(key)&&!isTailStep) continue;
-          vis[ny][nx]=true; dist[ny][nx]=dist[y][x]+1; Q.push({x:nx,y:ny});
-        }
-      }
-      return Infinity;
-    }
-    
-    const getDistancesFromTail=()=>{
+    function getDistancesFromTail(){
       const dmap=Array.from({length:ROWS},()=>Array(COLS).fill(-1));
       if(snake.length<2) return dmap;
       const tail=snake[snake.length-1];
@@ -1330,14 +1095,12 @@
       }
       return dmap;
     };
-    
     function detectLoop(){
       if(lastMoves.length<MAX_LOOP_DETECTION) return false;
       const recent=lastMoves.slice(-MAX_LOOP_DETECTION);
       const unique=new Set(recent.map(p=>`${p.x},${p.y}`)).size;
       return unique<=MAX_LOOP_DETECTION/2;
     }
-    
     function calculateZigZagPath(){
       const head=snake[0];
       let lastDx=0,lastDy=0;
@@ -1363,7 +1126,6 @@
       moves.sort((a,b)=>b.priority-a.priority);
       return {x:moves[0].x,y:moves[0].y};
     }
-    
     function getBackToHamilton(head){
       const currentIdx=idxOf(head);
       if(currentIdx!==-1) return null;
@@ -1384,7 +1146,6 @@
       }
       return best;
     }
-    
     function isFruitInPocket(){
       if(!fruit||fruit.x<0) return false;
       let blocked=0;
@@ -1396,7 +1157,6 @@
       const steps=getMinStepsToFruit();
       return blocked>=3 || (blocked>=2 && steps>(COLS+ROWS)/2);
     }
-    
     function fillSmallestPocket(){
       const head=snake[0];
       const freeCells=[], vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
@@ -1427,90 +1187,107 @@
       }
       return null;
     }
-
+    function getMinStepsToFruit(){
+      if(!fruit||fruit.x<0) return Infinity;
+      const head=snake[0];
+      const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+      const dist=Array.from({length:ROWS},()=>Array(COLS).fill(Infinity));
+      const Q=[{x:head.x,y:head.y}];
+      vis[head.y][head.x]=true; dist[head.y][head.x]=0;
+      while(Q.length){
+        const {x,y}=Q.shift();
+        if(x===fruit.x&&y===fruit.y) return dist[y][x];
+        for(const d of DIRS){
+          const nx=x+d.dx, ny=y+d.dy;
+          if(nx<0||nx>=COLS||ny<0||ny>=ROWS||vis[ny][nx]) continue;
+          const key=`${nx},${ny}`;
+          const isTailStep=snake.length>1&&nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
+          if(snakeSet.has(key)&&!isTailStep) continue;
+          vis[ny][nx]=true; dist[ny][nx]=dist[y][x]+1; Q.push({x:nx,y:ny});
+        }
+      }
+      return Infinity;
+    }
     /* ===== GET NEXT ===== */
     function getNext(){
       HAM = buildHamilton();
       const head=snake[0];
-
       windowMoves.push(`${head.x},${head.y}`);
       if(windowMoves.length>WINDOW_SIZE) windowMoves.shift();
-
       lastMoves.push({x:head.x,y:head.y});
       if(lastMoves.length>MAX_LOOP_DETECTION) lastMoves.shift();
-
       const freeCells=COLS*ROWS - snake.length;
-      const isEndgame=freeCells<=ENDGAME_THRESHOLD;
-
-      if(!hamMode && freeCells>ENDGAME_THRESHOLD){
+      const isEndgame = freeCells <= (ENDGAME_THRESHOLD + loopCountAdjust);
+      if(!hamMode && freeCells > (ENDGAME_THRESHOLD + loopCountAdjust)){
         const uniq=new Set(windowMoves).size;
-        if(uniq<WINDOW_SIZE/2){
-          hamMode=true; loopStreak=0; noProgressMoves=0;
-          currentStrategy="Forcing Hamilton (Stagnation)";
+        if(uniq < WINDOW_SIZE/2){
+          hamMode = true; loopStreak = 0; noProgressMoves = 0;
+          currentStrategy = "Forcing Hamilton (Stagnation)";
+          loopCountAdjust++;
         }
       }
-
-      if(freeCells<=1){
-        const nxt=hamNext(head);
+      if(freeCells <= 1){
+        const nxt = hamNext(head);
         if(nxt){
-          const isTail=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
-          if(!snakeSet.has(`${nxt.x},${nxt.y}`)||isTail){
-            currentStrategy="Final Hamilton"; return nxt;
+          const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
+          if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
+            currentStrategy = "Final Hamilton";
+            return nxt;
           }
         }
       }
-
       if(isEndgame){
         const back=getBackToHamilton(head);
-        if(back){currentStrategy="Returning to Hamilton"; return back;}
+        if(back){ currentStrategy="Returning to Hamilton"; return back; }
         const nxt=hamNext(head);
         if(nxt){
           const key=`${nxt.x},${nxt.y}`;
           const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if((!snakeSet.has(key)||isTailStep)&&canReachTailFrom(nxt,sim)){
+          if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
             currentStrategy="Endgame Hamilton"; return nxt;
           }
         }
       }
-
-      if(fruit&&fruit.x>=0){
-        const d=Math.abs(head.x-fruit.x)+Math.abs(head.y-fruit.y);
-        if(d<prevFruitDist){prevFruitDist=d; noProgressMoves=0;}
+      if(fruit && fruit.x >= 0){
+        const d = Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y);
+        if(d < prevFruitDist){ prevFruitDist = d; noProgressMoves = 0; }
         else noProgressMoves++;
-      }else{prevFruitDist=Infinity; noProgressMoves=0;}
-
-      if(!hamMode && noProgressMoves>=NO_PROGRESS_THRESHOLD){
-        hamMode=true; loopStreak=0; noProgressMoves=0;
-        currentStrategy="Forcing Hamilton (No progress)";
+      } else {
+        prevFruitDist = Infinity; noProgressMoves = 0;
       }
-
+      if(!hamMode && noProgressMoves >= NO_PROGRESS_THRESHOLD){
+        hamMode = true; loopStreak = 0; noProgressMoves = 0;
+        currentStrategy = "Forcing Hamilton (No progress)";
+        loopCountAdjust++;
+      }
       if(hamMode){
-        const nxt=hamNext(head);
+        const nxt = hamNext(head);
         if(nxt){
           const key=`${nxt.x},${nxt.y}`;
           const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if((!snakeSet.has(key)||isTailStep)&&canReachTailFrom(nxt,sim)){
-            currentStrategy="Hamilton cycle"; return nxt;
+          if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
+            currentStrategy = "Hamilton cycle";
+            return nxt;
           }
         }
-        hamMode=false;
+        hamMode = false;
       }
-
-      loopDetected=detectLoop();
-      loopStreak=loopDetected?loopStreak+1:0;
-      if(!hamMode && loopStreak>=LOOP_STREAK_THRESHOLD){
-        hamMode=true; loopStreak=0; loopDetected=false;
-        currentStrategy="Forcing Hamilton (Loop)";
+      loopDetected = detectLoop();
+      loopStreak = loopDetected ? loopStreak + 1 : 0;
+      if(loopDetected && !hamMode){
+        hamMode = true;
+        loopStreak = 0;
+        currentStrategy = "Forcing Hamilton (Immediate Loop)";
+        loopCountAdjust++;
       }
-
-      if(loopDetected && snake.length>=2){
-        if (freeCells <= FILL_POCKET_LIMIT) {
+      if(loopDetected && snake.length >= 2){
+        if(freeCells <= FILL_POCKET_LIMIT){
           const fillMove = fillSmallestPocket();
-          if(fillMove){currentStrategy="Filling smallest pocket"; return fillMove;}
+          if(fillMove){ currentStrategy="Filling smallest pocket"; return fillMove; }
         }
-        const dmap=getDistancesFromTail();
+        const dmap = getDistancesFromTail();
         let best=null,bestDist=-1;
         for(const d of DIRS){
           const nx=head.x+d.dx, ny=head.y+d.dy;
@@ -1522,10 +1299,9 @@
           const dist=dmap[ny][nx];
           if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
         }
-        if(best){currentStrategy="Loop break (Longest)"; return best;}
+        if(best){ currentStrategy="Loop break (Longest)"; return best; }
       }
-
-      const fruitAcc=isFruitAccessible(head);
+      const fruitAcc = isFruitAccessible(head);
       if(fruitAcc && freeCells>15){
         let choices=[],minD=Infinity;
         for(const d of DIRS){
@@ -1540,28 +1316,29 @@
           if(nd<minD){minD=nd; choices=[{x:nx,y:ny}];}
           else if(nd===minD){choices.push({x:nx,y:ny});}
         }
-        if(choices.length){currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0];}
+        if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
       }
-
-      const inPocket=isFruitInPocket();
+      const inPocket = isFruitInPocket();
       if(!compactMode && (inPocket||loopDetected) && freeCells>15){
-        compactMode=true; compactModeSteps=0;
+        compactMode = true; compactModeSteps = 0;
       }
       if(compactMode){
-        const zig=calculateZigZagPath();
-        if(zig){compactModeSteps++; currentStrategy="Compact zig-zag"; return zig;}
-        else compactMode=false;
-      }
-
-      if(fruitAcc && freeCells>1){
-        const path=bfsWithAlternatives(head.x,head.y,fruit.x,fruit.y,false,loopDetected);
-        if(path&&path.length){
-          const nxt=path[0];
-          const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if(canReachTailFrom(nxt,sim)){currentStrategy="BFS to fruit"; return nxt;}
+        if(compactModeSteps >= COMPACT_MODE_MAX_STEPS){
+          compactMode = false; compactModeSteps = 0;
+        } else {
+          const zig = calculateZigZagPath();
+          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return zig; }
+          else{ compactMode = false; }
         }
       }
-
+      if(fruitAcc && freeCells>1){
+        const path=bfsWithAlternatives(head.x,head.y,fruit.x,fruit.y,false,loopDetected);
+        if(path && path.length){
+          const nxt=path[0];
+          const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return nxt; }
+        }
+      }
       let bestScore=-Infinity,bestMoves=[];
       const tailPos=snake.length>1?snake[snake.length-1]:null;
       const randomFactor=loopDetected?Math.random()*5:0;
@@ -1579,37 +1356,31 @@
         if(fruit&&fruit.x>=0&&freeCells>Math.max(6, COLS-2)){
           score+=(COLS+ROWS-(Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y)))*2*avoidFactor;
         }
-        if(isEndgame&&tailPos&&nx===tailPos.x&&ny===tailPos.y) score+=10000;
+        if(isEndgame && tailPos && nx===tailPos.x && ny===tailPos.y) score+=10000;
         score+=Math.min(nx,ny,COLS-1-nx,ROWS-1-ny);
         score+=randomFactor;
         score+=freeAfter*2;
-        if(score>bestScore){bestScore=score; bestMoves=[{x:nx,y:ny}];}
-        else if(score===bestScore){bestMoves.push({x:nx,y:ny});}
+        if(score>bestScore){ bestScore=score; bestMoves=[{x:nx,y:ny}]; }
+        else if(score===bestScore){ bestMoves.push({x:nx,y:ny}); }
       }
-      if(bestMoves.length){currentStrategy="Heuristic"; return bestMoves[(Math.random()*bestMoves.length)|0];}
-
+      if(bestMoves.length){ currentStrategy="Heuristic"; return bestMoves[(Math.random()*bestMoves.length)|0]; }
       const tail=snake.length>1?snake[snake.length-1]:head;
       const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
-      if(path&&path.length){
+      if(path && path.length){
         const nxt=path[0];
         const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-        if(canReachTailFrom(nxt,sim)){currentStrategy="BFS to tail"; return nxt;}
+        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return nxt; }
       }
-
       currentStrategy="No safe move!";
       return null;
     }
-
     /* ===== RENDER ===== */
     function draw(){
-      // Clear canvas with gradient
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       gradient.addColorStop(0, '#1a1a2e');
       gradient.addColorStop(1, '#0f0f23');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Grid effect
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
       ctx.lineWidth = 1;
       for(let i = 0; i <= COLS; i++) {
@@ -1624,10 +1395,7 @@
         ctx.lineTo(canvas.width, i * CELL);
         ctx.stroke();
       }
-
-      // Draw fruit with glow effect
       if(fruit && fruit.x >= 0){
-        // Glow
         const glowGradient = ctx.createRadialGradient(
           fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, 0,
           fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL
@@ -1636,8 +1404,6 @@
         glowGradient.addColorStop(1, 'transparent');
         ctx.fillStyle = glowGradient;
         ctx.fillRect(fruit.x * CELL, fruit.y * CELL, CELL, CELL);
-
-        // Fruit body
         const fruitGradient = ctx.createRadialGradient(
           fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, 0,
           fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL/2.5
@@ -1648,29 +1414,20 @@
         ctx.beginPath();
         ctx.arc(fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL/2.5, 0, 2 * Math.PI);
         ctx.fill();
-
-        // Highlight
         ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.beginPath();
         ctx.arc(fruit.x * CELL + CELL/2.5, fruit.y * CELL + CELL/2.5, CELL/6, 0, 2 * Math.PI);
         ctx.fill();
       }
-
-      // Draw snake with 2.5D effect
       const headColor = hamMode ? '#4ade80' : compactMode ? '#f97316' : loopDetected ? '#fbbf24' : '#667eea';
-      
       snake.forEach((p, i) => {
         const isHead = i === 0;
         const size = CELL * 0.95;
         const offset = (CELL - size) / 2;
         const x = p.x * CELL + offset;
         const y = p.y * CELL + offset;
-
-        // Shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.fillRect(x + 2, y + 2, size, size);
-
-        // Main body gradient
         const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
         if(isHead) {
           gradient.addColorStop(0, headColor);
@@ -1683,154 +1440,112 @@
           gradient.addColorStop(0, `rgb(${r}, ${g}, ${b})`);
           gradient.addColorStop(1, `rgb(${r - 30}, ${g - 30}, ${b - 30})`);
         }
-        
         ctx.fillStyle = gradient;
         ctx.fillRect(x, y, size, size);
-
-        // 3D highlight
         ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.fillRect(x, y, size, size/3);
-
-        // Eyes for head
         if(isHead) {
           ctx.fillStyle = '#fff';
           let eyeX1, eyeY1, eyeX2, eyeY2;
-          
-          if(snake.length > 1) {
+          if(snake.length > 1){
             const dx = p.x - snake[1].x;
             const dy = p.y - snake[1].y;
-            
-            if(dx === 1) { // right
+            if(dx === 1) {
               eyeX1 = x + size - size/4;
               eyeY1 = y + size/4;
               eyeX2 = x + size - size/4;
               eyeY2 = y + size - size/4;
-            } else if(dx === -1) { // left
+            } else if(dx === -1) {
               eyeX1 = x + size/4;
               eyeY1 = y + size/4;
               eyeX2 = x + size/4;
               eyeY2 = y + size - size/4;
-            } else if(dy === 1) { // down
+            } else if(dy === 1) {
               eyeX1 = x + size/4;
               eyeY1 = y + size - size/4;
               eyeX2 = x + size - size/4;
               eyeY2 = y + size - size/4;
-            } else { // up
+            } else {
               eyeX1 = x + size/4;
               eyeY1 = y + size/4;
               eyeX2 = x + size - size/4;
               eyeY2 = y + size/4;
             }
-            
-            ctx.beginPath();
-            ctx.arc(eyeX1, eyeY1, size/10, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(eyeX2, eyeY2, size/10, 0, 2 * Math.PI);
-            ctx.fill();
-            
-            // Pupils
+            ctx.beginPath(); ctx.arc(eyeX1, eyeY1, size/10, 0, 2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(eyeX2, eyeY2, size/10, 0, 2*Math.PI); ctx.fill();
             ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(eyeX1, eyeY1, size/20, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(eyeX2, eyeY2, size/20, 0, 2 * Math.PI);
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(eyeX1, eyeY1, size/20, 0, 2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(eyeX2, eyeY2, size/20, 0, 2*Math.PI); ctx.fill();
           }
         }
       });
-
-      // Update status displays
       document.getElementById('strategyStatus').textContent = `Strategy: ${currentStrategy}`;
       document.getElementById('hamStatus').textContent = hamMode ? "Hamilton active" : "";
       document.getElementById('loopStatus').textContent = loopDetected ? `Loop detected! (${loopStreak})` : "";
       document.getElementById('compactStatus').textContent = compactMode ? "Compact mode active" : "";
       document.getElementById('compactStepStatus').textContent = compactMode ? `Step ${compactModeSteps}/${COMPACT_MODE_MAX_STEPS}` : "";
-      
-      // Update game stats
-      const freeCells = COLS * ROWS - snake.length;
+      const freeCellsCount = COLS * ROWS - snake.length;
       document.getElementById('snakeLength').textContent = snake.length;
-      document.getElementById('freeCells').textContent = freeCells;
+      document.getElementById('freeCells').textContent = freeCellsCount;
       document.getElementById('progress').textContent = ((snake.length / (COLS * ROWS)) * 100).toFixed(1) + '%';
     }
-
     /* ===== UPDATE ===== */
     function update(){
-      if(!snake.length){ 
-        clearInterval(loopHandle); 
-        gameRunning = false;
-        return; 
-      }
-      
+      if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
       const nxt = getNext();
       if(!nxt){
-        clearInterval(loopHandle); 
+        clearInterval(loopHandle);
         gameRunning = false;
         draw();
-        
-        // Game over overlay
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 32px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(snake.length === COLS * ROWS ? "PERFECT! 🎉" : "Game Over", canvas.width/2, canvas.height/2);
-        
         ctx.font = '20px Inter, sans-serif';
         ctx.fillText(`Final length: ${snake.length}`, canvas.width/2, canvas.height/2 + 40);
         return;
       }
-      
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
-        
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
         ctx.fillStyle = '#ef4444';
         ctx.font = 'bold 32px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText("Crash! 💥", canvas.width/2, canvas.height/2);
         return;
       }
-      
       const ate = fruit && fruit.x >= 0 && nxt.x === fruit.x && nxt.y === fruit.y;
       if(!ate){
         const tail = snake.pop();
         snakeSet.delete(`${tail.x},${tail.y}`);
       }
-      
       snake.unshift({x: nxt.x, y: nxt.y});
       snakeSet.add(`${nxt.x},${nxt.y}`);
-      
       if(ate){
+        loopCountAdjust = 0;
         if(snake.length === COLS * ROWS){
           fruit = {x: -1, y: -1};
           draw();
           clearInterval(loopHandle);
           gameRunning = false;
-          
-          // Victory screen
           ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
           const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
           gradient.addColorStop(0, '#667eea');
           gradient.addColorStop(0.5, '#f093fb');
           gradient.addColorStop(1, '#764ba2');
-          
           ctx.fillStyle = gradient;
           ctx.font = 'bold 48px Inter, sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText("PERFECT! 🏆", canvas.width/2, canvas.height/2);
-          
           ctx.fillStyle = '#fff';
           ctx.font = '24px Inter, sans-serif';
-          ctx.fillText("You filled the entire board!", canvas.width/2, canvas.height/2 + 50);     //ctx.fillText("Du fyllde hela spelplanen!", canvas.width/2, canvas.height/2 + 50);
+          ctx.fillText("You filled the entire board!", canvas.width/2, canvas.height/2 + 50);
           return;
         } else {
           fruit = spawnFruit();
@@ -1838,14 +1553,11 @@
           noProgressMoves = 0;
         }
       }
-      
       draw();
     }
-
-    /* ===== KONTROLLER & START ===== */
+    /* ===== SPEED CONTROLS & STARTUP ===== */
     document.getElementById('slowerBtn').onclick = () => changeSpeed(SPEED + SPEED_STEP);
     document.getElementById('fasterBtn').onclick = () => changeSpeed(SPEED - SPEED_STEP);
-    
     function changeSpeed(v){
       v = Math.max(MIN_SPEED, Math.min(MAX_SPEED, v));
       if(v !== SPEED){
@@ -1857,142 +1569,47 @@
         }
       }
     }
-
-    // Start game
+    /* ===== PRESET LOADING ===== */
+    const presetButtons = document.querySelectorAll('.load-preset');
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = btn.dataset.preset;
+        // flag to prevent dynamic recalculation when grid size changes
+        window.loadingPreset = true;
+        if (preset === 'small') {
+          colsSlider.value = 10; rowsSlider.value = 10; updateGridSize();
+          LOOP_STREAK_THRESHOLD = 1; loopThreshSlider.value = 1; document.getElementById('loopThreshValue').textContent = 1;
+          NO_PROGRESS_THRESHOLD = 30; progThreshSlider.value = 30; document.getElementById('progThreshValue').textContent = 30;
+          ENDGAME_THRESHOLD = 5; endgameSlider.value = 5; document.getElementById('endgameValue').textContent = 5;
+          COMPACT_MODE_MAX_STEPS = 50; compactSlider.value = 50; document.getElementById('compactValue').textContent = 50;
+          changeSpeed(120);
+        } else if (preset === 'balanced') {
+          colsSlider.value = 20; rowsSlider.value = 20; updateGridSize();
+          LOOP_STREAK_THRESHOLD = 3; loopThreshSlider.value = 3; document.getElementById('loopThreshValue').textContent = 3;
+          NO_PROGRESS_THRESHOLD = 70; progThreshSlider.value = 70; document.getElementById('progThreshValue').textContent = 70;
+          ENDGAME_THRESHOLD = 40; endgameSlider.value = 40; document.getElementById('endgameValue').textContent = 40;
+          COMPACT_MODE_MAX_STEPS = 200; compactSlider.value = 200; document.getElementById('compactValue').textContent = 200;
+          changeSpeed(80);
+        } else if (preset === 'ultra') {
+          colsSlider.value = 30; rowsSlider.value = 30; updateGridSize();
+          LOOP_STREAK_THRESHOLD = 5; loopThreshSlider.value = 5; document.getElementById('loopThreshValue').textContent = 5;
+          NO_PROGRESS_THRESHOLD = 150; progThreshSlider.value = 150; document.getElementById('progThreshValue').textContent = 150;
+          ENDGAME_THRESHOLD = 80; endgameSlider.value = 80; document.getElementById('endgameValue').textContent = 80;
+          COMPACT_MODE_MAX_STEPS = 450; compactSlider.value = 450; document.getElementById('compactValue').textContent = 450;
+          changeSpeed(40);
+        }
+        window.loadingPreset = false;
+        restartGame();
+      });
+    });
+    // initial start
     restartGame();
-
-    // Initialize displayed values
     document.getElementById('colsValue').textContent = COLS;
     document.getElementById('rowsValue').textContent = ROWS;
     document.getElementById('loopThreshValue').textContent = LOOP_STREAK_THRESHOLD;
     document.getElementById('progThreshValue').textContent = NO_PROGRESS_THRESHOLD;
     document.getElementById('endgameValue').textContent = ENDGAME_THRESHOLD;
     document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
-
-    // Save combination functionality
-    const saveComboBtn = document.getElementById('saveComboBtn');
-    if(saveComboBtn) {
-      saveComboBtn.addEventListener('click', () => {
-        const combo = {
-          grid: `${COLS}x${ROWS}`,
-          loop_threshold: LOOP_STREAK_THRESHOLD,
-          no_progress: NO_PROGRESS_THRESHOLD,
-          endgame: ENDGAME_THRESHOLD,
-          compact_steps: COMPACT_MODE_MAX_STEPS,
-          speed: SPEED,
-          date: new Date().toLocaleDateString('en-US'),
-          time: new Date().toLocaleTimeString('en-US')
-        };
-        
-        const comboText = `Snake AI Pro - My Combination
-========================
-Grid: ${combo.grid}
-Loop Threshold: ${combo.loop_threshold}
-No Progress: ${combo.no_progress}
-Endgame: ${combo.endgame}
-Compact Steps: ${combo.compact_steps}
-Speed: ${combo.speed}ms
-Date: ${combo.date} ${combo.time}`;
-        
-        document.getElementById('comboText').textContent = comboText;
-        document.getElementById('savedCombo').style.display = 'block';
-        
-        // Copy to clipboard
-        navigator.clipboard.writeText(comboText).then(() => {
-          saveComboBtn.textContent = '✅ Copied to clipboard!';
-          setTimeout(() => {
-            saveComboBtn.textContent = '📤 Save & Send Combination';
-          }, 3000);
-        });
-      });
-    }
-
-    // Load preset functionality
-    const presetButtons = document.querySelectorAll('.load-preset');
-    const presets = {
-      speedrun: { cols: 15, rows: 15, loop: 5, progress: 80, endgame: 30, compact: 150, speed: 50 },
-      safe: { cols: 15, rows: 15, loop: 1, progress: 40, endgame: 60, compact: 80, speed: 100 },
-      balanced: { cols: 20, rows: 20, loop: 3, progress: 70, endgame: 50, compact: 200, speed: 75 },
-      small: { cols: 10, rows: 10, loop: 1, progress: 50, endgame: 10, compact: 100, speed: 150 },
-      large: { cols: 25, rows: 25, loop: 6, progress: 150, endgame: 20, compact: 300, speed: 25 },
-      ultra: { cols: 30, rows: 30, loop: 8, progress: 200, endgame: 40, compact: 450, speed: 10 }
-    };
-
-    presetButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const presetName = btn.dataset.preset;
-        const preset = presets[presetName];
-        
-        if(preset) {
-          // Set flag to prevent auto-adjustment
-          window.loadingPreset = true;
-          
-          // Update sliders
-          document.getElementById('colsSlider').value = preset.cols;
-          document.getElementById('rowsSlider').value = preset.rows;
-          document.getElementById('loopThreshSlider').value = preset.loop;
-          document.getElementById('progThreshSlider').value = preset.progress;
-          document.getElementById('endgameSlider').value = preset.endgame;
-          document.getElementById('compactSlider').value = preset.compact;
-          
-          // Update values
-          COLS = preset.cols;
-          ROWS = preset.rows;
-          LOOP_STREAK_THRESHOLD = preset.loop;
-          NO_PROGRESS_THRESHOLD = preset.progress;
-          ENDGAME_THRESHOLD = preset.endgame;
-          COMPACT_MODE_MAX_STEPS = preset.compact;
-          SPEED = preset.speed;
-          
-          // Update displays
-          document.getElementById('colsValue').textContent = COLS;
-          document.getElementById('rowsValue').textContent = ROWS;
-          document.getElementById('loopThreshValue').textContent = LOOP_STREAK_THRESHOLD;
-          document.getElementById('progThreshValue').textContent = NO_PROGRESS_THRESHOLD;
-          document.getElementById('endgameValue').textContent = ENDGAME_THRESHOLD;
-          document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
-          document.getElementById('speedDisplay').textContent = `Hastighet: ${SPEED}ms`;
-          
-          // Recalculate grid-dependent values
-          CELL = canvas.width / COLS;
-          MAX_LOOP_DETECTION = Math.max(8, (COLS + ROWS) / 2 | 0);
-          FILL_POCKET_LIMIT = COLS * 4;
-          
-          // Restart game
-          restartGame();
-          
-          // Clear flag
-          window.loadingPreset = false;
-          
-          // Switch to game page
-          navLinks.forEach(l => l.classList.remove('active'));
-          document.querySelector('[data-page="game"]').classList.add('active');
-          pages.forEach(p => p.classList.remove('active'));
-          document.getElementById('game-page').classList.add('active');
-          
-          // Flash button
-          btn.textContent = '✅ Loaded!';
-          setTimeout(() => {
-            btn.textContent = 'Load this';
-          }, 2000);
-        }
-      });
-    });
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
