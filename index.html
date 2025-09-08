@@ -618,7 +618,7 @@
   <!-- Navigation -->
   <nav>
     <div class="nav-container">
-      <div class="logo">Snake AI</div>
+      <div class="logo">Snake Simulation</div>
       <ul class="nav-links">
         <li><a href="#" class="nav-link active" data-page="game">Game</a></li>
         <li><a href="#" class="nav-link" data-page="guide">Guide</a></li>
@@ -633,10 +633,9 @@
   <div id="game-page" class="page active">
     <div class="container">
       <div class="hero">
-        <h1>Snake AI</h1>
+        <h1>Snake Simulation</h1>
         <p>Experience the perfect Snake AI algorithms</p>
 		<p>Your goal is to find the best adjustments to complete the board</p>
-		<p>Adjust the grid size to give for longer simulations</p>
       </div>
 
       <div class="game-wrapper">
@@ -652,7 +651,7 @@
                 <span style="font-size: 1.2rem;">🐌</span>
                 <span>Slower</span>
               </button>
-              <div id="speedDisplay" class="speed-display">Speed: 150ms</div>
+              <div id="speedDisplay" class="speed-display">Speed: 100ms</div>
               <button id="fasterBtn" class="button speed-btn">
                 <span style="font-size: 1.2rem;">⚡</span>
                 <span>Faster</span>
@@ -667,15 +666,15 @@
           <div class="controls-section">
             <h3>Grid Size</h3>
             <div class="param-control">
-              <label>Columns (COLS): <span id="colsValue">20</span></label>
-              <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="10">
+              <label>Columns (COLS): <span id="colsValue">10</span></label>
+              <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="10" step="10">
             </div>
             <div class="param-control">
-              <label>Rows (ROWS): <span id="rowsValue">20</span></label>
-              <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="20" step="10">
+              <label>Rows (ROWS): <span id="rowsValue">10</span></label>
+              <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="10" step="10">
             </div>
             <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
-              ⚡ Changing grid size will restart the game
+              ⚡ Change this for bigger or smaller game simulation, Changing grid size will restart the game
             </small>
           </div>
 
@@ -691,6 +690,12 @@
           <div class="controls-section">
             <h3>AI Parameters</h3>
             
+			 <div class="param-control">
+              <label>Endgame Threshold: <span id="endgameValue">5</span></label>
+              <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="5" step="5">
+              <small>Free cells for endgame mode</small>
+            </div>
+			
             <div class="param-control">
               <label>Loop Streak Threshold: <span id="loopThreshValue">1</span></label>
               <input type="range" id="loopThreshSlider" class="size-slider" min="1" max="10" value="1" step="1">
@@ -702,12 +707,7 @@
               <input type="range" id="progThreshSlider" class="size-slider" min="10" max="200" value="50" step="5">
               <small>Moves without progress → Hamilton mode</small>
             </div>
-            
-            <div class="param-control">
-              <label>Endgame Threshold: <span id="endgameValue">5</span></label>
-              <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="5" step="5">
-              <small>Free cells for endgame mode</small>
-            </div>
+                      
             
             <div class="param-control">
               <label>Compact Mode Steps: <span id="compactValue">100</span></label>
@@ -1006,14 +1006,14 @@
 
   <script>
     /* ===== KONFIGURATION ===== */
-    let COLS = 20, ROWS = 20;
-    let CELL = 40;
-    let SPEED = 70;
+    let COLS = 10, ROWS = 10;
+    let CELL = 60;
+    let SPEED = 100;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
     const MAX_SPEED = 500, MIN_SPEED = 1, SPEED_STEP = 10;
 
     /* ===== DYNAMISKA TRÖSKLAR ===== */
-    let ENDGAME_THRESHOLD = 120;
+    let ENDGAME_THRESHOLD = 5;
     let MAX_LOOP_DETECTION = Math.max(8,(COLS+ROWS)/2|0);
     let WINDOW_SIZE = 0;
     let FILL_POCKET_LIMIT = COLS * 4;
@@ -1981,7 +1981,6 @@ Date: ${combo.date} ${combo.time}`;
   </script>
 </body>
 </html>
-
 
 
 
