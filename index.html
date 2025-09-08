@@ -1006,14 +1006,14 @@
 
   <script>
     /* ===== KONFIGURATION ===== */
-    let COLS = 10, ROWS = 10;
+    let COLS = 20, ROWS = 20;
     let CELL = 60;
-    let SPEED = 100;
+    let SPEED = 70;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
     const MAX_SPEED = 500, MIN_SPEED = 1, SPEED_STEP = 10;
 
     /* ===== DYNAMISKA TRÖSKLAR ===== */
-    let ENDGAME_THRESHOLD = 5;
+    let ENDGAME_THRESHOLD = 120;
     let MAX_LOOP_DETECTION = Math.max(8,(COLS+ROWS)/2|0);
     let WINDOW_SIZE = 0;
     let FILL_POCKET_LIMIT = COLS * 4;
@@ -1981,6 +1981,7 @@ Date: ${combo.date} ${combo.time}`;
   </script>
 </body>
 </html>
+
 
 
 
