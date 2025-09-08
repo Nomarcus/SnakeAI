@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Snake AI - Intelligent Snake Experience</title>
+  <title>Snake Simulation - Intelligent Snake Experience</title>
   
   <style>
     * {
@@ -577,12 +578,12 @@
           <div class="controls-section">
             <h3>Grid Size</h3>
             <div class="param-control">
-              <label>Columns (COLS): <span id="colsValue">10</span></label>
-              <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="10" step="10">
+              <label>Columns (COLS): <span id="colsValue">20</span></label>
+              <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="10">
             </div>
             <div class="param-control">
-              <label>Rows (ROWS): <span id="rowsValue">10</span></label>
-              <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="10" step="10">
+              <label>Rows (ROWS): <span id="rowsValue">20</span></label>
+              <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="20" step="10">
             </div>
             <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
               ⚡Changing grid size will restart the game
@@ -599,23 +600,23 @@
           <div class="controls-section">
             <h3>AI Parameters</h3>
             <div class="param-control">
-              <label>Endgame Threshold: <span id="endgameValue">5</span></label>
-              <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="5" step="5">
+              <label>Endgame Threshold: <span id="endgameValue">20</span></label>
+              <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="20" step="5">
               <small>Free cells for endgame mode</small>
             </div>
             <div class="param-control">
-              <label>Loop Streak Threshold: <span id="loopThreshValue">1</span></label>
-              <input type="range" id="loopThreshSlider" class="size-slider" min="1" max="10" value="1" step="1">
+              <label>Loop Streak Threshold: <span id="loopThreshValue">3</span></label>
+              <input type="range" id="loopThreshSlider" class="size-slider" min="1" max="10" value="3" step="1">
               <small>Loops detected before → Hamilton mode</small>
             </div>
             <div class="param-control">
-              <label>No Progress Threshold: <span id="progThreshValue">50</span></label>
-              <input type="range" id="progThreshSlider" class="size-slider" min="10" max="200" value="50" step="5">
+              <label>No Progress Threshold: <span id="progThreshValue">70</span></label>
+              <input type="range" id="progThreshSlider" class="size-slider" min="10" max="200" value="70" step="5">
               <small>Moves without progress → Hamilton mode</small>
             </div>
             <div class="param-control">
-              <label>Compact Mode Steps: <span id="compactValue">100</span></label>
-              <input type="range" id="compactSlider" class="size-slider" min="0" max="300" value="112" step="10">
+              <label>Compact Mode Steps: <span id="compactValue">200</span></label>
+              <input type="range" id="compactSlider" class="size-slider" min="0" max="300" value="200" step="10">
               <small>Max steps in compact mode</small>
             </div>
           </div>
@@ -842,14 +843,14 @@
   <!-- Embedded updated JS logic -->
   <script>
     /* ===== KONFIGURATION ===== */
-    let COLS = 10, ROWS = 10;
-    let CELL = 60;
+    let COLS = 20, ROWS = 20;
+    let CELL = 30;
     let SPEED = 100;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
     const MAX_SPEED = 500, MIN_SPEED = 1, SPEED_STEP = 10;
     /* ===== DYNAMISKA TRÖSKLAR ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
-    let ENDGAME_THRESHOLD = 5;
+    let ENDGAME_THRESHOLD = 20;
     let MAX_LOOP_DETECTION = Math.max(8,(COLS+ROWS)/2|0);
     let WINDOW_SIZE = Math.max(10, COLS + ROWS);
     let FILL_POCKET_LIMIT = COLS * 4;
@@ -858,8 +859,8 @@
     const ctx = canvas.getContext('2d');
     /* ===== AI-PARAMETRAR ===== */
     let LOOP_STREAK_THRESHOLD = 1;
-    let NO_PROGRESS_THRESHOLD = 50;
-    let COMPACT_MODE_MAX_STEPS = 100;
+    let NO_PROGRESS_THRESHOLD = 70;
+    let COMPACT_MODE_MAX_STEPS = 200;
     let loopCountAdjust = 0;
     /* ===== SPELSTATE ===== */
     let snake=[], snakeSet=new Set();
