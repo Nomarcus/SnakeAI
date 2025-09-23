@@ -21,6 +21,7 @@ An intelligent Snake game with sophisticated AI algorithms and real-time paramet
 - **Multiple Grid Sizes**: From 10x10 to 60x60 for different challenges
 - **Speed Control**: Adjust game speed from 1ms to 500ms
 - **Live Strategy Display**: See what the AI is thinking in real-time
+- **Browser Training Sandbox**: Train multiple environments simultaneously in the browser, toggle auto mode, and load saved models without running Node.js
 
 ### 🎨 Modern Design
 - **Glassmorphism UI**: Beautiful modern interface with blur effects
