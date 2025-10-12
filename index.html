@@ -577,7 +577,6 @@
           <p>Your goal is to find the best adjustments to complete the board</p>
           <p>Adjust Grid size for longer simulations</p>
         <!-- Added hint for players: follow the guide when the snake struggles -->
-        <p style="color: var(--warning); opacity: 0.9;">If the snake have bad luck, restart or follow the guide to adjust the parameters for a winning strategy. Or just use the presets</p>
       </div>
       <div class="game-wrapper">
         <div class="game-container">
@@ -605,11 +604,11 @@
             <h3>Grid Size</h3>
             <div class="param-control">
               <label>Columns (COLS): <span id="colsValue">20</span></label>
-              <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="10">
+              <input type="range" id="colsSlider" class="size-slider" min="5" max="100" value="20" step="5">
             </div>
             <div class="param-control">
               <label>Rows (ROWS): <span id="rowsValue">20</span></label>
-              <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="20" step="10">
+              <input type="range" id="rowsSlider" class="size-slider" min="5" max="100" value="20" step="5">
             </div>
             <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
               ⚡Changing grid size will restart the game
@@ -685,6 +684,10 @@
                 <h4>Current Plan</h4>
                 <p id="planDescription">Analyzing the opening move…</p>
               </div>
+            </div>
+            <div class="plan-box">
+              <h4>Aktuell plan</h4>
+              <p id="planDescription">Analyserar första draget…</p>
             </div>
           </div>
 
