@@ -404,6 +404,11 @@
       font-weight: 600;
       font-size: 1rem;
     }
+    .status-explanation {
+      color: var(--text);
+      opacity: 0.85;
+      line-height: 1.4;
+    }
     #hamStatus { color: #4ade80; }
     #loopStatus { color: #fbbf24; }
     #compactStatus { color: #f97316; }
@@ -550,8 +555,6 @@
         <h1>Snake Simulation</h1>
           <p>Your goal is to find the best adjustments to complete the board</p>
           <p>Adjust Grid size for longer simulations</p>
-        <!-- Added hint for players: follow the guide when the snake struggles -->
-        <p style="color: var(--warning); opacity: 0.9;">If the snake have bad luck, restart or follow the guide to adjust the parameters for a winning strategy. Or just use the presets</p>
       </div>
       <div class="game-wrapper">
         <div class="game-container">
@@ -579,11 +582,11 @@
             <h3>Grid Size</h3>
             <div class="param-control">
               <label>Columns (COLS): <span id="colsValue">20</span></label>
-              <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="10">
+              <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="5">
             </div>
             <div class="param-control">
               <label>Rows (ROWS): <span id="rowsValue">20</span></label>
-              <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="20" step="10">
+              <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="20" step="5">
             </div>
             <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
               ⚡Changing grid size will restart the game
@@ -641,6 +644,7 @@
             <h3>AI Status</h3>
             <div id="statusMessages">
               <p id="strategyStatus">Strategy: Initializing</p>
+              <p id="strategyExplanation" class="status-explanation"></p>
               <p id="hamStatus"></p>
               <p id="loopStatus"></p>
               <p id="compactStatus"></p>
@@ -869,6 +873,27 @@
         hamMode=false, compactMode=false, compactModeSteps=0,
         loopHandle=null, currentStrategy="Initializing";
     let gameRunning = false;
+    const STRATEGY_DESCRIPTIONS = {
+      "Initializing": "Setting up a safe opening path before committing to a plan.",
+      "Forcing Hamilton (Stagnation)": "Switching to the safety cycle because movement became repetitive.",
+      "Forcing Hamilton (No progress)": "Entering the Hamilton cycle after too many moves without reaching fruit.",
+      "Forcing Hamilton (Immediate Loop)": "Breaking a dangerous loop by following the Hamilton safety route.",
+      "Final Hamilton": "Finishing the board by following the final Hamilton path.",
+      "Returning to Hamilton": "Navigating back to the Hamilton cycle to stay safe.",
+      "Endgame Hamilton": "Sticking to the Hamilton cycle while space is limited.",
+      "Hamilton cycle": "Calmly marching along the Hamilton cycle for guaranteed coverage.",
+      "Filling smallest pocket": "Closing a small empty pocket before it becomes a trap.",
+      "Loop break (Longest)": "Taking the longest safe option to break a repeating loop.",
+      "Greedy to fruit": "Charging directly for the fruit while it looks safe.",
+      "Compact zig-zag": "Compressing the body with tight zig-zags to clear space.",
+      "BFS to fruit": "Calculating the safest shortest path to the fruit.",
+      "BFS to tail": "Using breadth-first search to reconnect with the tail safely.",
+      "Heuristic": "Balancing fruit hunting with safety heuristics.",
+      "No safe move!": "No safe moves remain – preparing for impact."
+    };
+    function getStrategyExplanation(strategy) {
+      return STRATEGY_DESCRIPTIONS[strategy] || "Assessing the board and adapting to the current situation.";
+    }
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
     const pages = document.querySelectorAll('.page');
@@ -894,12 +919,15 @@
     /* ===== GRID CONTROLS ===== */
     const colsSlider = document.getElementById('colsSlider');
     const rowsSlider = document.getElementById('rowsSlider');
-    function updateGridSize() {
-      const newCols = parseInt(colsSlider.value);
-      const newRows = parseInt(rowsSlider.value);
-      if (newCols !== COLS || newRows !== ROWS) {
-        COLS = newCols;
-        ROWS = newRows;
+    function updateGridSize(newSize) {
+      const targetSize = typeof newSize === 'number' ? newSize : parseInt(colsSlider.value);
+      if (Number.isNaN(targetSize)) return;
+      const targetValue = String(targetSize);
+      if (colsSlider.value !== targetValue) colsSlider.value = targetValue;
+      if (rowsSlider.value !== targetValue) rowsSlider.value = targetValue;
+      if (targetSize !== COLS || targetSize !== ROWS) {
+        COLS = targetSize;
+        ROWS = targetSize;
         document.getElementById('colsValue').textContent = COLS;
         document.getElementById('rowsValue').textContent = ROWS;
         CELL = canvas.width / COLS;
@@ -923,8 +951,13 @@
         restartGame();
       }
     }
-    colsSlider.addEventListener('input', updateGridSize);
-    rowsSlider.addEventListener('input', updateGridSize);
+    function handleGridInput(event) {
+      const value = parseInt(event.target.value);
+      if (Number.isNaN(value)) return;
+      updateGridSize(value);
+    }
+    colsSlider.addEventListener('input', handleGridInput);
+    rowsSlider.addEventListener('input', handleGridInput);
     /* ===== AI PARAMETER CONTROLS ===== */
     const loopThreshSlider = document.getElementById('loopThreshSlider');
     loopThreshSlider.addEventListener('input', (e) => {
@@ -1429,27 +1462,28 @@
         ctx.stroke();
       }
       if(fruit && fruit.x >= 0){
+        const centerX = fruit.x * CELL + CELL / 2;
+        const centerY = fruit.y * CELL + CELL / 2;
+        const appleRadius = CELL / 2.6;
         const glowGradient = ctx.createRadialGradient(
-          fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, 0,
-          fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL
+          centerX, centerY, 0,
+          centerX, centerY, CELL
         );
-        glowGradient.addColorStop(0, 'rgba(240, 147, 251, 0.6)');
+        glowGradient.addColorStop(0, 'rgba(220, 38, 38, 0.5)');
         glowGradient.addColorStop(1, 'transparent');
         ctx.fillStyle = glowGradient;
         ctx.fillRect(fruit.x * CELL, fruit.y * CELL, CELL, CELL);
-        const fruitGradient = ctx.createRadialGradient(
-          fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, 0,
-          fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL/2.5
-        );
-        fruitGradient.addColorStop(0, '#ff6b9d');
-        fruitGradient.addColorStop(1, '#c44569');
-        ctx.fillStyle = fruitGradient;
         ctx.beginPath();
-        ctx.arc(fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL/2.5, 0, 2 * Math.PI);
+        ctx.arc(centerX, centerY, appleRadius, 0, 2 * Math.PI);
+        ctx.fillStyle = '#d62828';
         ctx.fill();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = Math.max(2, CELL / 8);
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.beginPath();
-        ctx.arc(fruit.x * CELL + CELL/2.5, fruit.y * CELL + CELL/2.5, CELL/6, 0, 2 * Math.PI);
+        ctx.arc(centerX - appleRadius / 2.2, centerY - appleRadius / 2.2, appleRadius / 4, 0, 2 * Math.PI);
         ctx.fill();
       }
       const headColor = hamMode ? '#4ade80' : compactMode ? '#f97316' : loopDetected ? '#fbbf24' : '#667eea';
@@ -1513,10 +1547,11 @@
         }
       });
       document.getElementById('strategyStatus').textContent = `Strategy: ${currentStrategy}`;
-      document.getElementById('hamStatus').textContent = hamMode ? "Hamilton active" : "";
-      document.getElementById('loopStatus').textContent = loopDetected ? `Loop detected! (${loopStreak})` : "";
-      document.getElementById('compactStatus').textContent = compactMode ? "Compact mode active" : "";
-      document.getElementById('compactStepStatus').textContent = compactMode ? `Step ${compactModeSteps}/${COMPACT_MODE_MAX_STEPS}` : "";
+      document.getElementById('strategyExplanation').textContent = getStrategyExplanation(currentStrategy);
+      document.getElementById('hamStatus').textContent = hamMode ? "Following the Hamilton safety cycle." : "";
+      document.getElementById('loopStatus').textContent = loopDetected ? `Detected a loop – streak ${loopStreak}.` : "";
+      document.getElementById('compactStatus').textContent = compactMode ? "Compressing the body to clear space." : "";
+      document.getElementById('compactStepStatus').textContent = compactMode ? `Compact path step ${compactModeSteps} of ${COMPACT_MODE_MAX_STEPS}.` : "";
       const freeCellsCount = COLS * ROWS - snake.length;
       document.getElementById('snakeLength').textContent = snake.length;
       document.getElementById('freeCells').textContent = freeCellsCount;
