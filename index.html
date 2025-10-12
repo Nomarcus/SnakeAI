@@ -399,6 +399,30 @@
       font-size: 0.9rem;
       opacity: 0.9;
     }
+    .plan-box {
+      margin-top: 1rem;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--glass-border);
+      border-radius: 1rem;
+      padding: 1.2rem;
+      box-shadow: inset 0 0 18px rgba(102, 126, 234, 0.15);
+    }
+    .plan-box h4 {
+      margin-bottom: 0.6rem;
+      font-size: 1rem;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .plan-box h4::before {
+      content: '🧠';
+    }
+    .plan-box p {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      opacity: 0.9;
+    }
     #strategyStatus {
       color: var(--accent);
       font-weight: 600;
@@ -654,6 +678,10 @@
               <p id="compactStatus"></p>
               <p id="compactStepStatus"></p>
             </div>
+            <div class="plan-box">
+              <h4>Aktuell plan</h4>
+              <p id="planDescription">Analyserar första draget…</p>
+            </div>
           </div>
 
         </div>
@@ -868,6 +896,59 @@
     ctx.imageSmoothingEnabled = true;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
+    function hexToRgb(hex) {
+      const clean = hex.replace('#', '');
+      const bigint = parseInt(clean, 16);
+      return {
+        r: (bigint >> 16) & 255,
+        g: (bigint >> 8) & 255,
+        b: bigint & 255
+      };
+    }
+    function clampChannel(value) {
+      return Math.min(255, Math.max(0, Math.round(value)));
+    }
+    function lerpChannel(a, b, t) {
+      return a + (b - a) * t;
+    }
+    function lerpRgb(a, b, t) {
+      return {
+        r: clampChannel(lerpChannel(a.r, b.r, t)),
+        g: clampChannel(lerpChannel(a.g, b.g, t)),
+        b: clampChannel(lerpChannel(a.b, b.b, t))
+      };
+    }
+    function adjustRgb(rgb, factor) {
+      return {
+        r: clampChannel(rgb.r * factor),
+        g: clampChannel(rgb.g * factor),
+        b: clampChannel(rgb.b * factor)
+      };
+    }
+    function rgbToCss(rgb, alpha = 1) {
+      return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+    }
+    const bodyPalette = [
+      { pos: 0, rgb: hexToRgb('#6366f1') },
+      { pos: 0.22, rgb: hexToRgb('#38bdf8') },
+      { pos: 0.45, rgb: hexToRgb('#34d399') },
+      { pos: 0.72, rgb: hexToRgb('#f59e0b') },
+      { pos: 1, rgb: hexToRgb('#f472b6') }
+    ];
+    function mixBodyColor(t) {
+      if (!bodyPalette.length) return { r: 255, g: 255, b: 255 };
+      const clamped = Math.min(Math.max(t, 0), 1);
+      for (let i = 0; i < bodyPalette.length - 1; i++) {
+        const a = bodyPalette[i];
+        const b = bodyPalette[i + 1];
+        if (clamped <= b.pos) {
+          const span = b.pos - a.pos;
+          const localT = span === 0 ? 0 : (clamped - a.pos) / span;
+          return lerpRgb(a.rgb, b.rgb, localT);
+        }
+      }
+      return bodyPalette[bodyPalette.length - 1].rgb;
+    }
     /* ===== AI-PARAMETRAR ===== */
     let LOOP_STREAK_THRESHOLD = 1;
     let NO_PROGRESS_THRESHOLD = 70;
@@ -898,6 +979,22 @@
     const pages = document.querySelectorAll('.page');
     const runTimeDisplay = document.getElementById('runTime');
     const bestTimeDisplay = document.getElementById('bestTime');
+    const planDescriptionEl = document.getElementById('planDescription');
+    const planNarratives = {
+      'Initializing': 'Startar upp sensorerna och kartlägger spelplanen.',
+      'Greedy to fruit': 'Tar närmaste säkra väg mot frukten för maximal fart.',
+      'BFS to fruit': 'Beräknar en säker BFS-rutt direkt mot frukten.',
+      'BFS to tail': 'Söker svansen för att öppna nytt utrymme.',
+      'Loop break (Longest)': 'Tar en längre omväg för att bryta ut ur en loop.',
+      'Filling smallest pocket': 'Fyller en trång ficka så den inte blir en fälla senare.',
+      'Compact zig-zag': 'Zick-zackar tätt för att tömma ett litet område.',
+      'Heuristic': 'Väljer ett heuristiskt drag som balanserar risk och belöning.',
+      'Hamilton cycle': 'Cruisar längs Hamilton-slingan för maximal säkerhet.',
+      'Returning to Hamilton': 'Navigerar tillbaka till den säkra Hamilton-slingan.',
+      'Final Hamilton': 'Avslutar på Hamilton-slingan för en perfekt runda.',
+      'Endgame Hamilton': 'Säkrar slutet genom att följa Hamilton-slingan till punkt och pricka.',
+      'No safe move!': 'Ser inga säkra drag – försöker överleva en sista stund.'
+    };
     function formatDuration(ms){
       if (!ms || ms < 0) return '0:00.0';
       const totalSeconds = ms / 1000;
@@ -925,6 +1022,34 @@
         persistBestTime();
       }
       updateTimerDisplays();
+    }
+    function describeCurrentPlan(){
+      if(!snake.length) {
+        return 'Ormen väntar på en ny start.';
+      }
+      if(!gameRunning) {
+        return 'Spelet är pausat – starta om för att se nästa drag.';
+      }
+      if(compactMode) {
+        return 'Packar sig tätt och försöker frigöra frukten i ett trångt område.';
+      }
+      if(hamMode) {
+        if(currentStrategy.includes('Final') || currentStrategy.includes('Endgame')) {
+          return 'Följer sin Hamilton-slinga hela vägen in i mål.';
+        }
+        return 'Håller sig på Hamilton-slingan för att hålla kroppen i säkra rörelser.';
+      }
+      if(currentStrategy.includes('Forcing Hamilton')) {
+        return 'Bryter mönstret och hoppar in på Hamilton-slingan för extra säkerhet.';
+      }
+      if(loopDetected) {
+        return 'Identifierade en loop och planerar ett avbrott för att komma vidare.';
+      }
+      const narrative = planNarratives[currentStrategy];
+      if(narrative) {
+        return narrative;
+      }
+      return 'Analyserar utrymmet och väljer nästa säkra steg mot frukten.';
     }
     function finalizeRunTimer(){
       if(runStartTime){
@@ -979,9 +1104,20 @@
     /* ===== GRID CONTROLS ===== */
     const colsSlider = document.getElementById('colsSlider');
     const rowsSlider = document.getElementById('rowsSlider');
-    function updateGridSize() {
-      const newCols = parseInt(colsSlider.value);
-      const newRows = parseInt(rowsSlider.value);
+    function updateGridSize(event) {
+      if (event?.target === colsSlider) {
+        rowsSlider.value = colsSlider.value;
+      } else if (event?.target === rowsSlider) {
+        colsSlider.value = rowsSlider.value;
+      }
+      const newSize = parseInt(colsSlider.value, 10);
+      if (Number.isNaN(newSize)) {
+        return;
+      }
+      rowsSlider.value = String(newSize);
+      colsSlider.value = String(newSize);
+      const newCols = newSize;
+      const newRows = newSize;
       if (newCols !== COLS || newRows !== ROWS) {
         COLS = newCols;
         ROWS = newRows;
@@ -1548,7 +1684,9 @@
         ctx.fill();
         ctx.restore();
       }
-      const headColor = hamMode ? '#4ade80' : compactMode ? '#f97316' : loopDetected ? '#fbbf24' : '#667eea';
+      const headColor = hamMode ? '#4ade80' : compactMode ? '#fb923c' : loopDetected ? '#facc15' : '#8b5cf6';
+      const headAccent = hamMode ? '#16a34a' : compactMode ? '#ea580c' : loopDetected ? '#f59e0b' : '#a855f7';
+      const headGlow = hamMode ? 'rgba(34, 197, 94, 0.6)' : compactMode ? 'rgba(234, 88, 12, 0.55)' : loopDetected ? 'rgba(251, 191, 36, 0.55)' : 'rgba(168, 85, 247, 0.55)';
       snake.forEach((p, i) => {
         const isHead = i === 0;
         const size = CELL * 0.8;
@@ -1557,24 +1695,24 @@
         const y = p.y * CELL + offset;
         const radius = size * 0.45;
         const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
+        let shadowColor;
+        const shadowBlur = isHead ? 26 : 18;
         if(isHead) {
           gradient.addColorStop(0, headColor);
-          gradient.addColorStop(1, hamMode ? '#22c55e' : compactMode ? '#ea580c' : loopDetected ? '#f59e0b' : '#764ba2');
+          gradient.addColorStop(1, headAccent);
+          shadowColor = headGlow;
         } else {
           const t = snake.length > 1 ? i / (snake.length - 1) : 0;
-          const r = Math.round(120 + (82 - 120) * t);
-          const g = Math.round(144 + (110 - 144) * t);
-          const b = Math.round(255 + (210 - 255) * t);
-          gradient.addColorStop(0, `rgb(${r}, ${g}, ${b})`);
-          gradient.addColorStop(1, `rgb(${Math.max(0, r - 35)}, ${Math.max(0, g - 35)}, ${Math.max(0, b - 35)})`);
+          const baseColor = mixBodyColor(t);
+          const highlightColor = adjustRgb(baseColor, 1.2);
+          const shadowTone = adjustRgb(baseColor, 0.75);
+          gradient.addColorStop(0, rgbToCss(highlightColor));
+          gradient.addColorStop(1, rgbToCss(shadowTone));
+          shadowColor = rgbToCss(adjustRgb(baseColor, 1.05), 0.4);
         }
-        const shadowColor = isHead
-          ? (hamMode ? 'rgba(74, 222, 128, 0.45)' : compactMode ? 'rgba(249, 115, 22, 0.45)' : loopDetected ? 'rgba(251, 191, 36, 0.4)' : 'rgba(102, 126, 234, 0.45)')
-          : 'rgba(15, 23, 42, 0.6)';
-        const shadowBlur = isHead ? 22 : 14;
         fillRoundedRect(x, y, size, size, radius, gradient, shadowColor, shadowBlur);
         ctx.save();
-        ctx.globalAlpha = 0.22;
+        ctx.globalAlpha = isHead ? 0.24 : 0.18;
         ctx.fillStyle = '#fff';
         roundedRectPath(ctx, x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.28, size * 0.18);
         ctx.fill();
@@ -1628,6 +1766,9 @@
       document.getElementById('loopStatus').textContent = loopDetected ? `Loop detected! (${loopStreak})` : "";
       document.getElementById('compactStatus').textContent = compactMode ? "Compact mode active" : "";
       document.getElementById('compactStepStatus').textContent = compactMode ? `Step ${compactModeSteps}/${COMPACT_MODE_MAX_STEPS}` : "";
+      if(planDescriptionEl) {
+        planDescriptionEl.textContent = describeCurrentPlan();
+      }
       const freeCellsCount = COLS * ROWS - snake.length;
       document.getElementById('snakeLength').textContent = snake.length;
       document.getElementById('freeCells').textContent = freeCellsCount;
