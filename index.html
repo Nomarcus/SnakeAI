@@ -635,6 +635,14 @@
                 <span class="status-label">Progress:</span>
                 <span id="progress" class="status-value">1.3%</span>
               </div>
+              <div class="status-item">
+                <span class="status-label">Run time:</span>
+                <span id="runTime" class="status-value">0:00.0</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Best time:</span>
+                <span id="bestTime" class="status-value">0:00.0</span>
+              </div>
             </div>
           </div>
           <div class="controls-section">
@@ -857,6 +865,9 @@
     /* ===== CANVAS ===== */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     /* ===== AI-PARAMETRAR ===== */
     let LOOP_STREAK_THRESHOLD = 1;
     let NO_PROGRESS_THRESHOLD = 70;
@@ -869,9 +880,83 @@
         hamMode=false, compactMode=false, compactModeSteps=0,
         loopHandle=null, currentStrategy="Initializing";
     let gameRunning = false;
+    let runStartTime = null;
+    let lastElapsedMs = 0;
+    const BEST_TIME_KEY = 'snake_ai_best_time_ms';
+    let bestTimeMs = 0;
+    try {
+      const storedBest = localStorage.getItem(BEST_TIME_KEY);
+      if (storedBest) {
+        const parsed = parseInt(storedBest, 10);
+        if (!Number.isNaN(parsed)) bestTimeMs = parsed;
+      }
+    } catch (error) {
+      bestTimeMs = 0;
+    }
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
     const pages = document.querySelectorAll('.page');
+    const runTimeDisplay = document.getElementById('runTime');
+    const bestTimeDisplay = document.getElementById('bestTime');
+    function formatDuration(ms){
+      if (!ms || ms < 0) return '0:00.0';
+      const totalSeconds = ms / 1000;
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = Math.floor(totalSeconds % 60);
+      const tenths = Math.floor((totalSeconds - Math.floor(totalSeconds)) * 10);
+      return `${minutes}:${seconds.toString().padStart(2, '0')}.${tenths}`;
+    }
+    function updateTimerDisplays(){
+      if(runTimeDisplay) runTimeDisplay.textContent = formatDuration(lastElapsedMs);
+      if(bestTimeDisplay) bestTimeDisplay.textContent = formatDuration(bestTimeMs);
+    }
+    function persistBestTime(){
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(BEST_TIME_KEY, String(Math.floor(bestTimeMs)));
+        }
+      } catch (error) {
+        /* ignore storage failures */
+      }
+    }
+    function registerBestTime(){
+      if(lastElapsedMs > bestTimeMs){
+        bestTimeMs = lastElapsedMs;
+        persistBestTime();
+      }
+      updateTimerDisplays();
+    }
+    function finalizeRunTimer(){
+      if(runStartTime){
+        lastElapsedMs = performance.now() - runStartTime;
+        runStartTime = null;
+      }
+      registerBestTime();
+    }
+    updateTimerDisplays();
+    function roundedRectPath(context, x, y, width, height, radius){
+      const r = Math.min(radius, width / 2, height / 2);
+      context.beginPath();
+      context.moveTo(x + r, y);
+      context.lineTo(x + width - r, y);
+      context.quadraticCurveTo(x + width, y, x + width, y + r);
+      context.lineTo(x + width, y + height - r);
+      context.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      context.lineTo(x + r, y + height);
+      context.quadraticCurveTo(x, y + height, x, y + height - r);
+      context.lineTo(x, y + r);
+      context.quadraticCurveTo(x, y, x + r, y);
+      context.closePath();
+    }
+    function fillRoundedRect(x, y, width, height, radius, fillStyle, shadowColor, shadowBlur){
+      ctx.save();
+      ctx.fillStyle = fillStyle;
+      ctx.shadowColor = shadowColor;
+      ctx.shadowBlur = shadowBlur;
+      roundedRectPath(ctx, x, y, width, height, radius);
+      ctx.fill();
+      ctx.restore();
+    }
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1008,6 +1093,9 @@
       HAM = buildHamilton();
       if (loopHandle) clearInterval(loopHandle);
       gameRunning = true;
+      runStartTime = performance.now();
+      lastElapsedMs = 0;
+      updateTimerDisplays();
       draw();
       loopHandle = setInterval(update, SPEED);
     }
@@ -1409,107 +1497,130 @@
     }
     /* ===== RENDER ===== */
     function draw(){
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, '#1a1a2e');
-      gradient.addColorStop(1, '#0f0f23');
-      ctx.fillStyle = gradient;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const baseGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      baseGradient.addColorStop(0, '#0f172a');
+      baseGradient.addColorStop(1, '#111827');
+      ctx.fillStyle = baseGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
-      ctx.lineWidth = 1;
-      for(let i = 0; i <= COLS; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * CELL, 0);
-        ctx.lineTo(i * CELL, canvas.height);
-        ctx.stroke();
-      }
-      for(let i = 0; i <= ROWS; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, i * CELL);
-        ctx.lineTo(canvas.width, i * CELL);
-        ctx.stroke();
+      const vignette = ctx.createRadialGradient(
+        canvas.width / 2,
+        canvas.height / 2,
+        Math.min(canvas.width, canvas.height) * 0.2,
+        canvas.width / 2,
+        canvas.height / 2,
+        Math.max(canvas.width, canvas.height)
+      );
+      vignette.addColorStop(0, 'rgba(102, 126, 234, 0.15)');
+      vignette.addColorStop(1, 'rgba(10, 12, 24, 0.95)');
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if(gameRunning && runStartTime){
+        lastElapsedMs = performance.now() - runStartTime;
+        updateTimerDisplays();
       }
       if(fruit && fruit.x >= 0){
-        const glowGradient = ctx.createRadialGradient(
-          fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, 0,
-          fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL
-        );
-        glowGradient.addColorStop(0, 'rgba(240, 147, 251, 0.6)');
-        glowGradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = glowGradient;
-        ctx.fillRect(fruit.x * CELL, fruit.y * CELL, CELL, CELL);
-        const fruitGradient = ctx.createRadialGradient(
-          fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, 0,
-          fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL/2.5
-        );
-        fruitGradient.addColorStop(0, '#ff6b9d');
-        fruitGradient.addColorStop(1, '#c44569');
+        const centerX = fruit.x * CELL + CELL / 2;
+        const centerY = fruit.y * CELL + CELL / 2;
+        ctx.save();
+        const glow = ctx.createRadialGradient(centerX, centerY, CELL * 0.2, centerX, centerY, CELL);
+        glow.addColorStop(0, 'rgba(236, 72, 153, 0.45)');
+        glow.addColorStop(1, 'rgba(236, 72, 153, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(centerX - CELL, centerY - CELL, CELL * 2, CELL * 2);
+        ctx.restore();
+        ctx.save();
+        const fruitGradient = ctx.createRadialGradient(centerX - CELL * 0.15, centerY - CELL * 0.2, CELL * 0.1, centerX, centerY, CELL * 0.45);
+        fruitGradient.addColorStop(0, '#fbcfe8');
+        fruitGradient.addColorStop(0.6, '#ec4899');
+        fruitGradient.addColorStop(1, '#be123c');
         ctx.fillStyle = fruitGradient;
+        ctx.shadowColor = 'rgba(236, 72, 153, 0.5)';
+        ctx.shadowBlur = 18;
         ctx.beginPath();
-        ctx.arc(fruit.x * CELL + CELL/2, fruit.y * CELL + CELL/2, CELL/2.5, 0, 2 * Math.PI);
+        ctx.arc(centerX, centerY, CELL * 0.35, 0, 2 * Math.PI);
         ctx.fill();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.restore();
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
         ctx.beginPath();
-        ctx.arc(fruit.x * CELL + CELL/2.5, fruit.y * CELL + CELL/2.5, CELL/6, 0, 2 * Math.PI);
+        ctx.arc(centerX - CELL * 0.1, centerY - CELL * 0.15, CELL * 0.1, 0, 2 * Math.PI);
         ctx.fill();
+        ctx.restore();
       }
       const headColor = hamMode ? '#4ade80' : compactMode ? '#f97316' : loopDetected ? '#fbbf24' : '#667eea';
       snake.forEach((p, i) => {
         const isHead = i === 0;
-        const size = CELL * 0.95;
+        const size = CELL * 0.8;
         const offset = (CELL - size) / 2;
         const x = p.x * CELL + offset;
         const y = p.y * CELL + offset;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(x + 2, y + 2, size, size);
+        const radius = size * 0.45;
         const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
         if(isHead) {
           gradient.addColorStop(0, headColor);
-          gradient.addColorStop(1, isHead && hamMode ? '#22c55e' : isHead && compactMode ? '#ea580c' : isHead && loopDetected ? '#f59e0b' : '#764ba2');
+          gradient.addColorStop(1, hamMode ? '#22c55e' : compactMode ? '#ea580c' : loopDetected ? '#f59e0b' : '#764ba2');
         } else {
-          const t = i / (snake.length - 1);
-          const r = Math.round(102 + (138 - 102) * t);
-          const g = Math.round(126 + (75 - 126) * t);
-          const b = Math.round(234 + (162 - 234) * t);
+          const t = snake.length > 1 ? i / (snake.length - 1) : 0;
+          const r = Math.round(120 + (82 - 120) * t);
+          const g = Math.round(144 + (110 - 144) * t);
+          const b = Math.round(255 + (210 - 255) * t);
           gradient.addColorStop(0, `rgb(${r}, ${g}, ${b})`);
-          gradient.addColorStop(1, `rgb(${r - 30}, ${g - 30}, ${b - 30})`);
+          gradient.addColorStop(1, `rgb(${Math.max(0, r - 35)}, ${Math.max(0, g - 35)}, ${Math.max(0, b - 35)})`);
         }
-        ctx.fillStyle = gradient;
-        ctx.fillRect(x, y, size, size);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.fillRect(x, y, size, size/3);
+        const shadowColor = isHead
+          ? (hamMode ? 'rgba(74, 222, 128, 0.45)' : compactMode ? 'rgba(249, 115, 22, 0.45)' : loopDetected ? 'rgba(251, 191, 36, 0.4)' : 'rgba(102, 126, 234, 0.45)')
+          : 'rgba(15, 23, 42, 0.6)';
+        const shadowBlur = isHead ? 22 : 14;
+        fillRoundedRect(x, y, size, size, radius, gradient, shadowColor, shadowBlur);
+        ctx.save();
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = '#fff';
+        roundedRectPath(ctx, x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.28, size * 0.18);
+        ctx.fill();
+        ctx.restore();
         if(isHead) {
+          ctx.save();
           ctx.fillStyle = '#fff';
           let eyeX1, eyeY1, eyeX2, eyeY2;
           if(snake.length > 1){
             const dx = p.x - snake[1].x;
             const dy = p.y - snake[1].y;
             if(dx === 1) {
-              eyeX1 = x + size - size/4;
-              eyeY1 = y + size/4;
-              eyeX2 = x + size - size/4;
-              eyeY2 = y + size - size/4;
+              eyeX1 = x + size - size/3.2;
+              eyeY1 = y + size/3.2;
+              eyeX2 = x + size - size/3.2;
+              eyeY2 = y + size - size/3.2;
             } else if(dx === -1) {
-              eyeX1 = x + size/4;
-              eyeY1 = y + size/4;
-              eyeX2 = x + size/4;
-              eyeY2 = y + size - size/4;
+              eyeX1 = x + size/3.2;
+              eyeY1 = y + size/3.2;
+              eyeX2 = x + size/3.2;
+              eyeY2 = y + size - size/3.2;
             } else if(dy === 1) {
-              eyeX1 = x + size/4;
-              eyeY1 = y + size - size/4;
-              eyeX2 = x + size - size/4;
-              eyeY2 = y + size - size/4;
+              eyeX1 = x + size/3.2;
+              eyeY1 = y + size - size/3.2;
+              eyeX2 = x + size - size/3.2;
+              eyeY2 = y + size - size/3.2;
             } else {
-              eyeX1 = x + size/4;
-              eyeY1 = y + size/4;
-              eyeX2 = x + size - size/4;
-              eyeY2 = y + size/4;
+              eyeX1 = x + size/3.2;
+              eyeY1 = y + size/3.2;
+              eyeX2 = x + size - size/3.2;
+              eyeY2 = y + size/3.2;
             }
-            ctx.beginPath(); ctx.arc(eyeX1, eyeY1, size/10, 0, 2*Math.PI); ctx.fill();
-            ctx.beginPath(); ctx.arc(eyeX2, eyeY2, size/10, 0, 2*Math.PI); ctx.fill();
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(eyeX1, eyeY1, size/20, 0, 2*Math.PI); ctx.fill();
-            ctx.beginPath(); ctx.arc(eyeX2, eyeY2, size/20, 0, 2*Math.PI); ctx.fill();
+          } else {
+            eyeX1 = x + size/3.2;
+            eyeY1 = y + size/3.2;
+            eyeX2 = x + size - size/3.2;
+            eyeY2 = y + size/3.2;
           }
+          const eyeRadius = size / 6;
+          const pupilRadius = size / 12;
+          ctx.beginPath(); ctx.arc(eyeX1, eyeY1, eyeRadius, 0, 2*Math.PI); ctx.fill();
+          ctx.beginPath(); ctx.arc(eyeX2, eyeY2, eyeRadius, 0, 2*Math.PI); ctx.fill();
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath(); ctx.arc(eyeX1, eyeY1, pupilRadius, 0, 2*Math.PI); ctx.fill();
+          ctx.beginPath(); ctx.arc(eyeX2, eyeY2, pupilRadius, 0, 2*Math.PI); ctx.fill();
+          ctx.restore();
         }
       });
       document.getElementById('strategyStatus').textContent = `Strategy: ${currentStrategy}`;
@@ -1524,11 +1635,17 @@
     }
     /* ===== UPDATE ===== */
     function update(){
-      if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
+      if(!snake.length){
+        clearInterval(loopHandle);
+        gameRunning = false;
+        finalizeRunTimer();
+        return;
+      }
       const nxt = getNext();
       if(!nxt){
         clearInterval(loopHandle);
         gameRunning = false;
+        finalizeRunTimer();
         draw();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1543,6 +1660,7 @@
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
         clearInterval(loopHandle);
         gameRunning = false;
+        finalizeRunTimer();
         draw();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1563,9 +1681,10 @@
         loopCountAdjust = 0;
         if(snake.length === COLS * ROWS){
           fruit = {x: -1, y: -1};
-          draw();
           clearInterval(loopHandle);
           gameRunning = false;
+          finalizeRunTimer();
+          draw();
           ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
