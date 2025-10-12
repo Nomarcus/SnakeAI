@@ -384,15 +384,20 @@
       font-weight: 600;
       color: var(--accent);
     }
-    /* AI Status messages */
-    #statusMessages {
-      background: var(--darker);
-      border-radius: 1rem;
-      padding: 1rem;
+    /* AI insights panel */
+    .ai-intel-box {
       margin-top: 1rem;
-      min-height: 120px;
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid var(--glass-border);
-      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+      border-radius: 1.2rem;
+      padding: 1.4rem;
+      box-shadow: inset 0 0 18px rgba(99, 102, 241, 0.22);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    #statusMessages {
+      min-height: 120px;
     }
     #statusMessages p {
       margin: 0.3rem 0;
@@ -400,20 +405,17 @@
       opacity: 0.9;
     }
     .plan-box {
-      margin-top: 1rem;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid var(--glass-border);
-      border-radius: 1rem;
-      padding: 1.2rem;
-      box-shadow: inset 0 0 18px rgba(102, 126, 234, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
     }
     .plan-box h4 {
-      margin-bottom: 0.6rem;
       font-size: 1rem;
       color: var(--accent);
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      margin: 0;
     }
     .plan-box h4::before {
       content: '🧠';
@@ -428,9 +430,9 @@
       font-weight: 600;
       font-size: 1rem;
     }
-    #hamStatus { color: #4ade80; }
-    #loopStatus { color: #fbbf24; }
-    #compactStatus { color: #f97316; }
+    #hamStatus { color: #38bdf8; }
+    #loopStatus { color: #a855f7; }
+    #compactStatus { color: #6366f1; }
     /* Info page */
     .info-content {
       max-width: 800px;
@@ -669,13 +671,19 @@
             </div>
           </div>
           <div class="controls-section">
-            <h3>AI Status</h3>
-            <div id="statusMessages">
-              <p id="strategyStatus">Strategy: Initializing</p>
-              <p id="hamStatus"></p>
-              <p id="loopStatus"></p>
-              <p id="compactStatus"></p>
-              <p id="compactStepStatus"></p>
+            <h3>AI Insights</h3>
+            <div class="ai-intel-box">
+              <div id="statusMessages">
+                <p id="strategyStatus">Strategy: Initializing</p>
+                <p id="hamStatus"></p>
+                <p id="loopStatus"></p>
+                <p id="compactStatus"></p>
+                <p id="compactStepStatus"></p>
+              </div>
+              <div class="plan-box">
+                <h4>Current Plan</h4>
+                <p id="planDescription">Analyzing the opening move…</p>
+              </div>
             </div>
             <div class="plan-box">
               <h4>Aktuell plan</h4>
@@ -928,11 +936,9 @@
       return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
     }
     const bodyPalette = [
-      { pos: 0, rgb: hexToRgb('#6366f1') },
-      { pos: 0.22, rgb: hexToRgb('#38bdf8') },
-      { pos: 0.45, rgb: hexToRgb('#34d399') },
-      { pos: 0.72, rgb: hexToRgb('#f59e0b') },
-      { pos: 1, rgb: hexToRgb('#f472b6') }
+      { pos: 0, rgb: hexToRgb('#60a5fa') },
+      { pos: 0.5, rgb: hexToRgb('#6366f1') },
+      { pos: 1, rgb: hexToRgb('#312e81') }
     ];
     function mixBodyColor(t) {
       if (!bodyPalette.length) return { r: 255, g: 255, b: 255 };
@@ -964,6 +970,7 @@
     let lastElapsedMs = 0;
     const BEST_TIME_KEY = 'snake_ai_best_time_ms';
     let bestTimeMs = 0;
+    const smackBursts = [];
     try {
       const storedBest = localStorage.getItem(BEST_TIME_KEY);
       if (storedBest) {
@@ -980,19 +987,19 @@
     const bestTimeDisplay = document.getElementById('bestTime');
     const planDescriptionEl = document.getElementById('planDescription');
     const planNarratives = {
-      'Initializing': 'Startar upp sensorerna och kartlägger spelplanen.',
-      'Greedy to fruit': 'Tar närmaste säkra väg mot frukten för maximal fart.',
-      'BFS to fruit': 'Beräknar en säker BFS-rutt direkt mot frukten.',
-      'BFS to tail': 'Söker svansen för att öppna nytt utrymme.',
-      'Loop break (Longest)': 'Tar en längre omväg för att bryta ut ur en loop.',
-      'Filling smallest pocket': 'Fyller en trång ficka så den inte blir en fälla senare.',
-      'Compact zig-zag': 'Zick-zackar tätt för att tömma ett litet område.',
-      'Heuristic': 'Väljer ett heuristiskt drag som balanserar risk och belöning.',
-      'Hamilton cycle': 'Cruisar längs Hamilton-slingan för maximal säkerhet.',
-      'Returning to Hamilton': 'Navigerar tillbaka till den säkra Hamilton-slingan.',
-      'Final Hamilton': 'Avslutar på Hamilton-slingan för en perfekt runda.',
-      'Endgame Hamilton': 'Säkrar slutet genom att följa Hamilton-slingan till punkt och pricka.',
-      'No safe move!': 'Ser inga säkra drag – försöker överleva en sista stund.'
+      'Initializing': 'Calibrating sensors and mapping the board.',
+      'Greedy to fruit': 'Sliding toward the fruit along the quickest safe path.',
+      'BFS to fruit': 'Plotting a guaranteed BFS path straight to the fruit.',
+      'BFS to tail': 'Tracing a BFS route toward the tail to reopen space.',
+      'Loop break (Longest)': 'Taking a longer detour to break out of a loop.',
+      'Filling smallest pocket': 'Filling a tiny pocket before it becomes a trap.',
+      'Compact zig-zag': 'Zig-zagging tightly to drain a cramped corridor.',
+      'Heuristic': 'Balancing risk and reward with a heuristic move.',
+      'Hamilton cycle': 'Cruising along the Hamilton loop for maximum safety.',
+      'Returning to Hamilton': 'Navigating back to the safe Hamilton loop.',
+      'Final Hamilton': 'Finishing the run on the Hamilton loop for a perfect sweep.',
+      'Endgame Hamilton': 'Locking in the win by following the Hamilton loop precisely.',
+      'No safe move!': 'Scanning frantically for any last-second lifeline.'
     };
     function formatDuration(ms){
       if (!ms || ms < 0) return '0:00.0';
@@ -1024,31 +1031,31 @@
     }
     function describeCurrentPlan(){
       if(!snake.length) {
-        return 'Ormen väntar på en ny start.';
+        return 'The snake is waiting for a fresh start.';
       }
       if(!gameRunning) {
-        return 'Spelet är pausat – starta om för att se nästa drag.';
+        return 'The game is paused—restart to see the next move.';
       }
       if(compactMode) {
-        return 'Packar sig tätt och försöker frigöra frukten i ett trångt område.';
+        return 'Compressing tightly to free the fruit inside a cramped pocket.';
       }
       if(hamMode) {
         if(currentStrategy.includes('Final') || currentStrategy.includes('Endgame')) {
-          return 'Följer sin Hamilton-slinga hela vägen in i mål.';
+          return 'Following its Hamilton loop all the way to the finish.';
         }
-        return 'Håller sig på Hamilton-slingan för att hålla kroppen i säkra rörelser.';
+        return 'Staying on the Hamilton loop to keep every move safe.';
       }
       if(currentStrategy.includes('Forcing Hamilton')) {
-        return 'Bryter mönstret och hoppar in på Hamilton-slingan för extra säkerhet.';
+        return 'Breaking the pattern and jumping onto the Hamilton loop for extra safety.';
       }
       if(loopDetected) {
-        return 'Identifierade en loop och planerar ett avbrott för att komma vidare.';
+        return 'Detected a loop and plotting a detour to break free.';
       }
       const narrative = planNarratives[currentStrategy];
       if(narrative) {
         return narrative;
       }
-      return 'Analyserar utrymmet och väljer nästa säkra steg mot frukten.';
+      return 'Assessing the space and choosing the next safe step toward the fruit.';
     }
     function finalizeRunTimer(){
       if(runStartTime){
@@ -1211,6 +1218,7 @@
     }
     function restartGame() {
       const fresh = createFreshState();
+      smackBursts.length = 0;
       snake = fresh.snake;
       snakeSet = fresh.snakeSet;
       fruit = fresh.fruit;
@@ -1633,6 +1641,7 @@
     /* ===== RENDER ===== */
     function draw(){
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const now = performance.now();
       const baseGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       baseGradient.addColorStop(0, '#0f172a');
       baseGradient.addColorStop(1, '#111827');
@@ -1651,41 +1660,38 @@
       ctx.fillStyle = vignette;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       if(gameRunning && runStartTime){
-        lastElapsedMs = performance.now() - runStartTime;
+        lastElapsedMs = now - runStartTime;
         updateTimerDisplays();
       }
       if(fruit && fruit.x >= 0){
         const centerX = fruit.x * CELL + CELL / 2;
         const centerY = fruit.y * CELL + CELL / 2;
         ctx.save();
-        const glow = ctx.createRadialGradient(centerX, centerY, CELL * 0.2, centerX, centerY, CELL);
-        glow.addColorStop(0, 'rgba(236, 72, 153, 0.45)');
-        glow.addColorStop(1, 'rgba(236, 72, 153, 0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(centerX - CELL, centerY - CELL, CELL * 2, CELL * 2);
-        ctx.restore();
-        ctx.save();
-        const fruitGradient = ctx.createRadialGradient(centerX - CELL * 0.15, centerY - CELL * 0.2, CELL * 0.1, centerX, centerY, CELL * 0.45);
-        fruitGradient.addColorStop(0, '#fbcfe8');
-        fruitGradient.addColorStop(0.6, '#ec4899');
-        fruitGradient.addColorStop(1, '#be123c');
-        ctx.fillStyle = fruitGradient;
-        ctx.shadowColor = 'rgba(236, 72, 153, 0.5)';
-        ctx.shadowBlur = 18;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(CELL * 0.14, 4);
+        ctx.strokeStyle = '#22c55e';
         ctx.beginPath();
-        ctx.arc(centerX, centerY, CELL * 0.35, 0, 2 * Math.PI);
+        ctx.arc(centerX, centerY, CELL * 0.32, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.lineWidth = Math.max(CELL * 0.08, 3);
+        ctx.strokeStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, CELL * 0.26, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.fillStyle = '#b91c1c';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, CELL * 0.18, 0, 2 * Math.PI);
         ctx.fill();
-        ctx.restore();
-        ctx.save();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
         ctx.beginPath();
-        ctx.arc(centerX - CELL * 0.1, centerY - CELL * 0.15, CELL * 0.1, 0, 2 * Math.PI);
+        ctx.arc(centerX - CELL * 0.08, centerY - CELL * 0.1, CELL * 0.07, 0, 2 * Math.PI);
         ctx.fill();
         ctx.restore();
       }
-      const headColor = hamMode ? '#4ade80' : compactMode ? '#fb923c' : loopDetected ? '#facc15' : '#8b5cf6';
-      const headAccent = hamMode ? '#16a34a' : compactMode ? '#ea580c' : loopDetected ? '#f59e0b' : '#a855f7';
-      const headGlow = hamMode ? 'rgba(34, 197, 94, 0.6)' : compactMode ? 'rgba(234, 88, 12, 0.55)' : loopDetected ? 'rgba(251, 191, 36, 0.55)' : 'rgba(168, 85, 247, 0.55)';
+      const headColor = hamMode ? '#38bdf8' : compactMode ? '#7c3aed' : loopDetected ? '#818cf8' : '#4f46e5';
+      const headAccent = hamMode ? '#1d4ed8' : compactMode ? '#4c1d95' : loopDetected ? '#4338ca' : '#312e81';
+      const headGlow = hamMode ? 'rgba(56, 189, 248, 0.55)' : compactMode ? 'rgba(124, 58, 237, 0.55)' : loopDetected ? 'rgba(129, 140, 248, 0.55)' : 'rgba(79, 70, 229, 0.55)';
       snake.forEach((p, i) => {
         const isHead = i === 0;
         const size = CELL * 0.8;
@@ -1760,6 +1766,33 @@
           ctx.restore();
         }
       });
+      for (let i = smackBursts.length - 1; i >= 0; i--) {
+        const effect = smackBursts[i];
+        const progress = (now - effect.start) / effect.duration;
+        if (progress >= 1) {
+          smackBursts.splice(i, 1);
+          continue;
+        }
+        const eased = progress * progress * (3 - 2 * progress);
+        const radius = effect.startRadius + (effect.endRadius - effect.startRadius) * eased;
+        const alpha = 1 - eased;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.strokeStyle = `rgba(148, 163, 255, ${0.6 * alpha})`;
+        ctx.lineWidth = Math.max(effect.lineWidth * (1 - eased * 0.6), 2);
+        ctx.beginPath();
+        ctx.arc(effect.x, effect.y, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.restore();
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 0.8 - eased);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = `600 ${Math.max(effect.fontSize * (1 + eased * 0.3), 12)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('SMACK!', effect.x, effect.y - (effect.fontSize * 0.4 * eased));
+        ctx.restore();
+      }
       document.getElementById('strategyStatus').textContent = `Strategy: ${currentStrategy}`;
       document.getElementById('hamStatus').textContent = hamMode ? "Hamilton active" : "";
       document.getElementById('loopStatus').textContent = loopDetected ? `Loop detected! (${loopStreak})` : "";
@@ -1818,6 +1851,16 @@
       snake.unshift({x: nxt.x, y: nxt.y});
       snakeSet.add(`${nxt.x},${nxt.y}`);
       if(ate){
+        smackBursts.push({
+          x: (fruit.x + 0.5) * CELL,
+          y: (fruit.y + 0.5) * CELL,
+          start: performance.now(),
+          duration: 550,
+          startRadius: CELL * 0.2,
+          endRadius: CELL * 1.1,
+          lineWidth: Math.max(CELL * 0.12, 4),
+          fontSize: Math.max(CELL * 0.36, 12)
+        });
         loopCountAdjust = 0;
         if(snake.length === COLS * ROWS){
           fruit = {x: -1, y: -1};
