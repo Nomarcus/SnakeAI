@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -614,7 +614,7 @@
       <ul class="nav-links">
         <li><a href="#" class="nav-link active" data-page="game">Game</a></li>
         <li><a href="#" class="nav-link" data-page="guide">Guide</a></li>
-        <li><a href="#" class="nav-link" data-page="ai">AI-handbok</a></li>
+        <li><a href="#" class="nav-link" data-page="ai">AI Handbook</a></li>
         <li><a href="#" class="nav-link" data-page="facit">Presets</a></li>
         <li><a href="#" class="nav-link" data-page="contact">Contact</a></li>
       </ul>
@@ -659,58 +659,63 @@
             <p id="rlHint" class="manual-hint">Reinforcement learning is currently disabled.</p>
           </div>
           <fieldset id="rlParamFieldset" class="rl-fieldset inactive" disabled>
-            <legend>Finjustera RL</legend>
-            <p class="manual-hint" style="margin-bottom: 1rem;">Aktivera RL för att låsa upp belöningar och hyperparametrar.</p>
+            <legend>Fine-tune RL</legend>
+            <p class="manual-hint" style="margin-bottom: 1rem;">Turn on RL to unlock reward tuning and hyperparameters.</p>
             <div class="param-control">
-              <label>Stegstraff: <span id="rlStepPenaltyValue">-0.05</span></label>
+              <label>Step Penalty: <span id="rlStepPenaltyValue">-0.05</span></label>
               <input type="range" id="rlStepPenalty" class="size-slider" min="-0.5" max="0" step="0.01" value="-0.05">
-              <small>Negativ belöning varje drag – högre straff tvingar agenten att ta kortare vägar.</small>
+              <small>Negative reward every move – increasing the penalty forces shorter routes.</small>
             </div>
             <div class="param-control">
-              <label>Fruktbelöning: <span id="rlFruitRewardValue">5</span></label>
+              <label>Fruit Reward: <span id="rlFruitRewardValue">5</span></label>
               <input type="range" id="rlFruitReward" class="size-slider" min="0" max="20" step="0.5" value="5">
-              <small>Positiv belöning när frukten äts. Höj för att prioritera snabb tillväxt.</small>
+              <small>Positive reward when fruit is eaten. Raise it to prioritise fast growth.</small>
             </div>
             <div class="param-control">
-              <label>Vinstbonus: <span id="rlWinBonusValue">15</span></label>
+              <label>Win Bonus: <span id="rlWinBonusValue">15</span></label>
               <input type="range" id="rlWinBonus" class="size-slider" min="0" max="40" step="1" value="15">
-              <small>Extra belöning när hela brädet fylls.</small>
+              <small>Extra reward for filling the entire board.</small>
             </div>
             <div class="param-control">
-              <label>Kraschstraff: <span id="rlDeathPenaltyValue">-5</span></label>
+              <label>Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
               <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
-              <small>Negativ belöning vid kollision. Lägre värden gör agenten mer riskmedveten.</small>
+              <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
             </div>
             <div class="rl-grid two-col">
               <div class="param-control">
-                <label>Lärhastighet α: <span id="rlAlphaValue">0.20</span></label>
+                <label>Learning rate α: <span id="rlAlphaValue">0.20</span></label>
                 <input type="number" id="rlAlpha" class="number-input" min="0.01" max="1" step="0.01" value="0.2">
-                <small>Hur snabbt Q-tabellen uppdateras. Höga värden reagerar snabbt men kan bli instabila.</small>
+                <small>How fast the Q-table updates. Higher values react quickly but can be unstable.</small>
               </div>
               <div class="param-control">
-                <label>Diskontering γ: <span id="rlGammaValue">0.90</span></label>
+                <label>Discount γ: <span id="rlGammaValue">0.90</span></label>
                 <input type="number" id="rlGamma" class="number-input" min="0" max="0.99" step="0.01" value="0.9">
-                <small>Hur mycket framtida belöningar värderas. Höga värden premierar långsiktig planering.</small>
+                <small>How much future rewards are valued. Higher values favour long-term planning.</small>
               </div>
               <div class="param-control">
-                <label>Start-ε: <span id="rlEpsilonStartValue">0.30</span></label>
+                <label>Start ε: <span id="rlEpsilonStartValue">0.30</span></label>
                 <input type="number" id="rlEpsilonStart" class="number-input" min="0" max="1" step="0.01" value="0.3">
-                <small>Utforskning i början av träningen. Högt värde = fler slumpdrag.</small>
+                <small>Exploration at the beginning of training. Higher values = more random moves.</small>
               </div>
               <div class="param-control">
-                <label>Min-ε: <span id="rlEpsilonMinValue">0.05</span></label>
+                <label>Min ε: <span id="rlEpsilonMinValue">0.05</span></label>
                 <input type="number" id="rlEpsilonMin" class="number-input" min="0" max="0.5" step="0.01" value="0.05">
-                <small>Lägsta utforskning efter lång träning.</small>
+                <small>Lowest exploration after long training.</small>
               </div>
               <div class="param-control">
-                <label>ε-decay: <span id="rlEpsilonDecayValue">0.995</span></label>
+                <label>ε decay: <span id="rlEpsilonDecayValue">0.995</span></label>
                 <input type="number" id="rlEpsilonDecay" class="number-input" min="0.8" max="0.999" step="0.001" value="0.995">
-                <small>Hur snabbt utforskningen minskar för varje episod.</small>
+                <small>How quickly exploration shrinks each episode.</small>
               </div>
             </div>
             <div style="margin-top: 1rem;">
-              <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Återställ RL-lärning</button>
-              <p class="manual-hint">Nollställer Q-tabellen, statistik och sätter ε till startvärdet.</p>
+              <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <input type="checkbox" id="autoRestartToggle" style="width: 18px; height: 18px;">
+                <span>Auto restart after a perfect game (keeps training on repeat).</span>
+              </label>
+              <p id="rlLiveMetrics" class="manual-hint" style="margin-bottom: 1rem;">Live metrics will appear here once RL starts.</p>
+              <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Reset RL learning</button>
+              <p class="manual-hint">Clears the Q-table, stats, and sets ε back to its starting value.</p>
             </div>
           </fieldset>
         </div>
@@ -754,13 +759,13 @@
               <small>Moves without progress → Hamilton mode</small>
             </div>
             <div class="param-control">
-              <label for="compactProfile">Compact Mode Stil</label>
+              <label for="compactProfile">Compact Mode Style</label>
               <select id="compactProfile" class="select-control">
-                <option value="cautious">Extremt försiktig</option>
-                <option value="balanced" selected>Balanserad (nuvarande)</option>
-                <option value="risky">Extremt våghalsig</option>
+                <option value="cautious">Extremely cautious</option>
+                <option value="balanced" selected>Balanced (current)</option>
+                <option value="risky">Extremely daring</option>
               </select>
-              <small id="compactProfileHint">Standardbeteende som reagerar på fickor eller loopar.</small>
+              <small id="compactProfileHint">Default behaviour that reacts to pockets or loops.</small>
             </div>
             <div class="param-control">
               <label>Compact Mode Steps: <span id="compactValue">200</span></label>
@@ -782,6 +787,14 @@
               <div class="status-item">
                 <span class="status-label">Progress:</span>
                 <span id="progress" class="status-value">1.3%</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Elapsed:</span>
+                <span id="elapsedTime" class="status-value">00:00.0</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Best time:</span>
+                <span id="bestTime" class="status-value">--</span>
               </div>
             </div>
           </div>
@@ -864,13 +877,13 @@
             <li><strong>High (200+):</strong> Long zig‑zag sequences – useful on large boards</li>
           </ul>
           <p><strong>When to adjust:</strong> Increase for larger grids. Decrease if the snake seems to "vibrate" too much in one area.</p>
-          <h3>Compact Mode Stil</h3>
+          <h3>Compact Mode Styles</h3>
           <ul>
-            <li><strong>Extremt försiktig:</strong> Kräver trånga fickor och upprepade loopar innan zig-zag används.</li>
-            <li><strong>Balanserad:</strong> Originalbeteendet – reagerar på fickor eller tydliga loopar.</li>
-            <li><strong>Extremt våghalsig:</strong> Hoppar in tidigt för att reda ut loopar eller svårtillgänglig frukt.</li>
+            <li><strong>Extremely cautious:</strong> Waits for tight pockets and repeated loops before using zig-zag.</li>
+            <li><strong>Balanced:</strong> Original behaviour – reacts to pockets or clear loops.</li>
+            <li><strong>Extremely daring:</strong> Jumps in early to untangle loops or hard-to-reach fruit.</li>
           </ul>
-          <p><strong>Tips:</strong> Välj en försiktig stil på små bräden där varje cell räknas, och en våghalsig stil på stora bräden för snabbare återhämtning.</p>
+          <p><strong>Tip:</strong> Pick the cautious style on small boards where every cell matters, and the daring style on large boards for faster recovery.</p>
         </div>
         <div class="info-section">
           <h2>⚡ Optimization Strategy</h2>
@@ -917,57 +930,57 @@
   <div id="ai-page" class="page">
     <div class="container">
       <div class="hero">
-        <h1>AI-handbok</h1>
-        <p>Förstå hur de smarta delarna samspelar: klassiska algoritmer, heuristisk AI och förstärkningslärning.</p>
+        <h1>AI Handbook</h1>
+        <p>Understand how the smart pieces work together: classic algorithms, heuristic AI, and reinforcement learning.</p>
       </div>
       <div class="info-content">
         <div class="info-section">
-          <h2>🤔 Vad menas med ML, RL och "rena algoritmer"?</h2>
-          <h3>Maskininlärning (ML)</h3>
-          <p>Maskininlärning är samlingsnamnet för tekniker där en modell lär sig av data. I Snake används ML när vi låter en agent samla erfarenhet från spel och justera sitt beteende utifrån utfallet. Förstärkningslärning (RL) är en specialgren av ML.</p>
-          <h3>Förstärkningslärning (RL)</h3>
-          <p>I förstärkningslärning testar agenten olika drag, får <em>belöningar</em> eller <em>straff</em> och uppdaterar en intern tabell (Q-tabell) som beskriver hur bra varje drag är i en viss situation. Med tiden lär sig agenten att maximera den förväntade belöningen.</p>
-          <h3>Rena algoritmer (regler / heuristik)</h3>
-          <p>Utöver ML finns färdigskrivna algoritmer, till exempel Hamilton-cykeln, BFS-sökning och kompakta zig-zag-rörelser. Dessa är deterministiska regler som alltid gör samma sak för samma läge och fungerar utan att "lära" sig.</p>
+          <h2>🤔 What do ML, RL, and classic algorithms mean?</h2>
+          <h3>Machine Learning (ML)</h3>
+          <p>Machine learning is the umbrella for techniques where a model learns from data. In Snake we use ML when the agent collects experience from games and adjusts its behaviour based on the outcome. Reinforcement learning (RL) is a specialised branch of ML.</p>
+          <h3>Reinforcement Learning (RL)</h3>
+          <p>In reinforcement learning the agent tries different moves, receives <em>rewards</em> or <em>penalties</em>, and updates an internal table (a Q-table) that describes how good each action is in a given situation. Over time the agent learns to maximise the expected reward.</p>
+          <h3>Classic algorithms (rules / heuristics)</h3>
+          <p>Alongside ML we rely on handcrafted algorithms such as the Hamilton cycle, BFS search, and compact zig-zag movements. These deterministic rules always behave the same way in the same situation and work without any learning.</p>
         </div>
         <div class="info-section">
-          <h2>🔗 Så samarbetar delarna</h2>
+          <h2>🔗 How the parts work together</h2>
           <ul>
-            <li><strong>Bas-säkerhet via algoritmer:</strong> Hamilton-cykeln och BFS garanterar att ormen har en säker väg när brädet blir trångt.</li>
-            <li><strong>Heuristiska växlar:</strong> Loop- och kompaktläget analyserar situationen och styr över till säkra mönster vid behov.</li>
-            <li><strong>RL ovanpå allt:</strong> När RL är aktiverat får agenten välja mellan de säkra dragen. Den försöker hitta vilket drag som i längden leder till flest poäng genom att justera Q-tabellen.</li>
-            <li><strong>Resultat:</strong> Du kan kombinera stabiliteten från algoritmerna med flexibiliteten hos ML. Agenten provar nya vägar men faller tillbaka på säkerhetsnätet när det behövs.</li>
+            <li><strong>Baseline safety via algorithms:</strong> The Hamilton cycle and BFS guarantee that the snake always has a safe route when the board gets tight.</li>
+            <li><strong>Heuristic switches:</strong> Loop and compact modes analyse the situation and hand over to safe patterns when needed.</li>
+            <li><strong>RL on top:</strong> When RL is enabled the agent chooses between the safe moves. It searches for the option that leads to the highest long-term reward by updating the Q-table.</li>
+            <li><strong>Result:</strong> You combine the stability of algorithms with the flexibility of ML. The agent experiments with new paths but falls back to the safety net when necessary.</li>
           </ul>
-          <p>En episod startar när spelet börjar och slutar när ormen kraschar eller fyller hela brädet. Efter varje episod uppdateras utforskningen (ε) enligt dina inställningar.</p>
+          <p>An episode starts when the game begins and ends when the snake crashes or fills the entire board. After each episode the exploration rate (ε) is updated according to your settings.</p>
         </div>
         <div class="info-section">
-          <h2>🧮 Belöningssystemet</h2>
-          <p>När RL är igång räknas varje drag som ett inlärningstillfälle. Du kan själv styra hur attraktiva olika utfall är:</p>
+          <h2>🧮 The reward system</h2>
+          <p>When RL is active every move becomes a learning opportunity. You can shape how attractive different outcomes are:</p>
           <ul>
-            <li><strong>Stegstraff:</strong> Ett litet negativt värde för varje drag så att agenten inte segar runt i onödan.</li>
-            <li><strong>Fruktbelöning:</strong> Positiv belöning när en frukt äts – påverkar hur offensivt agenten jagar frukt.</li>
-            <li><strong>Vinstbonus:</strong> Extra belöning för att fylla hela brädet, vilket belönar långsiktig överlevnad.</li>
-            <li><strong>Kraschstraff:</strong> Stort negativt värde vid kollision för att undvika självmål.</li>
+            <li><strong>Step penalty:</strong> A small negative value per move so the agent does not stall.</li>
+            <li><strong>Fruit reward:</strong> Positive reward when fruit is eaten – controls how aggressively the agent hunts fruit.</li>
+            <li><strong>Win bonus:</strong> Extra reward for filling the whole board, rewarding long-term survival.</li>
+            <li><strong>Crash penalty:</strong> A large negative value on collision to avoid self-destructing plays.</li>
           </ul>
-          <p>Tryck på <strong>"Återställ RL-lärning"</strong> om du vill börja om från noll med de nya belöningsvärdena.</p>
+          <p>Press <strong>"Reset RL learning"</strong> to start over with the current reward values.</p>
         </div>
         <div class="info-section">
-          <h2>⚙️ Hyperparametrar för RL</h2>
+          <h2>⚙️ RL hyperparameters</h2>
           <ul>
-            <li><strong>Lärhastighet (α):</strong> Hur snabbt Q-värdena uppdateras. Hög α kan lära sig snabbare men riskerar instabilitet.</li>
-            <li><strong>Diskontering (γ):</strong> Hur mycket framtida belöningar värderas. Hög γ gör agenten mer långsiktig.</li>
-            <li><strong>Utforskning (ε):</strong> Styr hur ofta agenten provar nya drag. Med tiden minskar ε mot Min-ε enligt ε-decay.</li>
+            <li><strong>Learning rate (α):</strong> Controls how fast Q-values update. A high α learns faster but can be unstable.</li>
+            <li><strong>Discount (γ):</strong> Determines how much future rewards matter. A high γ makes the agent more long-term.</li>
+            <li><strong>Exploration (ε):</strong> Governs how often the agent tries new moves. Over time ε decays toward Min-ε.</li>
           </ul>
-          <p>Justera parametern och spela några rundor. Följ upp i <strong>AI Status</strong>-panelen där du ser aktuell ε, antal episoder och snittbelöning.</p>
+          <p>Tweak a parameter and play a few rounds. Track progress in the <strong>AI Status</strong> panel where you can see the current ε, episode count, and average reward.</p>
         </div>
         <div class="info-section">
-          <h2>🧭 Rekommenderade strategier</h2>
+          <h2>🧭 Recommended strategies</h2>
           <ul>
-            <li><strong>Snabb start:</strong> Högt start-ε (0.5–0.7) och något högre stegstraff för att uppmuntra utforskning.</li>
-            <li><strong>Finslipning:</strong> Sänk α till 0.1 och ε-decay till 0.998 för stabilisering när agenten hittat ett beteende du gillar.</li>
-            <li><strong>Riskkontroll:</strong> Kombinera högt kraschstraff med hög fruktbelöning för att balansera säkerhet och offensiv.</li>
+            <li><strong>Fast start:</strong> High start ε (0.5–0.7) and a slightly harsher step penalty to encourage exploration.</li>
+            <li><strong>Fine-tuning:</strong> Lower α to 0.1 and ε-decay to 0.998 once the agent has a behaviour you like.</li>
+            <li><strong>Risk control:</strong> Combine a strong crash penalty with a high fruit reward to balance safety and aggression.</li>
           </ul>
-          <p>Du kan alltid växla tillbaka till den heuristiska AI:n genom att stänga av RL – då används enbart de handskrivna algoritmerna.</p>
+          <p>You can always switch back to the heuristic AI by turning off RL – then only the handcrafted algorithms are used.</p>
         </div>
       </div>
     </div>
@@ -1075,6 +1088,12 @@
     let rlTrainingEnabled = false;
     let rlPendingChoice = null;
     let rlEpisodeActive = false;
+    let autoRestartEnabled = false;
+    let startTime = null;
+    let elapsedTimerHandle = null;
+    let lastElapsedMs = 0;
+    let bestTimeMs = null;
+    let lastObservedReward = 0;
     const rlConfig = {
       stepPenalty: -0.05,
       fruitReward: 5,
@@ -1086,7 +1105,7 @@
       epsilonMin: 0.05,
       epsilonDecay: 0.995
     };
-    /* ===== DYNAMISKA TRÖSKLAR ===== */
+    /* ===== DYNAMIC THRESHOLDS ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
     let ENDGAME_THRESHOLD = 20;
     let MAX_LOOP_DETECTION = Math.max(8,(COLS+ROWS)/2|0);
@@ -1096,15 +1115,15 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     let lastRender = performance.now();
-    /* ===== AI-PARAMETRAR ===== */
+    /* ===== AI PARAMETERS ===== */
     let LOOP_STREAK_THRESHOLD = 1;
     let NO_PROGRESS_THRESHOLD = 70;
     let COMPACT_MODE_MAX_STEPS = 200;
     let COMPACT_MODE_PROFILE = 'balanced';
     const COMPACT_MODE_PROFILES = {
       cautious: {
-        label: 'Extremt försiktig',
-        hint: 'Aktiveras först när frukten sitter trångt och loopen bekräftas.',
+        label: 'Extremely cautious',
+        hint: 'Activates only when the fruit is tightly boxed in and the loop is confirmed.',
         minFreeCells: 8,
         allowPocket: true,
         allowLoop: true,
@@ -1113,8 +1132,8 @@
         allowCrowding: false
       },
       balanced: {
-        label: 'Balanserad (nuvarande)',
-        hint: 'Originalbeteende – reagerar på fickor eller detekterade loopar.',
+        label: 'Balanced (current)',
+        hint: 'Original behaviour – reacts to pockets or detected loops.',
         minFreeCells: 15,
         allowPocket: true,
         allowLoop: true,
@@ -1123,8 +1142,8 @@
         allowCrowding: false
       },
       risky: {
-        label: 'Extremt våghalsig',
-        hint: 'Hoppar in tidigt även vid antydan till trängsel eller svår frukt.',
+        label: 'Extremely daring',
+        hint: 'Jumps in early even at the slightest sign of congestion or awkward fruit.',
         minFreeCells: 0,
         allowPocket: true,
         allowLoop: true,
@@ -1135,7 +1154,7 @@
     };
     let loopCountAdjust = 0;
     const rlAgent = createReinforcementAgent(rlConfig);
-    /* ===== SPELSTATE ===== */
+    /* ===== GAME STATE ===== */
     let snake=[], snakeSet=new Set();
     let fruit, prevFruitDist=Infinity, noProgressMoves=0;
     let lastMoves=[], windowMoves=[], loopDetected=false, loopStreak=0,
@@ -1322,6 +1341,65 @@
     const rlHint = document.getElementById('rlHint');
     const rlParamFieldset = document.getElementById('rlParamFieldset');
     const rlResetButton = document.getElementById('rlResetLearning');
+    const autoRestartToggle = document.getElementById('autoRestartToggle');
+    const rlLiveMetricsEl = document.getElementById('rlLiveMetrics');
+    const elapsedTimeEl = document.getElementById('elapsedTime');
+    const bestTimeEl = document.getElementById('bestTime');
+    function formatTime(ms){
+      if(!Number.isFinite(ms) || ms < 0) return '00:00.0';
+      const totalSeconds = ms / 1000;
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = Math.floor(totalSeconds % 60);
+      const tenths = Math.floor((totalSeconds - Math.floor(totalSeconds)) * 10);
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
+    }
+    function updateElapsedTimeDisplay(ms = 0){
+      if(elapsedTimeEl){
+        elapsedTimeEl.textContent = formatTime(ms);
+      }
+    }
+    function updateBestTimeDisplay(){
+      if(bestTimeEl){
+        bestTimeEl.textContent = bestTimeMs != null ? formatTime(bestTimeMs) : '--';
+      }
+    }
+    function cancelRunTimer(){
+      if(elapsedTimerHandle){
+        clearInterval(elapsedTimerHandle);
+        elapsedTimerHandle = null;
+      }
+      startTime = null;
+      lastElapsedMs = 0;
+      updateElapsedTimeDisplay(0);
+    }
+    function startRunTimer(){
+      cancelRunTimer();
+      startTime = performance.now();
+      elapsedTimerHandle = setInterval(() => {
+        if(!gameRunning || startTime === null) return;
+        lastElapsedMs = performance.now() - startTime;
+        updateElapsedTimeDisplay(lastElapsedMs);
+      }, 200);
+    }
+    function finishRun(won = false){
+      if(startTime !== null){
+        lastElapsedMs = performance.now() - startTime;
+      }
+      if(elapsedTimerHandle){
+        clearInterval(elapsedTimerHandle);
+        elapsedTimerHandle = null;
+      }
+      if(lastElapsedMs > 0){
+        updateElapsedTimeDisplay(lastElapsedMs);
+        if(won && (bestTimeMs === null || lastElapsedMs < bestTimeMs)){
+          bestTimeMs = lastElapsedMs;
+          updateBestTimeDisplay();
+        }
+      }
+      startTime = null;
+    }
+    updateElapsedTimeDisplay(0);
+    updateBestTimeDisplay();
     const KEY_TO_DIR = {
       'arrowup': {dx: 0, dy: -1},
       'w': {dx: 0, dy: -1},
@@ -1386,6 +1464,11 @@
         rlParamFieldset.disabled = !rlTrainingEnabled;
         rlParamFieldset.classList.toggle('inactive', !rlTrainingEnabled);
       }
+      if(autoRestartToggle){
+        autoRestartToggle.checked = autoRestartEnabled;
+        autoRestartToggle.disabled = !rlTrainingEnabled;
+      }
+      updateRlLiveMetrics();
     }
     function getManualNext(){
       const direction = pendingManualDirection || manualDirection;
@@ -1475,6 +1558,19 @@
         hamMode ? 1 : 0
       ];
     }
+    function updateRlLiveMetrics(reward){
+      if(!rlLiveMetricsEl) return;
+      if(!rlTrainingEnabled){
+        rlLiveMetricsEl.textContent = 'RL disabled – live metrics paused.';
+        return;
+      }
+      if(typeof reward === 'number' && !Number.isNaN(reward)){
+        lastObservedReward = reward;
+      }
+      const stats = rlAgent.getStats();
+      const rewardText = Number.isFinite(lastObservedReward) ? lastObservedReward.toFixed(2) : '0.00';
+      rlLiveMetricsEl.textContent = `Live: reward=${rewardText} · last episode=${stats.lastEpisodeReward.toFixed(2)} · avg=${stats.averageReward.toFixed(2)} · ε=${stats.epsilon.toFixed(3)}`;
+    }
     function applyRlUpdate(reward, done){
       if(!rlTrainingEnabled){
         rlPendingChoice = null;
@@ -1493,6 +1589,7 @@
         rlEpisodeActive = false;
       }
       updateRlStatus();
+      updateRlLiveMetrics(reward);
     }
     function updateRlStatus(){
       const rlStatusEl = document.getElementById('rlStatus');
@@ -1502,13 +1599,15 @@
         if(rlHint){
           rlHint.textContent = 'Reinforcement learning is currently disabled.';
         }
+        updateRlLiveMetrics();
         return;
       }
       const stats = rlAgent.getStats();
-      rlStatusEl.textContent = `RL training active · ε=${stats.epsilon.toFixed(3)} · episoder=${stats.episodes} · senaste belöning=${stats.lastEpisodeReward.toFixed(2)} · snitt=${stats.averageReward.toFixed(2)}`;
+      rlStatusEl.textContent = `RL training active · ε=${stats.epsilon.toFixed(3)} · episodes=${stats.episodes} · last episode=${stats.lastEpisodeReward.toFixed(2)} · average=${stats.averageReward.toFixed(2)}`;
       if(rlHint){
         rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
       }
+      updateRlLiveMetrics();
     }
     function setupRlControls(){
       const bindings = [
@@ -1544,7 +1643,9 @@
       });
       rlResetButton?.addEventListener('click', () => {
         rlAgent.resetLearning();
+        lastObservedReward = 0;
         updateRlStatus();
+        updateRlLiveMetrics(0);
         if(rlHint){
           rlHint.textContent = 'RL reset – start a new training run to collect data.';
         }
@@ -1589,6 +1690,9 @@
       if(!dir) return;
       setManualDirection(dir.dx, dir.dy);
       event.preventDefault();
+    });
+    autoRestartToggle?.addEventListener('change', (event) => {
+      autoRestartEnabled = !!event.target.checked;
     });
     updateManualUI();
     rlToggleBtn?.addEventListener('click', () => {
@@ -1744,6 +1848,7 @@
       return state;
     }
     function restartGame() {
+      cancelRunTimer();
       const fresh = createFreshState();
       snake = fresh.snake;
       snakeSet = fresh.snakeSet;
@@ -1781,6 +1886,7 @@
       updateRlStatus();
       draw();
       loopHandle = setInterval(update, SPEED);
+      startRunTimer();
     }
     document.getElementById('restartBtn').addEventListener('click', restartGame);
     /* ===== HAMILTON-SLINGA ===== */
@@ -1799,7 +1905,7 @@
     let HAM = buildHamilton();
     const idxOf = p => HAM.findIndex(q=>q.x===p.x&&q.y===p.y);
     const hamNext = p => {const i=idxOf(p); return i<0?null:HAM[(i+1)%HAM.length];};
-    /* ===== HJÄLPFUNKTIONER ===== */
+    /* ===== HELPER FUNCTIONS ===== */
     function spawnFruit(){
       const free=[]; for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)
         if(!snakeSet.has(`${x},${y}`)) free.push({x,y});
@@ -2366,7 +2472,7 @@
     }
     /* ===== UPDATE ===== */
     function update(){
-      if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
+      if(!snake.length){ clearInterval(loopHandle); gameRunning = false; finishRun(false); return; }
       let stepReward = rlConfig.stepPenalty;
       let stepDone = false;
       const nxt = manualMode ? getManualNext() : getNext();
@@ -2375,6 +2481,7 @@
         rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
+        finishRun(false);
         draw();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2391,6 +2498,7 @@
         rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
+        finishRun(false);
         draw();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2409,6 +2517,7 @@
         rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
+        finishRun(false);
         draw();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2437,6 +2546,7 @@
           draw();
           clearInterval(loopHandle);
           gameRunning = false;
+          finishRun(true);
           ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
@@ -2450,6 +2560,13 @@
           ctx.fillStyle = '#fff';
           ctx.font = '24px Inter, sans-serif';
           ctx.fillText("You filled the entire board!", canvas.width/2, canvas.height/2 + 50);
+          if(autoRestartEnabled && rlTrainingEnabled){
+            setTimeout(() => {
+              if(!gameRunning){
+                restartGame();
+              }
+            }, 600);
+          }
           return;
         } else {
           fruit = spawnFruit();
