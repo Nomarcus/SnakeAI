@@ -607,11 +607,16 @@
             <div style="margin-top: 1rem;">
               <button id="restartBtn" class="button danger" style="width: 100%;">🔄 Restart</button>
             </div>
-            <div style="margin-top: 0.8rem;">
-              <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
-              <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
-            </div>
+          <div style="margin-top: 0.8rem;">
+            <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
+            <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
           </div>
+          <div class="controls-section" style="margin-top: 1.5rem;">
+            <h3>ML / RL Training</h3>
+            <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable Reinforcement Learning</button>
+            <p id="rlHint" class="manual-hint">Reinforcement learning is currently disabled.</p>
+          </div>
+        </div>
           <div class="controls-section">
             <h3>Grid Size</h3>
             <div class="param-control">
@@ -692,6 +697,7 @@
               <p id="loopStatus"></p>
               <p id="compactStatus"></p>
               <p id="compactStepStatus"></p>
+              <p id="rlStatus"></p>
             </div>
           </div>
 
@@ -901,11 +907,18 @@
     let CELL = 30;
     let SPEED = 100;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
+    const DIR_TO_INDEX = DIRS.reduce((acc, dir, idx) => {
+      acc[`${dir.dx},${dir.dy}`] = idx;
+      return acc;
+    }, {});
     const MAX_SPEED = 500, MIN_SPEED = 1, SPEED_STEP = 10;
     let manualMode = false;
     let manualDirection = {dx: 1, dy: 0};
     let pendingManualDirection = null;
     let eatParticles = [];
+    let rlTrainingEnabled = false;
+    let rlPendingChoice = null;
+    let rlEpisodeActive = false;
     /* ===== DYNAMISKA TRÖSKLAR ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
     let ENDGAME_THRESHOLD = 20;
@@ -954,6 +967,7 @@
       }
     };
     let loopCountAdjust = 0;
+    const rlAgent = createReinforcementAgent();
     /* ===== SPELSTATE ===== */
     let snake=[], snakeSet=new Set();
     let fruit, prevFruitDist=Infinity, noProgressMoves=0;
@@ -982,6 +996,87 @@
     function getStrategyExplanation(strategy) {
       return STRATEGY_DESCRIPTIONS[strategy] || "Assessing the board and adapting to the current situation.";
     }
+    function createReinforcementAgent(){
+      const alpha = 0.2;
+      const gamma = 0.9;
+      let epsilon = 0.3;
+      const epsilonMin = 0.05;
+      const epsilonDecay = 0.995;
+      const qTable = new Map();
+      let episodes = 0;
+      let episodeReward = 0;
+      let totalReward = 0;
+      let lastEpisodeReward = 0;
+      const stateKey = state => state.join('|');
+      const ensureState = key => {
+        if(!qTable.has(key)){
+          qTable.set(key, Array(DIRS.length).fill(0));
+        }
+      };
+      return {
+        decide(state, safeMoves){
+          if(!safeMoves || !safeMoves.length) return null;
+          const key = stateKey(state);
+          ensureState(key);
+          let actionIdx;
+          if(Math.random() < epsilon){
+            const choice = safeMoves[(Math.random()*safeMoves.length)|0];
+            actionIdx = choice.dirIndex;
+          } else {
+            const values = qTable.get(key);
+            let best = -Infinity;
+            let bestIndices = [];
+            for(const move of safeMoves){
+              const value = values[move.dirIndex];
+              if(value > best){
+                best = value;
+                bestIndices = [move.dirIndex];
+              } else if(value === best){
+                bestIndices.push(move.dirIndex);
+              }
+            }
+            if(bestIndices.length){
+              actionIdx = bestIndices[(Math.random()*bestIndices.length)|0];
+            } else {
+              actionIdx = safeMoves[(Math.random()*safeMoves.length)|0].dirIndex;
+            }
+          }
+          return { stateKey: key, actionIdx };
+        },
+        learn(prevKey, actionIdx, reward, nextState, done){
+          ensureState(prevKey);
+          const values = qTable.get(prevKey);
+          let target = reward;
+          if(!done && nextState){
+            const nextKey = stateKey(nextState);
+            ensureState(nextKey);
+            const nextValues = qTable.get(nextKey);
+            const maxNext = Math.max(...nextValues);
+            target += gamma * maxNext;
+          }
+          values[actionIdx] += alpha * (target - values[actionIdx]);
+          episodeReward += reward;
+        },
+        startEpisode(){
+          episodeReward = 0;
+        },
+        endEpisode(){
+          totalReward += episodeReward;
+          lastEpisodeReward = episodeReward;
+          episodes++;
+          epsilon = Math.max(epsilon * epsilonDecay, epsilonMin);
+          episodeReward = 0;
+        },
+        getStats(){
+          return {
+            epsilon,
+            episodes,
+            lastEpisodeReward,
+            averageReward: episodes ? totalReward / episodes : 0
+          };
+        }
+      };
+    }
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
     const pages = document.querySelectorAll('.page');
@@ -997,6 +1092,8 @@
     });
     const manualToggleBtn = document.getElementById('manualToggle');
     const manualHint = document.getElementById('manualHint');
+    const rlToggleBtn = document.getElementById('rlToggle');
+    const rlHint = document.getElementById('rlHint');
     const KEY_TO_DIR = {
       'arrowup': {dx: 0, dy: -1},
       'w': {dx: 0, dy: -1},
@@ -1045,6 +1142,19 @@
       }
       updateManualUI();
     }
+    function updateRlToggleUI(){
+      if(!rlToggleBtn || !rlHint) return;
+      if(rlTrainingEnabled){
+        rlToggleBtn.classList.add('toggle-active');
+        rlToggleBtn.textContent = '🤖 RL Training On';
+        const stats = rlAgent.getStats();
+        rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
+      } else {
+        rlToggleBtn.classList.remove('toggle-active');
+        rlToggleBtn.textContent = '🤖 Enable Reinforcement Learning';
+        rlHint.textContent = 'Reinforcement learning is currently disabled.';
+      }
+    }
     function getManualNext(){
       const direction = pendingManualDirection || manualDirection;
       manualDirection = direction;
@@ -1057,6 +1167,116 @@
       compactMode = false;
       compactModeSteps = 0;
       return next;
+    }
+    function getCurrentDirection(){
+      if(snake.length > 1){
+        const dx = snake[0].x - snake[1].x;
+        const dy = snake[0].y - snake[1].y;
+        if(dx !== 0 || dy !== 0){
+          return {dx: Math.sign(dx), dy: Math.sign(dy)};
+        }
+      }
+      if(lastMoves.length > 1){
+        const head = lastMoves[lastMoves.length - 1];
+        const prev = lastMoves[lastMoves.length - 2];
+        const dx = head.x - prev.x;
+        const dy = head.y - prev.y;
+        if(dx !== 0 || dy !== 0){
+          return {dx: Math.sign(dx), dy: Math.sign(dy)};
+        }
+      }
+      return {dx: 1, dy: 0};
+    }
+    function getDirIndex(dir){
+      const key = `${dir.dx},${dir.dy}`;
+      if(Object.prototype.hasOwnProperty.call(DIR_TO_INDEX, key)){
+        return DIR_TO_INDEX[key];
+      }
+      return DIR_TO_INDEX['1,0'];
+    }
+    function getSafeMovesForRL(){
+      const head = snake[0];
+      if(!head) return [];
+      const safeMoves = [];
+      const tail = snake.length > 1 ? snake[snake.length - 1] : null;
+      for(let i = 0; i < DIRS.length; i++){
+        const d = DIRS[i];
+        const nx = head.x + d.dx;
+        const ny = head.y + d.dy;
+        if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        const key = `${nx},${ny}`;
+        const ate = fruit && fruit.x === nx && fruit.y === ny;
+        const isTailStep = tail && nx === tail.x && ny === tail.y;
+        if(snakeSet.has(key) && !(isTailStep && !ate)) continue;
+        const simulated = ate
+          ? [{x: nx, y: ny}, ...snake]
+          : [{x: nx, y: ny}, ...snake.slice(0, -1)];
+        if(!canReachTailFrom({x: nx, y: ny}, simulated)) continue;
+        safeMoves.push({x: nx, y: ny, dirIndex: i, ate});
+      }
+      return safeMoves;
+    }
+    function buildRlObservation(safeMoves){
+      const head = snake[0];
+      if(!head) return ['empty'];
+      const direction = getCurrentDirection();
+      const safeSet = new Set((safeMoves || []).map(m => m.dirIndex));
+      const frontDir = getDirIndex(direction);
+      const leftDir = getDirIndex({dx: direction.dy, dy: -direction.dx});
+      const rightDir = getDirIndex({dx: -direction.dy, dy: direction.dx});
+      const frontDanger = safeSet.has(frontDir) ? 0 : 1;
+      const leftDanger = safeSet.has(leftDir) ? 0 : 1;
+      const rightDanger = safeSet.has(rightDir) ? 0 : 1;
+      const fruitDX = fruit && fruit.x >= 0 ? Math.sign(fruit.x - head.x) : 0;
+      const fruitDY = fruit && fruit.y >= 0 ? Math.sign(fruit.y - head.y) : 0;
+      const freeCells = COLS * ROWS - snake.length;
+      const freeBucket = Math.min(3, Math.floor(freeCells / Math.max(1, Math.floor((COLS * ROWS) / 4))));
+      return [
+        frontDanger,
+        leftDanger,
+        rightDanger,
+        fruitDX,
+        fruitDY,
+        direction.dx,
+        direction.dy,
+        freeBucket,
+        hamMode ? 1 : 0
+      ];
+    }
+    function applyRlUpdate(reward, done){
+      if(!rlTrainingEnabled){
+        rlPendingChoice = null;
+        return;
+      }
+      if(rlPendingChoice){
+        const nextState = done ? null : buildRlObservation(getSafeMovesForRL());
+        rlAgent.learn(rlPendingChoice.stateKey, rlPendingChoice.actionIdx, reward, nextState, done);
+        if(done && rlEpisodeActive){
+          rlAgent.endEpisode();
+          rlEpisodeActive = false;
+        }
+        rlPendingChoice = null;
+      } else if(done && rlTrainingEnabled && rlEpisodeActive){
+        rlAgent.endEpisode();
+        rlEpisodeActive = false;
+      }
+      updateRlStatus();
+    }
+    function updateRlStatus(){
+      const rlStatusEl = document.getElementById('rlStatus');
+      if(!rlStatusEl) return;
+      if(!rlTrainingEnabled){
+        rlStatusEl.textContent = 'RL disabled – using handcrafted strategies only.';
+        if(rlHint){
+          rlHint.textContent = 'Reinforcement learning is currently disabled.';
+        }
+        return;
+      }
+      const stats = rlAgent.getStats();
+      rlStatusEl.textContent = `RL training active · ε=${stats.epsilon.toFixed(3)} · episodes=${stats.episodes} · last reward=${stats.lastEpisodeReward.toFixed(2)}`;
+      if(rlHint){
+        rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
+      }
     }
     function spawnEatEffect(cellX, cellY){
       const originX = cellX * CELL + CELL / 2;
@@ -1099,6 +1319,26 @@
       event.preventDefault();
     });
     updateManualUI();
+    rlToggleBtn?.addEventListener('click', () => {
+      rlTrainingEnabled = !rlTrainingEnabled;
+      if(rlTrainingEnabled){
+        manualMode = false;
+        updateManualUI();
+        rlPendingChoice = null;
+        rlAgent.startEpisode();
+        rlEpisodeActive = true;
+      } else {
+        if(rlEpisodeActive){
+          rlAgent.endEpisode();
+        }
+        rlEpisodeActive = false;
+        rlPendingChoice = null;
+      }
+      updateRlToggleUI();
+      updateRlStatus();
+    });
+    updateRlToggleUI();
+    updateRlStatus();
     /* ===== SIZE CONTROL ===== */
     const sizeSlider = document.getElementById('sizeSlider');
     sizeSlider.addEventListener('input', (e) => {
@@ -1254,6 +1494,17 @@
       HAM = buildHamilton();
       if (loopHandle) clearInterval(loopHandle);
       gameRunning = true;
+      if(rlTrainingEnabled){
+        if(rlEpisodeActive){
+          rlAgent.endEpisode();
+        }
+        rlAgent.startEpisode();
+        rlEpisodeActive = true;
+      } else {
+        rlEpisodeActive = false;
+      }
+      rlPendingChoice = null;
+      updateRlStatus();
       draw();
       loopHandle = setInterval(update, SPEED);
     }
@@ -1507,6 +1758,7 @@
     function getNext(){
       HAM = buildHamilton();
       const head=snake[0];
+      const rlSafeMoves = rlTrainingEnabled ? getSafeMovesForRL() : null;
       windowMoves.push(`${head.x},${head.y}`);
       if(windowMoves.length>WINDOW_SIZE) windowMoves.shift();
       lastMoves.push({x:head.x,y:head.y});
@@ -1595,6 +1847,24 @@
           if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
         }
         if(best){ currentStrategy="Loop break (Longest)"; return best; }
+      }
+      if(rlTrainingEnabled && !hamMode){
+        if(!rlEpisodeActive){
+          rlAgent.startEpisode();
+          rlEpisodeActive = true;
+        }
+        if(rlSafeMoves && rlSafeMoves.length){
+          const rlState = buildRlObservation(rlSafeMoves);
+          const decision = rlAgent.decide(rlState, rlSafeMoves);
+          if(decision){
+            const selected = rlSafeMoves.find(move => move.dirIndex === decision.actionIdx);
+            if(selected){
+              rlPendingChoice = { stateKey: decision.stateKey, actionIdx: decision.actionIdx };
+              currentStrategy = 'RL policy';
+              return {x: selected.x, y: selected.y};
+            }
+          }
+        }
       }
       const fruitAcc = isFruitAccessible(head);
       if(fruitAcc && freeCells>15){
@@ -1805,12 +2075,16 @@
       document.getElementById('snakeLength').textContent = snake.length;
       document.getElementById('freeCells').textContent = freeCellsCount;
       document.getElementById('progress').textContent = ((snake.length / (COLS * ROWS)) * 100).toFixed(1) + '%';
+      updateRlStatus();
     }
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
+      let stepReward = -0.05;
+      let stepDone = false;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
+        applyRlUpdate(-5, true);
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1825,6 +2099,7 @@
         return;
       }
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
+        applyRlUpdate(-5, true);
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1841,6 +2116,7 @@
       const tail = snake[snake.length - 1];
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
+        applyRlUpdate(-5, true);
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1861,8 +2137,12 @@
       snakeSet.add(`${nxt.x},${nxt.y}`);
       if(ate){
         loopCountAdjust = 0;
+        stepReward = 5;
         if(snake.length === COLS * ROWS){
           fruit = {x: -1, y: -1};
+          stepReward = 15;
+          stepDone = true;
+          applyRlUpdate(stepReward, stepDone);
           draw();
           clearInterval(loopHandle);
           gameRunning = false;
@@ -1889,6 +2169,7 @@
           spawnEatEffect(atePosition.x, atePosition.y);
         }
       }
+      applyRlUpdate(stepReward, stepDone);
       draw();
     }
     /* ===== SPEED CONTROLS & STARTUP ===== */
