@@ -268,15 +268,6 @@
       background: linear-gradient(135deg, var(--success) 0%, var(--accent) 100%);
       box-shadow: 0 8px 25px rgba(74, 222, 128, 0.45);
     }
-    .button.accent {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
-      box-shadow: 0 4px 18px rgba(240, 147, 251, 0.35);
-    }
-    .button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
     .manual-hint {
       font-size: 0.85rem;
       margin-top: 0.5rem;
@@ -396,21 +387,6 @@
     .param-control .size-slider {
       width: 100%;
     }
-    .number-input {
-      width: 100%;
-      padding: 0.65rem 0.8rem;
-      border-radius: 0.75rem;
-      border: 1px solid var(--glass-border);
-      background: var(--glass);
-      color: var(--text);
-      font-size: 1rem;
-      transition: border-color 0.3s, box-shadow 0.3s;
-    }
-    .number-input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(240, 147, 251, 0.2);
-    }
     /* Status display */
     .status-display {
       background: var(--darker);
@@ -437,28 +413,6 @@
     .status-value {
       font-weight: 600;
       color: var(--accent);
-    }
-    .learning-metrics {
-      margin-top: 1rem;
-      background: rgba(102, 126, 234, 0.08);
-      border: 1px dashed rgba(240, 147, 251, 0.4);
-      border-radius: 1rem;
-      padding: 1rem 1.25rem;
-      display: grid;
-      gap: 0.35rem;
-    }
-    .learning-metrics .status-item {
-      padding: 0.35rem 0;
-      border-bottom: 1px dashed rgba(240, 147, 251, 0.2);
-    }
-    .learning-metrics .status-item:last-child {
-      border-bottom: none;
-    }
-    .learning-note {
-      font-size: 0.85rem;
-      color: rgba(226, 232, 240, 0.75);
-      margin-top: 0.75rem;
-      line-height: 1.4;
     }
     /* AI Status messages */
     #statusMessages {
@@ -718,30 +672,6 @@
             </div>
           </div>
           <div class="controls-section">
-            <h3>Adaptive Learning</h3>
-            <button id="learningToggle" class="button" style="width: 100%; margin-bottom: 0.75rem;">🤖 Enable Learning</button>
-            <p id="learningStatus" class="learning-note">Machine learning is currently disabled.</p>
-            <div class="learning-metrics">
-              <div class="status-item">
-                <span class="status-label">Exploration (ε):</span>
-                <span id="epsilonValue" class="status-value">0.20</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Episodes:</span>
-                <span id="episodesValue" class="status-value">0</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Win rate:</span>
-                <span id="winRateValue" class="status-value">0%</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Reward trend:</span>
-                <span id="rewardValue" class="status-value">0.00</span>
-              </div>
-            </div>
-            <p class="learning-note">When enabled, the agent refines its strategy after every round using reinforcement learning while keeping the proven safety systems.</p>
-          </div>
-          <div class="controls-section">
             <h3>Game Status</h3>
             <div class="status-display">
               <div class="status-item">
@@ -768,52 +698,6 @@
               <p id="compactStatus"></p>
               <p id="compactStepStatus"></p>
               <p id="rlStatus"></p>
-            </div>
-          </div>
-          <div class="controls-section">
-            <h3>ML / RL Trainer</h3>
-            <p class="status-explanation" id="rlHint">RL inactive – snake relies only on handcrafted logic.</p>
-            <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable RL Training</button>
-            <div class="status-display" style="margin-top: 1rem;">
-              <div class="status-item">
-                <span class="status-label">Episodes:</span>
-                <span id="rlEpisodes" class="status-value">0</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Exploration:</span>
-                <span id="rlExploration" class="status-value">0.30</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Last reward:</span>
-                <span id="rlLastReward" class="status-value">0.0</span>
-              </div>
-            </div>
-          </div>
-          <div class="controls-section">
-            <h3>Self-Learning</h3>
-            <div class="param-control">
-              <label for="trainingEpisodes">Episodes</label>
-              <input type="number" id="trainingEpisodes" class="number-input" min="1" max="500" value="20">
-            </div>
-            <button id="trainingToggle" class="button accent" style="width: 100%;">🤖 Start Self-Learning</button>
-            <p id="trainingStatus" class="status-explanation" style="margin-top: 0.6rem;">Status: Idle</p>
-            <div class="status-display" style="margin-top: 1rem;">
-              <div class="status-item">
-                <span class="status-label">Learning rate (α):</span>
-                <span id="learningRateValue" class="status-value">0.120</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Exploration (ε):</span>
-                <span id="epsilonValue" class="status-value">0.150</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Episodes:</span>
-                <span id="trainingProgress" class="status-value">0 / 0</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Win rate:</span>
-                <span id="trainingWinRate" class="status-value">0%</span>
-              </div>
             </div>
           </div>
 
@@ -1032,296 +916,9 @@
     let manualDirection = {dx: 1, dy: 0};
     let pendingManualDirection = null;
     let eatParticles = [];
-    let trainingStatusEl, trainingProgressEl, trainingWinRateEl,
-        learningRateEl, epsilonValueEl, trainingEpisodesInput,
-        trainingToggleBtn;
-    let trainingStatusOverride = null;
-    function updateTrainingHUD({statusText, clearOverride} = {}) {
-      if(clearOverride) trainingStatusOverride = null;
-      if(statusText !== undefined) trainingStatusOverride = statusText;
-      if(learningRateEl){
-        const alpha = Number.isFinite(rlAgent?.alpha) ? rlAgent.alpha : 0;
-        learningRateEl.textContent = alpha.toFixed(3);
-      }
-      if(epsilonValueEl){
-        const epsilon = Number.isFinite(rlAgent?.epsilon) ? rlAgent.epsilon : 0;
-        epsilonValueEl.textContent = epsilon.toFixed(3);
-      }
-      if(trainingProgressEl){
-        const total = rlAgent?.targetEpisodes || 0;
-        const remaining = rlAgent?.episodesRemaining || 0;
-        const completed = total ? Math.max(0, total - remaining) : 0;
-        trainingProgressEl.textContent = total ? `${completed} / ${total}` : '0 / 0';
-      }
-      if(trainingWinRateEl){
-        const episodesDone = rlAgent?.trainingStats?.episodes ?? 0;
-        const wins = rlAgent?.trainingStats?.wins ?? 0;
-        trainingWinRateEl.textContent = episodesDone ? `${((wins / episodesDone) * 100).toFixed(1)}%` : '0%';
-      }
-      if(trainingToggleBtn){
-        const isTraining = !!rlAgent?.training;
-        trainingToggleBtn.disabled = isTraining;
-        trainingToggleBtn.classList.toggle('toggle-active', isTraining);
-        trainingToggleBtn.textContent = isTraining ? '⏳ Training...' : '🤖 Start Self-Learning';
-      }
-      if(trainingStatusEl){
-        if(rlAgent?.training){
-          const total = rlAgent.targetEpisodes || 0;
-          const remaining = rlAgent.episodesRemaining || 0;
-          const completed = total ? Math.max(0, total - remaining) : 0;
-          trainingStatusEl.textContent = `Status: Training (${completed}/${total})`;
-          trainingStatusOverride = null;
-        } else if(trainingStatusOverride){
-          trainingStatusEl.textContent = trainingStatusOverride;
-        } else {
-          trainingStatusEl.textContent = 'Status: Idle';
-        }
-      }
-    }
-    /* ===== REINFORCEMENT LEARNING AGENT ===== */
-    const rlAgent = {
-      alpha: 0.12,
-      gamma: 0.93,
-      epsilon: 0.15,
-      epsilonDecay: 0.995,
-      minEpsilon: 0.02,
-      qWeight: 12,
-      qTable: new Map(),
-      lastStateKey: null,
-      lastActionKey: null,
-      lastFruitDistance: null,
-      training: false,
-      episodesRemaining: 0,
-      trainingResolve: null,
-      trainingStats: null,
-      trainingOptions: null,
-      targetEpisodes: 0,
-      stepsInEpisode: 0,
-      prevSpeed: null,
-      prevManualMode: false,
-      getStateSnapshot(head, context = {}){
-        const fruitDx = fruit && fruit.x >= 0 ? Math.sign(fruit.x - head.x) : 0;
-        const fruitDy = fruit && fruit.y >= 0 ? Math.sign(fruit.y - head.y) : 0;
-        const fruitDist = fruit && fruit.x >= 0 ? Math.abs(fruit.x - head.x) + Math.abs(fruit.y - head.y) : COLS + ROWS;
-        const distBucket = Math.min(8, Math.floor(fruitDist / Math.max(1, Math.floor((COLS + ROWS) / 10))));
-        const safeMoves = this.countSafeMoves(head);
-        return {
-          dx: fruitDx,
-          dy: fruitDy,
-          dist: distBucket,
-          safe: safeMoves,
-          end: context.isEndgame ? 1 : 0,
-          ham: hamMode ? 1 : 0,
-          loop: loopDetected ? 1 : 0
-        };
-      },
-      serializeState(state){
-        return `${state.dx}|${state.dy}|${state.dist}|${state.safe}|${state.end}|${state.ham}|${state.loop}`;
-      },
-      countSafeMoves(head){
-        let safe = 0;
-        for(const dir of DIRS){
-          const nx = head.x + dir.dx;
-          const ny = head.y + dir.dy;
-          if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
-          const tail = snake.length > 1 ? snake[snake.length - 1] : null;
-          const isTailStep = tail && nx === tail.x && ny === tail.y;
-          if(snakeSet.has(`${nx},${ny}`) && !isTailStep) continue;
-          safe++;
-        }
-        return safe;
-      },
-      getQValue(stateKey, actionKey){
-        const entry = this.qTable.get(stateKey);
-        return entry ? (entry[actionKey] ?? 0) : 0;
-      },
-      setQValue(stateKey, actionKey, value){
-        const entry = this.qTable.get(stateKey) || {};
-        entry[actionKey] = value;
-        this.qTable.set(stateKey, entry);
-      },
-      shouldExplore(){
-        return this.training && Math.random() < this.epsilon;
-      },
-      chooseMove(head, candidates, context = {}){
-        if(!candidates.length) return null;
-        const state = this.getStateSnapshot(head, context);
-        const stateKey = this.serializeState(state);
-        const enriched = candidates.map(move => {
-          const actionKey = `${move.dx},${move.dy}`;
-          const qValue = this.getQValue(stateKey, actionKey);
-          return {
-            move,
-            actionKey,
-            qValue,
-            combined: move.baseScore + this.qWeight * qValue
-          };
-        });
-        let choice;
-        if(this.shouldExplore()){
-          choice = enriched[(Math.random() * enriched.length) | 0];
-        } else {
-          choice = enriched.reduce((best, current) => current.combined > best.combined ? current : best, enriched[0]);
-        }
-        this.lastStateKey = stateKey;
-        this.lastActionKey = choice.actionKey;
-        this.lastFruitDistance = fruit && fruit.x >= 0 ? Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y) : null;
-        return choice.move;
-      },
-      enumerateNextActions(head){
-        const options = [];
-        for(const dir of DIRS){
-          const nx = head.x + dir.dx;
-          const ny = head.y + dir.dy;
-          if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
-          const tail = snake.length > 1 ? snake[snake.length - 1] : null;
-          const isTailStep = tail && nx === tail.x && ny === tail.y;
-          if(snakeSet.has(`${nx},${ny}`) && !isTailStep) continue;
-          options.push(`${dir.dx},${dir.dy}`);
-        }
-        return options;
-      },
-      applyReward(reward, nextStateKey, nextActionKeys){
-        if(this.lastStateKey && this.lastActionKey){
-          const current = this.getQValue(this.lastStateKey, this.lastActionKey);
-          const future = nextActionKeys && nextActionKeys.length ? Math.max(...nextActionKeys.map(key => this.getQValue(nextStateKey, key))) : 0;
-          const target = reward + (nextActionKeys && nextActionKeys.length ? this.gamma * future : 0);
-          const updated = current + this.alpha * (target - current);
-          this.setQValue(this.lastStateKey, this.lastActionKey, updated);
-        }
-        this.lastStateKey = null;
-        this.lastActionKey = null;
-        this.lastFruitDistance = null;
-        if(this.training){
-          this.epsilon = Math.max(this.minEpsilon, this.epsilon * this.epsilonDecay);
-          updateTrainingHUD();
-        }
-      },
-      handleStepResult(status, newHead){
-        if(this.training) this.stepsInEpisode += 1;
-        if(this.lastStateKey === null || manualMode) return;
-        let reward = -0.01;
-        if(status === 'death') reward = -1;
-        else if(status === 'fruit') reward = 1;
-        else if(status === 'win') reward = 2;
-        if(status !== 'death' && this.lastFruitDistance != null && fruit && fruit.x >= 0){
-          const newDist = Math.abs(newHead.x - fruit.x) + Math.abs(newHead.y - fruit.y);
-          if(newDist < this.lastFruitDistance) reward += 0.05;
-          else if(newDist > this.lastFruitDistance) reward -= 0.02;
-        }
-        let nextStateKey = null;
-        let nextActionKeys = [];
-        if(status !== 'death' && status !== 'win'){
-          const snapshot = this.getStateSnapshot(newHead);
-          nextStateKey = this.serializeState(snapshot);
-          nextActionKeys = this.enumerateNextActions(newHead);
-        }
-        this.applyReward(reward, nextStateKey, nextActionKeys);
-      },
-      startEpisode(){
-        this.lastStateKey = null;
-        this.lastActionKey = null;
-        this.lastFruitDistance = null;
-        this.stepsInEpisode = 0;
-        if(this.training){
-          updateTrainingHUD();
-        }
-      },
-      finishEpisode(won){
-        if(this.training){
-          if(this.trainingStats){
-            this.trainingStats.episodes += 1;
-            if(won) this.trainingStats.wins += 1;
-            this.trainingStats.totalLength += snake.length;
-            this.trainingStats.totalSteps += this.stepsInEpisode;
-          }
-          this.startEpisode();
-          this.episodesRemaining -= 1;
-          updateTrainingHUD();
-          if(this.episodesRemaining > 0){
-            const delay = this.trainingOptions?.episodeDelay ?? 30;
-            setTimeout(() => restartGame(), delay);
-          } else {
-            const result = {
-              episodes: this.trainingStats?.episodes ?? 0,
-              wins: this.trainingStats?.wins ?? 0,
-              totalLength: this.trainingStats?.totalLength ?? 0,
-              totalSteps: this.trainingStats?.totalSteps ?? 0,
-              winRate: this.trainingStats && this.trainingStats.episodes ? this.trainingStats.wins / this.trainingStats.episodes : 0
-            };
-            this.training = false;
-            this.targetEpisodes = 0;
-            const resolver = this.trainingResolve;
-            this.trainingResolve = null;
-            this.trainingOptions = null;
-            if(this.prevSpeed != null){
-              changeSpeed(this.prevSpeed);
-              this.prevSpeed = null;
-            }
-            updateTrainingHUD({statusText: `Status: Completed – Win rate ${(result.winRate * 100).toFixed(1)}%`});
-            if(resolver){
-              const originalPrevManual = this.prevManualMode;
-              resolver(result);
-              this.prevManualMode = originalPrevManual;
-            }
-          }
-        } else {
-          this.startEpisode();
-        }
-      },
-      registerTerminal(status){
-        if(manualMode) return;
-        const head = snake[0];
-        this.handleStepResult(status, head);
-        this.finishEpisode(status === 'win');
-      },
-      startTraining(episodes = 5, options = {}){
-        if(this.training) throw new Error('Training is already running');
-        this.training = true;
-        this.episodesRemaining = episodes;
-        this.trainingOptions = options;
-        this.trainingStats = { episodes: 0, wins: 0, totalLength: 0, totalSteps: 0 };
-        this.targetEpisodes = episodes;
-        this.alpha = options.alpha ?? this.alpha;
-        this.gamma = options.gamma ?? this.gamma;
-        this.epsilon = options.epsilon ?? this.epsilon;
-        this.epsilonDecay = options.epsilonDecay ?? this.epsilonDecay;
-        this.minEpsilon = options.minEpsilon ?? this.minEpsilon;
-        this.qWeight = options.qWeight ?? this.qWeight;
-        this.startEpisode();
-        this.prevSpeed = options.speed ? SPEED : null;
-        if(options.speed){
-          changeSpeed(options.speed);
-        }
-        this.prevManualMode = manualMode;
-        manualMode = false;
-        updateManualUI();
-        updateTrainingHUD({clearOverride: true});
-        updateTrainingHUD();
-        return new Promise(resolve => {
-          this.trainingResolve = stats => {
-            if(options.speed && this.prevSpeed != null){
-              changeSpeed(this.prevSpeed);
-              this.prevSpeed = null;
-            }
-            manualMode = this.prevManualMode;
-            updateManualUI();
-            if(manualMode){
-              setInitialManualDirection();
-            }
-            updateTrainingHUD();
-            resolve({
-              ...stats,
-              averageLength: stats.episodes ? stats.totalLength / stats.episodes : 0,
-              averageSteps: stats.episodes ? stats.totalSteps / stats.episodes : 0,
-              epsilon: this.epsilon
-            });
-            this.prevManualMode = false;
-          };
-          restartGame();
-        });
-      }
-    };
+    let rlTrainingEnabled = false;
+    let rlPendingChoice = null;
+    let rlEpisodeActive = false;
     /* ===== DYNAMISKA TRÖSKLAR ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
     let ENDGAME_THRESHOLD = 20;
@@ -1390,13 +987,10 @@
       "Filling smallest pocket": "Closing a small empty pocket before it becomes a trap.",
       "Loop break (Longest)": "Taking the longest safe option to break a repeating loop.",
       "Greedy to fruit": "Charging directly for the fruit while it looks safe.",
-      "RL Greedy refinement": "Reinforcement learning guides the greedy hunt based on past successes.",
       "Compact zig-zag": "Compressing the body with tight zig-zags to clear space.",
       "BFS to fruit": "Calculating the safest shortest path to the fruit.",
       "BFS to tail": "Using breadth-first search to reconnect with the tail safely.",
       "Heuristic": "Balancing fruit hunting with safety heuristics.",
-      "RL Heuristic blend": "Reinforcement learning mixes the heuristic options for long-term survival.",
-      "RL adaptive choice": "Machine learning override combining safe paths with learned instincts.",
       "No safe move!": "No safe moves remain – preparing for impact."
     };
     function getStrategyExplanation(strategy) {
@@ -1498,14 +1092,8 @@
     });
     const manualToggleBtn = document.getElementById('manualToggle');
     const manualHint = document.getElementById('manualHint');
-    trainingStatusEl = document.getElementById('trainingStatus');
-    trainingProgressEl = document.getElementById('trainingProgress');
-    trainingWinRateEl = document.getElementById('trainingWinRate');
-    learningRateEl = document.getElementById('learningRateValue');
-    epsilonValueEl = document.getElementById('epsilonValue');
-    trainingEpisodesInput = document.getElementById('trainingEpisodes');
-    trainingToggleBtn = document.getElementById('trainingToggle');
-    updateTrainingHUD();
+    const rlToggleBtn = document.getElementById('rlToggle');
+    const rlHint = document.getElementById('rlHint');
     const KEY_TO_DIR = {
       'arrowup': {dx: 0, dy: -1},
       'w': {dx: 0, dy: -1},
@@ -1546,10 +1134,6 @@
     }
     function toggleManualMode(){
       manualMode = !manualMode;
-      if(manualMode && rlEnabled){
-        rlEnabled = false;
-        updateRLUI();
-      }
       if(manualMode){
         setInitialManualDirection();
         currentStrategy = 'Manual control';
@@ -1558,183 +1142,19 @@
       }
       updateManualUI();
     }
-    function bucketValue(value, thresholds){
-      for(let i = 0; i < thresholds.length; i++){
-        if(value <= thresholds[i]) return i;
+    function updateRlToggleUI(){
+      if(!rlToggleBtn || !rlHint) return;
+      if(rlTrainingEnabled){
+        rlToggleBtn.classList.add('toggle-active');
+        rlToggleBtn.textContent = '🤖 RL Training On';
+        const stats = rlAgent.getStats();
+        rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
+      } else {
+        rlToggleBtn.classList.remove('toggle-active');
+        rlToggleBtn.textContent = '🤖 Enable Reinforcement Learning';
+        rlHint.textContent = 'Reinforcement learning is currently disabled.';
       }
-      return thresholds.length;
     }
-    const learningAgent = (() => {
-      const qTable = new Map();
-      let epsilon = 0.2;
-      const alpha = 0.18;
-      const gamma = 0.92;
-      let lastDecision = null;
-      let totalEpisodes = 0;
-      let totalWins = 0;
-      let runningReward = 0;
-      function encodeState(state){
-        const {freeBucket, fruitBucket, ham, loop, compact, endgame, strategy} = state;
-        return [freeBucket, fruitBucket, ham ? 1 : 0, loop ? 1 : 0, compact ? 1 : 0, endgame ? 1 : 0, strategy].join('|');
-      }
-      function encodeAction(move){
-        const head = snake[0] || {x: 0, y: 0};
-        return `${move.x - head.x},${move.y - head.y}`;
-      }
-      function ensureRow(key, actions){
-        if(!qTable.has(key)) qTable.set(key, {});
-        const row = qTable.get(key);
-        actions.forEach(action => {
-          if(!(action in row)) row[action] = 0;
-        });
-        return row;
-      }
-      function selectAction(row, actions){
-        if(!actions.length) return null;
-        if(Math.random() < epsilon){
-          return actions[(Math.random() * actions.length) | 0];
-        }
-        let best = actions[0];
-        let bestValue = -Infinity;
-        actions.forEach(action => {
-          const val = row[action] ?? 0;
-          if(val > bestValue){
-            bestValue = val;
-            best = action;
-          }
-        });
-        return best;
-      }
-      function updateQ(prevKey, actionKey, reward, nextKey, done){
-        if(!prevKey || !actionKey) return;
-        const row = ensureRow(prevKey, [actionKey]);
-        const current = row[actionKey] ?? 0;
-        let target = reward;
-        if(!done && nextKey && qTable.has(nextKey)){
-          const nextRow = qTable.get(nextKey);
-          const values = Object.values(nextRow);
-          if(values.length){
-            const maxNext = Math.max(...values);
-            if(Number.isFinite(maxNext)) target += gamma * maxNext;
-          }
-        }
-        row[actionKey] = current + alpha * (target - current);
-      }
-      return {
-        enabled: false,
-        startNewEpisode(){
-          lastDecision = null;
-        },
-        setEnabled(flag){
-          this.enabled = flag;
-          if(!flag){
-            lastDecision = null;
-          }
-        },
-        onBeforeDecision(state){
-          if(!this.enabled) return;
-          lastDecision = { stateSnapshot: {...state}, strategy: null, key: null, action: null };
-        },
-        chooseMove(strategy, moves){
-          if(!this.enabled || !moves || !moves.length || !lastDecision) return null;
-          const state = {...lastDecision.stateSnapshot, strategy};
-          const stateKey = encodeState(state);
-          const actionKeys = moves.map(move => encodeAction(move));
-          const row = ensureRow(stateKey, actionKeys);
-          const actionKey = selectAction(row, actionKeys);
-          const move = moves.find(m => encodeAction(m) === actionKey) || moves[0];
-          lastDecision = { stateSnapshot: lastDecision.stateSnapshot, strategy, key: stateKey, action: actionKey };
-          return {
-            move,
-            label: strategy === 'greedy' ? 'RL Greedy refinement' : strategy === 'heuristic' ? 'RL Heuristic blend' : 'RL adaptive choice'
-          };
-        },
-        onAfterStep({ate, alive, newState}){
-          if(!this.enabled || !lastDecision?.action) return;
-          const reward = (ate ? 12 : 0) + (alive ? 0.2 : -12);
-          const nextKey = (alive && newState) ? encodeState({...newState, strategy: lastDecision.strategy}) : null;
-          updateQ(lastDecision.key, lastDecision.action, reward, nextKey, !alive);
-          runningReward = 0.9 * runningReward + 0.1 * reward;
-          if(!alive){
-            epsilon = Math.max(0.01, epsilon * 0.995);
-            lastDecision = null;
-          }
-        },
-        completeEpisode({win = false, aborted = false} = {}){
-          if(!this.enabled) return;
-          if(aborted){
-            runningReward = 0.9 * runningReward - 0.5;
-            lastDecision = null;
-            return;
-          }
-          const terminalReward = win ? 40 : -18;
-          runningReward = 0.9 * runningReward + 0.1 * terminalReward;
-          if(lastDecision?.action){
-            updateQ(lastDecision.key, lastDecision.action, terminalReward, null, true);
-          }
-          epsilon = Math.max(0.01, epsilon * (win ? 0.98 : 0.993));
-          totalEpisodes++;
-          if(win) totalWins++;
-          lastDecision = null;
-        },
-        getMetrics(){
-          return {
-            epsilon,
-            episodes: totalEpisodes,
-            winRate: totalEpisodes ? (totalWins / totalEpisodes) * 100 : 0,
-            reward: runningReward
-          };
-        }
-      };
-    })();
-    function getLearningSnapshot(freeCells){
-      const head = snake[0] || {x: 0, y: 0};
-      const fruitDist = (fruit && fruit.x >= 0) ? Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y) : COLS + ROWS;
-      return {
-        freeBucket: bucketValue(freeCells, [5, 15, 40, 80]),
-        fruitBucket: bucketValue(fruitDist, [4, 8, 16, 24]),
-        ham: hamMode,
-        loop: loopDetected,
-        compact: compactMode,
-        endgame: freeCells <= (ENDGAME_THRESHOLD + loopCountAdjust)
-      };
-    }
-    function refreshLearningUI(){
-      if(!learningStatusEl || !learningToggleBtn) return;
-      if(!trainingEnabled){
-        learningStatusEl.textContent = 'Machine learning is currently disabled.';
-        learningToggleBtn.textContent = '🤖 Enable Learning';
-        learningToggleBtn.classList.remove('toggle-active');
-        if(epsilonValueEl) epsilonValueEl.textContent = '—';
-        if(episodesValueEl) episodesValueEl.textContent = '—';
-        if(winRateValueEl) winRateValueEl.textContent = '—';
-        if(rewardValueEl) rewardValueEl.textContent = '—';
-        return;
-      }
-      const metrics = learningAgent.getMetrics();
-      learningStatusEl.textContent = 'Training enabled – the snake refines its instincts every round.';
-      learningToggleBtn.textContent = '🧠 Disable Learning';
-      learningToggleBtn.classList.add('toggle-active');
-      if(epsilonValueEl) epsilonValueEl.textContent = metrics.epsilon.toFixed(2);
-      if(episodesValueEl) episodesValueEl.textContent = metrics.episodes.toString();
-      if(winRateValueEl) winRateValueEl.textContent = `${metrics.winRate.toFixed(1)}%`;
-      if(rewardValueEl) rewardValueEl.textContent = metrics.reward.toFixed(2);
-    }
-    if(learningToggleBtn){
-      learningToggleBtn.addEventListener('click', () => {
-        const wasEnabled = trainingEnabled;
-        trainingEnabled = !trainingEnabled;
-        if(!trainingEnabled && wasEnabled && gameRunning){
-          learningAgent.completeEpisode({aborted: true});
-        }
-        learningAgent.setEnabled(trainingEnabled);
-        if(trainingEnabled){
-          learningAgent.startNewEpisode();
-        }
-        refreshLearningUI();
-      });
-    }
-    refreshLearningUI();
     function getManualNext(){
       const direction = pendingManualDirection || manualDirection;
       manualDirection = direction;
@@ -1748,27 +1168,6 @@
       compactModeSteps = 0;
       return next;
     }
-    function updateRLUI(){
-      if(!rlEpisodesEl || !rlExplorationEl || !rlLastRewardEl || !rlHint) return;
-      const stats = rlTrainer.getStats();
-      rlEpisodesEl.textContent = stats.episodes.toString();
-      rlExplorationEl.textContent = stats.epsilon.toFixed(2);
-      rlLastRewardEl.textContent = stats.lastReward.toFixed(2);
-      if(rlToggleBtn){
-        if(rlEnabled && !manualMode){
-          rlToggleBtn.textContent = '🤖 RL Training: ON';
-          rlToggleBtn.classList.add('toggle-active');
-        } else {
-          rlToggleBtn.textContent = '🤖 Enable RL Training';
-          rlToggleBtn.classList.remove('toggle-active');
-        }
-      }
-      if(manualMode){
-        rlHint.textContent = 'Manual control – RL paused.';
-      } else if(rlEnabled){
-        rlHint.textContent = 'RL active – Q-learning refines the existing AI every round.';
-      } else {
-        rlHint.textContent = 'RL inactive – snake relies only on handcrafted logic.';
     function getCurrentDirection(){
       if(snake.length > 1){
         const dx = snake[0].x - snake[1].x;
@@ -1912,24 +1311,6 @@
       });
     }
     manualToggleBtn?.addEventListener('click', toggleManualMode);
-    trainingToggleBtn?.addEventListener('click', async () => {
-      if(rlAgent.training) return;
-      let episodes = parseInt(trainingEpisodesInput?.value ?? '', 10);
-      if(!Number.isFinite(episodes) || episodes <= 0){
-        episodes = 20;
-        if(trainingEpisodesInput) trainingEpisodesInput.value = String(episodes);
-      }
-      try {
-        updateTrainingHUD({clearOverride: true});
-        const result = await rlAgent.startTraining(episodes, {speed: 40});
-        updateTrainingHUD({statusText: `Status: Completed – Win rate ${(result.winRate * 100).toFixed(1)}%`});
-      } catch (error) {
-        console.error(error);
-        updateTrainingHUD({statusText: `Status: Error – ${error.message}`});
-      } finally {
-        updateTrainingHUD();
-      }
-    });
     document.addEventListener('keydown', (event) => {
       if(!manualMode) return;
       const dir = KEY_TO_DIR[event.key.toLowerCase()];
@@ -2089,13 +1470,6 @@
       return state;
     }
     function restartGame() {
-      if(trainingEnabled){
-        if(gameRunning){
-          learningAgent.completeEpisode({aborted: true});
-        }
-        learningAgent.startNewEpisode();
-        refreshLearningUI();
-      }
       const fresh = createFreshState();
       snake = fresh.snake;
       snakeSet = fresh.snakeSet;
@@ -2114,8 +1488,6 @@
       if(manualMode){
         setInitialManualDirection();
         currentStrategy = 'Manual control';
-      } else if(rlEnabled){
-        rlTrainer.onEpisodeStart();
       }
       eatParticles = [];
       lastRender = performance.now();
@@ -2135,7 +1507,6 @@
       updateRlStatus();
       draw();
       loopHandle = setInterval(update, SPEED);
-      updateRLUI();
     }
     document.getElementById('restartBtn').addEventListener('click', restartGame);
     /* ===== HAMILTON-SLINGA ===== */
@@ -2220,85 +1591,6 @@
         }
       }
       return false;
-    }
-    function getDirectionLabel(dx, dy){
-      if(dx===0&&dy===-1) return 'UP';
-      if(dx===0&&dy===1) return 'DOWN';
-      if(dx===-1&&dy===0) return 'LEFT';
-      if(dx===1&&dy===0) return 'RIGHT';
-      return 'STAY';
-    }
-    function getSafeMoves(head){
-      const moves=[];
-      for(const d of DIRS){
-        const nx=head.x+d.dx, ny=head.y+d.dy;
-        if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
-        const key=`${nx},${ny}`;
-        const tail=snake[snake.length-1];
-        const isTailStep=snake.length>1&&nx===tail.x&&ny===tail.y;
-        if(snakeSet.has(key)&&!isTailStep) continue;
-        const ate=fruit&&fruit.x>=0&&nx===fruit.x&&ny===fruit.y;
-        const simulated=ate?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
-        if(!canReachTailFrom({x:nx,y:ny},simulated)) continue;
-        moves.push({
-          x:nx,
-          y:ny,
-          dx:d.dx,
-          dy:d.dy,
-          label:getDirectionLabel(d.dx,d.dy),
-          reason: ate ? 'Fruit capture' : (isTailStep ? 'Follow tail' : 'Safe space')
-        });
-      }
-      return moves;
-    }
-    function createRLContext({head, safeMoves, defaultMove, defaultStrategy, fruitObj, freeCellsValue, hamModeValue, compactModeValue, loopDetectedValue}){
-      const fruitDistance = fruitObj && fruitObj.x >= 0 ? Math.abs(head.x - fruitObj.x) + Math.abs(head.y - fruitObj.y) : 0;
-      const fruitDirection = fruitObj && fruitObj.x >= 0 ? {dx: fruitObj.x - head.x, dy: fruitObj.y - head.y} : {dx: 0, dy: 0};
-      const defaultAction = defaultMove ? getDirectionLabel(defaultMove.x - head.x, defaultMove.y - head.y) : null;
-      const freeBucket = Math.floor((freeCellsValue / (COLS * ROWS)) * 5);
-      const annotatedMoves = safeMoves.map(move => {
-        const isDefault = defaultAction && move.label === defaultAction;
-        return {
-          ...move,
-          reason: isDefault ? `Default (${defaultStrategy})` : (move.reason || 'Safe option')
-        };
-      });
-      return {
-        head,
-        safeMoves: annotatedMoves,
-        defaultAction,
-        defaultStrategy,
-        fruitDistance,
-        fruitDirection,
-        freeBucket,
-        hamMode: hamModeValue,
-        compactMode: compactModeValue,
-        loopDetected: loopDetectedValue
-      };
-    }
-    function applyRLChoice(head, candidateMove, strategyLabel, safeSnapshot){
-      if(!rlEnabled || manualMode) return candidateMove;
-      const safeMoves = (safeSnapshot && safeSnapshot.length) ? safeSnapshot : getSafeMoves(head);
-      if(!safeMoves.length) return candidateMove;
-      const context = createRLContext({
-        head,
-        safeMoves,
-        defaultMove: candidateMove,
-        defaultStrategy: strategyLabel,
-        fruitObj: fruit,
-        freeCellsValue: COLS*ROWS - snake.length,
-        hamModeValue: hamMode,
-        compactModeValue: compactMode,
-        loopDetectedValue: loopDetected
-      });
-      const chosen = rlTrainer.selectMove(context);
-      if(!chosen) return candidateMove;
-      if(candidateMove && chosen.label === getDirectionLabel(candidateMove.x - head.x, candidateMove.y - head.y)){
-        currentStrategy = `RL aligned (${strategyLabel})`;
-        return candidateMove;
-      }
-      currentStrategy = `RL policy (${chosen.reason || strategyLabel})`;
-      return {x: chosen.x, y: chosen.y};
     }
     const floodSize=(sx,sy,body)=>{
       const blocked=new Set(body.map(p=>`${p.x},${p.y}`));
@@ -2466,16 +1758,12 @@
     function getNext(){
       HAM = buildHamilton();
       const head=snake[0];
-      const safeSnapshot = rlEnabled ? getSafeMoves(head) : null;
-      const finalizeMove = (move) => applyRLChoice(head, move, currentStrategy, safeSnapshot);
       const rlSafeMoves = rlTrainingEnabled ? getSafeMovesForRL() : null;
       windowMoves.push(`${head.x},${head.y}`);
       if(windowMoves.length>WINDOW_SIZE) windowMoves.shift();
       lastMoves.push({x:head.x,y:head.y});
       if(lastMoves.length>MAX_LOOP_DETECTION) lastMoves.shift();
       const freeCells=COLS*ROWS - snake.length;
-      const learningState = getLearningSnapshot(freeCells);
-      learningAgent.onBeforeDecision(learningState);
       const isEndgame = freeCells <= (ENDGAME_THRESHOLD + loopCountAdjust);
       if(!hamMode && freeCells > (ENDGAME_THRESHOLD + loopCountAdjust)){
         const uniq=new Set(windowMoves).size;
@@ -2491,20 +1779,20 @@
           const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
           if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
             currentStrategy = "Final Hamilton";
-            return finalizeMove(nxt);
+            return nxt;
           }
         }
       }
       if(isEndgame){
         const back=getBackToHamilton(head);
-        if(back){ currentStrategy="Returning to Hamilton"; return finalizeMove(back); }
+        if(back){ currentStrategy="Returning to Hamilton"; return back; }
         const nxt=hamNext(head);
         if(nxt){
           const key=`${nxt.x},${nxt.y}`;
           const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
           if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
-            currentStrategy="Endgame Hamilton"; return finalizeMove(nxt);
+            currentStrategy="Endgame Hamilton"; return nxt;
           }
         }
       }
@@ -2528,7 +1816,7 @@
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
           if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
             currentStrategy = "Hamilton cycle";
-            return finalizeMove(nxt);
+            return nxt;
           }
         }
         hamMode = false;
@@ -2544,7 +1832,7 @@
       if(loopDetected && snake.length >= 2){
         if(freeCells <= FILL_POCKET_LIMIT){
           const fillMove = fillSmallestPocket();
-          if(fillMove){ currentStrategy="Filling smallest pocket"; return finalizeMove(fillMove); }
+          if(fillMove){ currentStrategy="Filling smallest pocket"; return fillMove; }
         }
         const dmap = getDistancesFromTail();
         let best=null,bestDist=-1;
@@ -2558,7 +1846,7 @@
           const dist=dmap[ny][nx];
           if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
         }
-        if(best){ currentStrategy="Loop break (Longest)"; return finalizeMove(best); }
+        if(best){ currentStrategy="Loop break (Longest)"; return best; }
       }
       if(rlTrainingEnabled && !hamMode){
         if(!rlEpisodeActive){
@@ -2593,12 +1881,7 @@
           if(nd<minD){minD=nd; choices=[{x:nx,y:ny}];}
           else if(nd===minD){choices.push({x:nx,y:ny});}
         }
-        if(choices.length){ currentStrategy="Greedy to fruit"; return finalizeMove(choices[(Math.random()*choices.length)|0]); }
-        if(choices.length){
-          const decision = learningAgent.chooseMove('greedy', choices);
-          if(decision){ currentStrategy = decision.label; return decision.move; }
-          currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0];
-        }
+        if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
       }
       const inPocket = isFruitInPocket();
       if(!compactMode && shouldEnterCompactMode({
@@ -2615,7 +1898,7 @@
           compactMode = false; compactModeSteps = 0;
         } else {
           const zig = calculateZigZagPath();
-          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return finalizeMove(zig); }
+          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return zig; }
           else{ compactMode = false; }
         }
       }
@@ -2624,7 +1907,7 @@
         if(path && path.length){
           const nxt=path[0];
           const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return finalizeMove(nxt); }
+          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return nxt; }
         }
       }
       let bestScore=-Infinity,bestMoves=[];
@@ -2670,7 +1953,7 @@
       if(path && path.length){
         const nxt=path[0];
         const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return finalizeMove(nxt); }
+        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return nxt; }
       }
       currentStrategy="No safe move!";
       return null;
@@ -2810,10 +2093,11 @@
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
-      const rlActive = rlEnabled && !manualMode;
+      let stepReward = -0.05;
+      let stepDone = false;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
-        rlAgent.registerTerminal('death');
+        applyRlUpdate(-5, true);
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -2822,13 +2106,13 @@
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 32px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(achievedPerfect ? "PERFECT! 🎉" : "Game Over", canvas.width/2, canvas.height/2);
+        ctx.fillText(snake.length === COLS * ROWS ? "PERFECT! 🎉" : "Game Over", canvas.width/2, canvas.height/2);
         ctx.font = '20px Inter, sans-serif';
         ctx.fillText(`Final length: ${snake.length}`, canvas.width/2, canvas.height/2 + 40);
         return;
       }
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
-        rlAgent.registerTerminal('death');
+        applyRlUpdate(-5, true);
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -2845,7 +2129,7 @@
       const tail = snake[snake.length - 1];
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
-        rlAgent.registerTerminal('death');
+        applyRlUpdate(-5, true);
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -2864,20 +2148,15 @@
       }
       snake.unshift({x: nxt.x, y: nxt.y});
       snakeSet.add(`${nxt.x},${nxt.y}`);
-      let learningStepHandled = false;
       if(ate){
         loopCountAdjust = 0;
         stepReward = 5;
         if(snake.length === COLS * ROWS){
           rlAgent.registerTerminal('win');
           fruit = {x: -1, y: -1};
-          if(learningActive){
-            const postState = getLearningSnapshot(COLS * ROWS - snake.length);
-            learningAgent.onAfterStep({ate: true, alive: true, newState: postState});
-            learningAgent.completeEpisode({win: true});
-            refreshLearningUI();
-            learningStepHandled = true;
-          }
+          stepReward = 15;
+          stepDone = true;
+          applyRlUpdate(stepReward, stepDone);
           draw();
           clearInterval(loopHandle);
           gameRunning = false;
@@ -2904,7 +2183,7 @@
           spawnEatEffect(atePosition.x, atePosition.y);
         }
       }
-      rlAgent.handleStepResult(ate ? 'fruit' : 'move', snake[0]);
+      applyRlUpdate(stepReward, stepDone);
       draw();
     }
     /* ===== SPEED CONTROLS & STARTUP ===== */
