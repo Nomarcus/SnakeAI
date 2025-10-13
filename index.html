@@ -341,6 +341,25 @@
       transform: scale(1.2);
       box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
     }
+    .select-control {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 0.75rem;
+      color: var(--text);
+      font-weight: 500;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .select-control:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(240, 147, 251, 0.25);
+    }
+    .select-control option {
+      background: var(--dark);
+      color: var(--text);
+    }
     /* Parameter controls */
     .param-control {
       margin-bottom: 1.5rem;
@@ -633,6 +652,15 @@
               <small>Moves without progress → Hamilton mode</small>
             </div>
             <div class="param-control">
+              <label for="compactProfile">Compact Mode Stil</label>
+              <select id="compactProfile" class="select-control">
+                <option value="cautious">Extremt försiktig</option>
+                <option value="balanced" selected>Balanserad (nuvarande)</option>
+                <option value="risky">Extremt våghalsig</option>
+              </select>
+              <small id="compactProfileHint">Standardbeteende som reagerar på fickor eller loopar.</small>
+            </div>
+            <div class="param-control">
               <label>Compact Mode Steps: <span id="compactValue">200</span></label>
               <input type="range" id="compactSlider" class="size-slider" min="0" max="300" value="200" step="10">
               <small>Max steps in compact mode</small>
@@ -733,6 +761,13 @@
             <li><strong>High (200+):</strong> Long zig‑zag sequences – useful on large boards</li>
           </ul>
           <p><strong>When to adjust:</strong> Increase for larger grids. Decrease if the snake seems to "vibrate" too much in one area.</p>
+          <h3>Compact Mode Stil</h3>
+          <ul>
+            <li><strong>Extremt försiktig:</strong> Kräver trånga fickor och upprepade loopar innan zig-zag används.</li>
+            <li><strong>Balanserad:</strong> Originalbeteendet – reagerar på fickor eller tydliga loopar.</li>
+            <li><strong>Extremt våghalsig:</strong> Hoppar in tidigt för att reda ut loopar eller svårtillgänglig frukt.</li>
+          </ul>
+          <p><strong>Tips:</strong> Välj en försiktig stil på små bräden där varje cell räknas, och en våghalsig stil på stora bräden för snabbare återhämtning.</p>
         </div>
         <div class="info-section">
           <h2>⚡ Optimization Strategy</h2>
@@ -885,6 +920,39 @@
     let LOOP_STREAK_THRESHOLD = 1;
     let NO_PROGRESS_THRESHOLD = 70;
     let COMPACT_MODE_MAX_STEPS = 200;
+    let COMPACT_MODE_PROFILE = 'balanced';
+    const COMPACT_MODE_PROFILES = {
+      cautious: {
+        label: 'Extremt försiktig',
+        hint: 'Aktiveras först när frukten sitter trångt och loopen bekräftas.',
+        minFreeCells: 8,
+        allowPocket: true,
+        allowLoop: true,
+        requirePocketWithLoop: true,
+        minLoopStreak: 2,
+        allowCrowding: false
+      },
+      balanced: {
+        label: 'Balanserad (nuvarande)',
+        hint: 'Originalbeteende – reagerar på fickor eller detekterade loopar.',
+        minFreeCells: 15,
+        allowPocket: true,
+        allowLoop: true,
+        requirePocketWithLoop: false,
+        minLoopStreak: 1,
+        allowCrowding: false
+      },
+      risky: {
+        label: 'Extremt våghalsig',
+        hint: 'Hoppar in tidigt även vid antydan till trängsel eller svår frukt.',
+        minFreeCells: 0,
+        allowPocket: true,
+        allowLoop: true,
+        requirePocketWithLoop: false,
+        minLoopStreak: 0,
+        allowCrowding: true
+      }
+    };
     let loopCountAdjust = 0;
     /* ===== SPELSTATE ===== */
     let snake=[], snakeSet=new Set();
@@ -1102,6 +1170,21 @@
     compactSlider.addEventListener('input', (e) => {
       COMPACT_MODE_MAX_STEPS = parseInt(e.target.value);
       document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
+    });
+    const compactProfileSelect = document.getElementById('compactProfile');
+    const compactProfileHint = document.getElementById('compactProfileHint');
+    function updateCompactProfile(profileKey){
+      if(!COMPACT_MODE_PROFILES[profileKey]) profileKey = 'balanced';
+      COMPACT_MODE_PROFILE = profileKey;
+      if(compactProfileSelect && compactProfileSelect.value !== profileKey){
+        compactProfileSelect.value = profileKey;
+      }
+      if(compactProfileHint){
+        compactProfileHint.textContent = COMPACT_MODE_PROFILES[profileKey].hint;
+      }
+    }
+    compactProfileSelect?.addEventListener('change', (e) => {
+      updateCompactProfile(e.target.value);
     });
     /* ===== RESTART FUNCTION ===== */
     function spawnFruitForState(state){
@@ -1353,6 +1436,22 @@
       const steps=getMinStepsToFruit();
       return blocked>=3 || (blocked>=2 && steps>(COLS+ROWS)/2);
     }
+    function shouldEnterCompactMode(context){
+      const profile = COMPACT_MODE_PROFILES[COMPACT_MODE_PROFILE] || COMPACT_MODE_PROFILES.balanced;
+      if(context.freeCells <= profile.minFreeCells) return false;
+      const loopReady = profile.allowLoop && context.loopDetected && context.loopStreak >= profile.minLoopStreak;
+      if(profile.allowPocket && context.inPocket){
+        if(profile.requirePocketWithLoop && !loopReady) return false;
+        return true;
+      }
+      if(loopReady && !profile.requirePocketWithLoop){
+        return true;
+      }
+      if(profile.allowCrowding && !context.fruitAcc){
+        return true;
+      }
+      return false;
+    }
     function fillSmallestPocket(){
       const head=snake[0];
       const freeCells=[], vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
@@ -1515,7 +1614,13 @@
         if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
       }
       const inPocket = isFruitInPocket();
-      if(!compactMode && (inPocket||loopDetected) && freeCells>15){
+      if(!compactMode && shouldEnterCompactMode({
+        inPocket,
+        loopDetected,
+        loopStreak,
+        fruitAcc,
+        freeCells
+      })){
         compactMode = true; compactModeSteps = 0;
       }
       if(compactMode){
@@ -1813,6 +1918,7 @@
           NO_PROGRESS_THRESHOLD = 30; progThreshSlider.value = 30; document.getElementById('progThreshValue').textContent = 30;
           ENDGAME_THRESHOLD = 5; endgameSlider.value = 5; document.getElementById('endgameValue').textContent = 5;
           COMPACT_MODE_MAX_STEPS = 50; compactSlider.value = 50; document.getElementById('compactValue').textContent = 50;
+          updateCompactProfile('cautious');
           changeSpeed(120);
         } else if (preset === 'balanced') {
           colsSlider.value = 20; rowsSlider.value = 20; updateGridSize();
@@ -1820,6 +1926,7 @@
           NO_PROGRESS_THRESHOLD = 70; progThreshSlider.value = 70; document.getElementById('progThreshValue').textContent = 70;
           ENDGAME_THRESHOLD = 40; endgameSlider.value = 40; document.getElementById('endgameValue').textContent = 40;
           COMPACT_MODE_MAX_STEPS = 200; compactSlider.value = 200; document.getElementById('compactValue').textContent = 200;
+          updateCompactProfile('balanced');
           changeSpeed(80);
         } else if (preset === 'ultra') {
           colsSlider.value = 30; rowsSlider.value = 30; updateGridSize();
@@ -1827,6 +1934,7 @@
           NO_PROGRESS_THRESHOLD = 150; progThreshSlider.value = 150; document.getElementById('progThreshValue').textContent = 150;
           ENDGAME_THRESHOLD = 80; endgameSlider.value = 80; document.getElementById('endgameValue').textContent = 80;
           COMPACT_MODE_MAX_STEPS = 450; compactSlider.value = 450; document.getElementById('compactValue').textContent = 450;
+          updateCompactProfile('risky');
           changeSpeed(40);
         }
         window.loadingPreset = false;
@@ -1841,6 +1949,7 @@
     document.getElementById('progThreshValue').textContent = NO_PROGRESS_THRESHOLD;
     document.getElementById('endgameValue').textContent = ENDGAME_THRESHOLD;
     document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
+    updateCompactProfile(COMPACT_MODE_PROFILE);
   </script>
 </body>
 </html>
