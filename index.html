@@ -906,6 +906,238 @@
     let manualDirection = {dx: 1, dy: 0};
     let pendingManualDirection = null;
     let eatParticles = [];
+    /* ===== REINFORCEMENT LEARNING AGENT ===== */
+    const rlAgent = {
+      alpha: 0.12,
+      gamma: 0.93,
+      epsilon: 0.15,
+      epsilonDecay: 0.995,
+      minEpsilon: 0.02,
+      qWeight: 12,
+      qTable: new Map(),
+      lastStateKey: null,
+      lastActionKey: null,
+      lastFruitDistance: null,
+      training: false,
+      episodesRemaining: 0,
+      trainingResolve: null,
+      trainingStats: null,
+      trainingOptions: null,
+      stepsInEpisode: 0,
+      prevSpeed: null,
+      prevManualMode: false,
+      getStateSnapshot(head, context = {}){
+        const fruitDx = fruit && fruit.x >= 0 ? Math.sign(fruit.x - head.x) : 0;
+        const fruitDy = fruit && fruit.y >= 0 ? Math.sign(fruit.y - head.y) : 0;
+        const fruitDist = fruit && fruit.x >= 0 ? Math.abs(fruit.x - head.x) + Math.abs(fruit.y - head.y) : COLS + ROWS;
+        const distBucket = Math.min(8, Math.floor(fruitDist / Math.max(1, Math.floor((COLS + ROWS) / 10))));
+        const safeMoves = this.countSafeMoves(head);
+        return {
+          dx: fruitDx,
+          dy: fruitDy,
+          dist: distBucket,
+          safe: safeMoves,
+          end: context.isEndgame ? 1 : 0,
+          ham: hamMode ? 1 : 0,
+          loop: loopDetected ? 1 : 0
+        };
+      },
+      serializeState(state){
+        return `${state.dx}|${state.dy}|${state.dist}|${state.safe}|${state.end}|${state.ham}|${state.loop}`;
+      },
+      countSafeMoves(head){
+        let safe = 0;
+        for(const dir of DIRS){
+          const nx = head.x + dir.dx;
+          const ny = head.y + dir.dy;
+          if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+          const tail = snake.length > 1 ? snake[snake.length - 1] : null;
+          const isTailStep = tail && nx === tail.x && ny === tail.y;
+          if(snakeSet.has(`${nx},${ny}`) && !isTailStep) continue;
+          safe++;
+        }
+        return safe;
+      },
+      getQValue(stateKey, actionKey){
+        const entry = this.qTable.get(stateKey);
+        return entry ? (entry[actionKey] ?? 0) : 0;
+      },
+      setQValue(stateKey, actionKey, value){
+        const entry = this.qTable.get(stateKey) || {};
+        entry[actionKey] = value;
+        this.qTable.set(stateKey, entry);
+      },
+      shouldExplore(){
+        return this.training && Math.random() < this.epsilon;
+      },
+      chooseMove(head, candidates, context = {}){
+        if(!candidates.length) return null;
+        const state = this.getStateSnapshot(head, context);
+        const stateKey = this.serializeState(state);
+        const enriched = candidates.map(move => {
+          const actionKey = `${move.dx},${move.dy}`;
+          const qValue = this.getQValue(stateKey, actionKey);
+          return {
+            move,
+            actionKey,
+            qValue,
+            combined: move.baseScore + this.qWeight * qValue
+          };
+        });
+        let choice;
+        if(this.shouldExplore()){
+          choice = enriched[(Math.random() * enriched.length) | 0];
+        } else {
+          choice = enriched.reduce((best, current) => current.combined > best.combined ? current : best, enriched[0]);
+        }
+        this.lastStateKey = stateKey;
+        this.lastActionKey = choice.actionKey;
+        this.lastFruitDistance = fruit && fruit.x >= 0 ? Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y) : null;
+        return choice.move;
+      },
+      enumerateNextActions(head){
+        const options = [];
+        for(const dir of DIRS){
+          const nx = head.x + dir.dx;
+          const ny = head.y + dir.dy;
+          if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+          const tail = snake.length > 1 ? snake[snake.length - 1] : null;
+          const isTailStep = tail && nx === tail.x && ny === tail.y;
+          if(snakeSet.has(`${nx},${ny}`) && !isTailStep) continue;
+          options.push(`${dir.dx},${dir.dy}`);
+        }
+        return options;
+      },
+      applyReward(reward, nextStateKey, nextActionKeys){
+        if(this.lastStateKey && this.lastActionKey){
+          const current = this.getQValue(this.lastStateKey, this.lastActionKey);
+          const future = nextActionKeys && nextActionKeys.length ? Math.max(...nextActionKeys.map(key => this.getQValue(nextStateKey, key))) : 0;
+          const target = reward + (nextActionKeys && nextActionKeys.length ? this.gamma * future : 0);
+          const updated = current + this.alpha * (target - current);
+          this.setQValue(this.lastStateKey, this.lastActionKey, updated);
+        }
+        this.lastStateKey = null;
+        this.lastActionKey = null;
+        this.lastFruitDistance = null;
+        if(this.training){
+          this.epsilon = Math.max(this.minEpsilon, this.epsilon * this.epsilonDecay);
+        }
+      },
+      handleStepResult(status, newHead){
+        if(this.training) this.stepsInEpisode += 1;
+        if(this.lastStateKey === null || manualMode) return;
+        let reward = -0.01;
+        if(status === 'death') reward = -1;
+        else if(status === 'fruit') reward = 1;
+        else if(status === 'win') reward = 2;
+        if(status !== 'death' && this.lastFruitDistance != null && fruit && fruit.x >= 0){
+          const newDist = Math.abs(newHead.x - fruit.x) + Math.abs(newHead.y - fruit.y);
+          if(newDist < this.lastFruitDistance) reward += 0.05;
+          else if(newDist > this.lastFruitDistance) reward -= 0.02;
+        }
+        let nextStateKey = null;
+        let nextActionKeys = [];
+        if(status !== 'death' && status !== 'win'){
+          const snapshot = this.getStateSnapshot(newHead);
+          nextStateKey = this.serializeState(snapshot);
+          nextActionKeys = this.enumerateNextActions(newHead);
+        }
+        this.applyReward(reward, nextStateKey, nextActionKeys);
+      },
+      startEpisode(){
+        this.lastStateKey = null;
+        this.lastActionKey = null;
+        this.lastFruitDistance = null;
+        this.stepsInEpisode = 0;
+      },
+      finishEpisode(won){
+        if(this.training){
+          if(this.trainingStats){
+            this.trainingStats.episodes += 1;
+            if(won) this.trainingStats.wins += 1;
+            this.trainingStats.totalLength += snake.length;
+            this.trainingStats.totalSteps += this.stepsInEpisode;
+          }
+          this.startEpisode();
+          this.episodesRemaining -= 1;
+          if(this.episodesRemaining > 0){
+            const delay = this.trainingOptions?.episodeDelay ?? 30;
+            setTimeout(() => restartGame(), delay);
+          } else {
+            const result = {
+              episodes: this.trainingStats?.episodes ?? 0,
+              wins: this.trainingStats?.wins ?? 0,
+              totalLength: this.trainingStats?.totalLength ?? 0,
+              totalSteps: this.trainingStats?.totalSteps ?? 0,
+              winRate: this.trainingStats && this.trainingStats.episodes ? this.trainingStats.wins / this.trainingStats.episodes : 0
+            };
+            this.training = false;
+            const resolver = this.trainingResolve;
+            this.trainingResolve = null;
+            this.trainingOptions = null;
+            if(this.prevSpeed != null){
+              changeSpeed(this.prevSpeed);
+              this.prevSpeed = null;
+            }
+            if(resolver){
+              const originalPrevManual = this.prevManualMode;
+              resolver(result);
+              this.prevManualMode = originalPrevManual;
+            }
+          }
+        } else {
+          this.startEpisode();
+        }
+      },
+      registerTerminal(status){
+        if(manualMode) return;
+        const head = snake[0];
+        this.handleStepResult(status, head);
+        this.finishEpisode(status === 'win');
+      },
+      startTraining(episodes = 5, options = {}){
+        if(this.training) throw new Error('Training is already running');
+        this.training = true;
+        this.episodesRemaining = episodes;
+        this.trainingOptions = options;
+        this.trainingStats = { episodes: 0, wins: 0, totalLength: 0, totalSteps: 0 };
+        this.alpha = options.alpha ?? this.alpha;
+        this.gamma = options.gamma ?? this.gamma;
+        this.epsilon = options.epsilon ?? this.epsilon;
+        this.epsilonDecay = options.epsilonDecay ?? this.epsilonDecay;
+        this.minEpsilon = options.minEpsilon ?? this.minEpsilon;
+        this.qWeight = options.qWeight ?? this.qWeight;
+        this.startEpisode();
+        this.prevSpeed = options.speed ? SPEED : null;
+        if(options.speed){
+          changeSpeed(options.speed);
+        }
+        this.prevManualMode = manualMode;
+        manualMode = false;
+        updateManualUI();
+        return new Promise(resolve => {
+          this.trainingResolve = stats => {
+            if(options.speed && this.prevSpeed != null){
+              changeSpeed(this.prevSpeed);
+              this.prevSpeed = null;
+            }
+            manualMode = this.prevManualMode;
+            updateManualUI();
+            if(manualMode){
+              setInitialManualDirection();
+            }
+            resolve({
+              ...stats,
+              averageLength: stats.episodes ? stats.totalLength / stats.episodes : 0,
+              averageSteps: stats.episodes ? stats.totalSteps / stats.episodes : 0,
+              epsilon: this.epsilon
+            });
+            this.prevManualMode = false;
+          };
+          restartGame();
+        });
+      }
+    };
     /* ===== DYNAMISKA TRÖSKLAR ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
     let ENDGAME_THRESHOLD = 20;
@@ -1661,10 +1893,23 @@
         score+=Math.min(nx,ny,COLS-1-nx,ROWS-1-ny);
         score+=randomFactor;
         score+=freeAfter*2;
-        if(score>bestScore){ bestScore=score; bestMoves=[{x:nx,y:ny}]; }
-        else if(score===bestScore){ bestMoves.push({x:nx,y:ny}); }
+        const moveData = {
+          x: nx,
+          y: ny,
+          dx: d.dx,
+          dy: d.dy,
+          baseScore: score,
+          willEat: fruit && fruit.x === nx && fruit.y === ny,
+          freeAfter
+        };
+        if(score>bestScore){ bestScore=score; bestMoves=[moveData]; }
+        else if(score===bestScore){ bestMoves.push(moveData); }
       }
-      if(bestMoves.length){ currentStrategy="Heuristic"; return bestMoves[(Math.random()*bestMoves.length)|0]; }
+      if(bestMoves.length){
+        currentStrategy="Heuristic";
+        const rlChoice = rlAgent.chooseMove(head, bestMoves, {isEndgame});
+        return rlChoice || bestMoves[(Math.random()*bestMoves.length)|0];
+      }
       const tail=snake.length>1?snake[snake.length-1]:head;
       const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
       if(path && path.length){
@@ -1811,6 +2056,7 @@
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
+        rlAgent.registerTerminal('death');
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1825,6 +2071,7 @@
         return;
       }
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
+        rlAgent.registerTerminal('death');
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1841,6 +2088,7 @@
       const tail = snake[snake.length - 1];
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
+        rlAgent.registerTerminal('death');
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1862,6 +2110,7 @@
       if(ate){
         loopCountAdjust = 0;
         if(snake.length === COLS * ROWS){
+          rlAgent.registerTerminal('win');
           fruit = {x: -1, y: -1};
           draw();
           clearInterval(loopHandle);
@@ -1889,6 +2138,7 @@
           spawnEatEffect(atePosition.x, atePosition.y);
         }
       }
+      rlAgent.handleStepResult(ate ? 'fruit' : 'move', snake[0]);
       draw();
     }
     /* ===== SPEED CONTROLS & STARTUP ===== */
@@ -1905,6 +2155,12 @@
         }
       }
     }
+    async function trainSnakeAgent(episodes = 10, options = {}){
+      if(typeof episodes !== 'number' || episodes <= 0) throw new Error('Episodes must be a positive number.');
+      return rlAgent.startTraining(episodes, options);
+    }
+    window.trainSnakeAgent = trainSnakeAgent;
+    window.rlAgent = rlAgent;
     /* ===== PRESET LOADING ===== */
     const presetButtons = document.querySelectorAll('.load-preset');
     presetButtons.forEach(btn => {
