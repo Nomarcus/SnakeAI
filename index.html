@@ -1037,6 +1037,8 @@
 
     let isTraining = false;
     let isStepRunning = false;
+    let isResetting = false;
+    let currentStepPromise = Promise.resolve();
     let episodeCount = 0;
     let bestScore = 0;
     const rewardHistory = [];
@@ -1071,78 +1073,128 @@
     }
 
     async function runStep() {
-      if (isStepRunning) return;
-      isStepRunning = true;
-      try {
-        const currentState = game.getState();
-        const action = agent.act(currentState);
-        const { state: nextState, reward, done } = game.step(action);
-        currentEpisodeReward += reward;
-        agent.remember(currentState, action, reward, nextState, done);
-        await agent.replay();
-        game.render(ctx, config.cellSize);
-        updateUI();
+      if (isResetting) return currentStepPromise;
+      if (isStepRunning) return currentStepPromise;
 
-        if (done) {
-          episodeCount++;
-          rewardHistory.push(currentEpisodeReward);
-          if (rewardHistory.length > 200) rewardHistory.shift();
-          bestScore = Math.max(bestScore, game.score);
-          log(`Avsnitt ${episodeCount}: poäng ${game.score}, total belöning ${currentEpisodeReward.toFixed(2)}`);
-          currentEpisodeReward = 0;
-          game.reset();
+      const stepExecution = (async () => {
+        isStepRunning = true;
+        try {
+          const currentState = game.getState();
+          const action = agent.act(currentState);
+          const { state: nextState, reward, done } = game.step(action);
+          currentEpisodeReward += reward;
+          agent.remember(currentState, action, reward, nextState, done);
+          await agent.replay();
+          game.render(ctx, config.cellSize);
+          updateUI();
+
+          if (done) {
+            episodeCount++;
+            rewardHistory.push(currentEpisodeReward);
+            if (rewardHistory.length > 200) rewardHistory.shift();
+            bestScore = Math.max(bestScore, game.score);
+            log(`Avsnitt ${episodeCount}: poäng ${game.score}, total belöning ${currentEpisodeReward.toFixed(2)}`);
+            currentEpisodeReward = 0;
+            game.reset();
+          }
+        } finally {
+          isStepRunning = false;
         }
-      } finally {
+      })();
+
+      currentStepPromise = stepExecution.catch((error) => {
         isStepRunning = false;
-      }
+        throw error;
+      });
+
+      return currentStepPromise;
     }
 
     async function trainingLoop() {
-      if (!isTraining) return;
-      await runStep();
+      if (!isTraining || isResetting) return;
+      trainingHandle = null;
+      try {
+        await runStep();
+      } catch (error) {
+        console.error('Träningsloopen stoppades på grund av fel:', error);
+        isTraining = false;
+        return;
+      }
+      if (!isTraining || isResetting) return;
       trainingHandle = setTimeout(trainingLoop, config.speed);
     }
 
     document.getElementById('startTraining').addEventListener('click', () => {
-      if (isTraining) return;
+      if (isTraining || isResetting) return;
       isTraining = true;
       log('Träning startad.');
       trainingLoop();
     });
 
     document.getElementById('pauseTraining').addEventListener('click', () => {
-      if (!isTraining) return;
+      if (!isTraining || isResetting) return;
       isTraining = false;
-      if (trainingHandle) clearTimeout(trainingHandle);
+      if (trainingHandle) {
+        clearTimeout(trainingHandle);
+        trainingHandle = null;
+      }
       log('Träning pausad.');
     });
 
     document.getElementById('stepOnce').addEventListener('click', async () => {
-      if (isTraining) return;
-      await runStep();
+      if (isTraining || isResetting) return;
+      try {
+        await runStep();
+      } catch (error) {
+        console.error('Steg kunde inte utföras:', error);
+      }
     });
 
     async function waitForStepCompletion() {
+      try {
+        await currentStepPromise;
+      } catch (error) {
+        console.error('Fel under träningssteg:', error);
+      }
       while (isStepRunning) {
         await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
 
+    async function flushTensorFlowQueue() {
+      if (typeof tf.nextFrame === 'function') {
+        await tf.nextFrame();
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    }
+
     document.getElementById('resetAgent').addEventListener('click', async () => {
-      isTraining = false;
-      if (trainingHandle) clearTimeout(trainingHandle);
-      await waitForStepCompletion();
-      agent.dispose();
-      agent = new DQNAgent(game.getState().length, 3, config);
-      game.reset();
-      currentEpisodeReward = 0;
-      episodeCount = 0;
-      bestScore = 0;
-      rewardHistory.length = 0;
-      agent.epsilon = 1;
-      updateUI();
-      game.render(ctx, config.cellSize);
-      log('Agent och miljö återställda.');
+      if (isResetting) return;
+      isResetting = true;
+      try {
+        isTraining = false;
+        if (trainingHandle) {
+          clearTimeout(trainingHandle);
+          trainingHandle = null;
+        }
+        await waitForStepCompletion();
+        await flushTensorFlowQueue();
+        agent.dispose();
+        await flushTensorFlowQueue();
+        agent = new DQNAgent(game.getState().length, 3, config);
+        game.reset();
+        currentEpisodeReward = 0;
+        episodeCount = 0;
+        bestScore = 0;
+        rewardHistory.length = 0;
+        agent.epsilon = 1;
+        updateUI();
+        game.render(ctx, config.cellSize);
+        log('Agent och miljö återställda.');
+      } finally {
+        isResetting = false;
+      }
     });
 
     speedSlider.addEventListener('input', (event) => {
