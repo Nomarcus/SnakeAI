@@ -84,6 +84,26 @@ That's it! The game runs entirely in the browser.
 - **Medium (100-200)**: Standard length sequences
 - **High (200+)**: Extended zig-zag navigation
 
+### 🤖 Self-Learning Mode
+
+Kick off reinforcement learning directly from the browser console for hands-free training. The AI keeps the existing heuristics but adds an adaptive Q-learning layer that rebalances move choices after every round.
+
+```js
+// Run 50 ultra-fast self-play sessions at 5ms per step
+trainSnakeAgent(50, { speed: 5 }).then(stats => console.table(stats));
+
+// Customise the learning behaviour
+trainSnakeAgent(25, {
+  speed: 10,
+  alpha: 0.08,      // learning rate
+  gamma: 0.96,      // future reward weight
+  epsilon: 0.2,     // exploration chance
+  epsilonDecay: 0.997
+});
+```
+
+The promise resolves with aggregated statistics including win rate, average length, step count and the final exploration rate so you can track improvements across sessions.
+
 ## 🏆 Preset Configurations
 
 The game includes several optimized presets:
