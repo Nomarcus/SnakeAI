@@ -16,12 +16,14 @@ An intelligent Snake game with sophisticated AI algorithms and real-time paramet
 - **Compact Mode**: Efficient navigation in tight spaces
 - **Endgame Optimization**: Special strategy when board fills up
 - **Reinforcement Learning Booster**: Optional Q-learning layer that keeps improving move selection over time
+- **Reinforcement Learning Trainer**: Optional Q-learning module that refines move choices each round
 
 ### 🎮 Interactive Controls
 - **Real-time Parameter Tuning**: Adjust AI behavior while playing
 - **Multiple Grid Sizes**: From 10x10 to 60x60 for different challenges
 - **Speed Control**: Adjust game speed from 1ms to 500ms
 - **Live Strategy Display**: See what the AI is thinking in real-time
+- **ML / RL Toggle**: Enable autonomous training and watch the agent improve across episodes
 
 ### 🎨 Modern Design
 - **Glassmorphism UI**: Beautiful modern interface with blur effects
@@ -86,6 +88,7 @@ That's it! The game runs entirely in the browser.
 ### 🤖 Self-Learning Mode
 
 Launch reinforcement learning straight from the in-game **Self-Learning** panel or via the browser console for hands-free training. Set how many episodes to run, start the trainer with a single click, and monitor the live learning rate, exploration factor, win rate, and progress without leaving the UI. The AI keeps the existing heuristics but adds an adaptive Q-learning layer that rebalances move choices after every round.
+Kick off reinforcement learning directly from the browser console for hands-free training. The AI keeps the existing heuristics but adds an adaptive Q-learning layer that rebalances move choices after every round.
 
 ```js
 // Run 50 ultra-fast self-play sessions at 5ms per step
@@ -128,6 +131,7 @@ The game includes several optimized presets:
 - **Hamilton Cycle**: Failsafe guaranteed completion path
 - **Flood Fill**: Space analysis for safe movement
 - **Loop Detection**: Pattern recognition to avoid cycles
+- **Q-learning Policy Blending**: Reinforcement learning that augments handcrafted heuristics with experiential feedback
 
 ### Game Architecture
 ```

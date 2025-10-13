@@ -438,6 +438,28 @@
       font-weight: 600;
       color: var(--accent);
     }
+    .learning-metrics {
+      margin-top: 1rem;
+      background: rgba(102, 126, 234, 0.08);
+      border: 1px dashed rgba(240, 147, 251, 0.4);
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .learning-metrics .status-item {
+      padding: 0.35rem 0;
+      border-bottom: 1px dashed rgba(240, 147, 251, 0.2);
+    }
+    .learning-metrics .status-item:last-child {
+      border-bottom: none;
+    }
+    .learning-note {
+      font-size: 0.85rem;
+      color: rgba(226, 232, 240, 0.75);
+      margin-top: 0.75rem;
+      line-height: 1.4;
+    }
     /* AI Status messages */
     #statusMessages {
       background: var(--darker);
@@ -631,11 +653,16 @@
             <div style="margin-top: 1rem;">
               <button id="restartBtn" class="button danger" style="width: 100%;">🔄 Restart</button>
             </div>
-            <div style="margin-top: 0.8rem;">
-              <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
-              <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
-            </div>
+          <div style="margin-top: 0.8rem;">
+            <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
+            <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
           </div>
+          <div class="controls-section" style="margin-top: 1.5rem;">
+            <h3>ML / RL Training</h3>
+            <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable Reinforcement Learning</button>
+            <p id="rlHint" class="manual-hint">Reinforcement learning is currently disabled.</p>
+          </div>
+        </div>
           <div class="controls-section">
             <h3>Grid Size</h3>
             <div class="param-control">
@@ -691,6 +718,30 @@
             </div>
           </div>
           <div class="controls-section">
+            <h3>Adaptive Learning</h3>
+            <button id="learningToggle" class="button" style="width: 100%; margin-bottom: 0.75rem;">🤖 Enable Learning</button>
+            <p id="learningStatus" class="learning-note">Machine learning is currently disabled.</p>
+            <div class="learning-metrics">
+              <div class="status-item">
+                <span class="status-label">Exploration (ε):</span>
+                <span id="epsilonValue" class="status-value">0.20</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Episodes:</span>
+                <span id="episodesValue" class="status-value">0</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Win rate:</span>
+                <span id="winRateValue" class="status-value">0%</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Reward trend:</span>
+                <span id="rewardValue" class="status-value">0.00</span>
+              </div>
+            </div>
+            <p class="learning-note">When enabled, the agent refines its strategy after every round using reinforcement learning while keeping the proven safety systems.</p>
+          </div>
+          <div class="controls-section">
             <h3>Game Status</h3>
             <div class="status-display">
               <div class="status-item">
@@ -716,6 +767,26 @@
               <p id="loopStatus"></p>
               <p id="compactStatus"></p>
               <p id="compactStepStatus"></p>
+              <p id="rlStatus"></p>
+            </div>
+          </div>
+          <div class="controls-section">
+            <h3>ML / RL Trainer</h3>
+            <p class="status-explanation" id="rlHint">RL inactive – snake relies only on handcrafted logic.</p>
+            <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable RL Training</button>
+            <div class="status-display" style="margin-top: 1rem;">
+              <div class="status-item">
+                <span class="status-label">Episodes:</span>
+                <span id="rlEpisodes" class="status-value">0</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Exploration:</span>
+                <span id="rlExploration" class="status-value">0.30</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Last reward:</span>
+                <span id="rlLastReward" class="status-value">0.0</span>
+              </div>
             </div>
           </div>
           <div class="controls-section">
@@ -952,6 +1023,10 @@
     let CELL = 30;
     let SPEED = 100;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
+    const DIR_TO_INDEX = DIRS.reduce((acc, dir, idx) => {
+      acc[`${dir.dx},${dir.dy}`] = idx;
+      return acc;
+    }, {});
     const MAX_SPEED = 500, MIN_SPEED = 1, SPEED_STEP = 10;
     let manualMode = false;
     let manualDirection = {dx: 1, dy: 0};
@@ -1295,6 +1370,7 @@
       }
     };
     let loopCountAdjust = 0;
+    const rlAgent = createReinforcementAgent();
     /* ===== SPELSTATE ===== */
     let snake=[], snakeSet=new Set();
     let fruit, prevFruitDist=Infinity, noProgressMoves=0;
@@ -1314,14 +1390,98 @@
       "Filling smallest pocket": "Closing a small empty pocket before it becomes a trap.",
       "Loop break (Longest)": "Taking the longest safe option to break a repeating loop.",
       "Greedy to fruit": "Charging directly for the fruit while it looks safe.",
+      "RL Greedy refinement": "Reinforcement learning guides the greedy hunt based on past successes.",
       "Compact zig-zag": "Compressing the body with tight zig-zags to clear space.",
       "BFS to fruit": "Calculating the safest shortest path to the fruit.",
       "BFS to tail": "Using breadth-first search to reconnect with the tail safely.",
       "Heuristic": "Balancing fruit hunting with safety heuristics.",
+      "RL Heuristic blend": "Reinforcement learning mixes the heuristic options for long-term survival.",
+      "RL adaptive choice": "Machine learning override combining safe paths with learned instincts.",
       "No safe move!": "No safe moves remain – preparing for impact."
     };
     function getStrategyExplanation(strategy) {
       return STRATEGY_DESCRIPTIONS[strategy] || "Assessing the board and adapting to the current situation.";
+    }
+    function createReinforcementAgent(){
+      const alpha = 0.2;
+      const gamma = 0.9;
+      let epsilon = 0.3;
+      const epsilonMin = 0.05;
+      const epsilonDecay = 0.995;
+      const qTable = new Map();
+      let episodes = 0;
+      let episodeReward = 0;
+      let totalReward = 0;
+      let lastEpisodeReward = 0;
+      const stateKey = state => state.join('|');
+      const ensureState = key => {
+        if(!qTable.has(key)){
+          qTable.set(key, Array(DIRS.length).fill(0));
+        }
+      };
+      return {
+        decide(state, safeMoves){
+          if(!safeMoves || !safeMoves.length) return null;
+          const key = stateKey(state);
+          ensureState(key);
+          let actionIdx;
+          if(Math.random() < epsilon){
+            const choice = safeMoves[(Math.random()*safeMoves.length)|0];
+            actionIdx = choice.dirIndex;
+          } else {
+            const values = qTable.get(key);
+            let best = -Infinity;
+            let bestIndices = [];
+            for(const move of safeMoves){
+              const value = values[move.dirIndex];
+              if(value > best){
+                best = value;
+                bestIndices = [move.dirIndex];
+              } else if(value === best){
+                bestIndices.push(move.dirIndex);
+              }
+            }
+            if(bestIndices.length){
+              actionIdx = bestIndices[(Math.random()*bestIndices.length)|0];
+            } else {
+              actionIdx = safeMoves[(Math.random()*safeMoves.length)|0].dirIndex;
+            }
+          }
+          return { stateKey: key, actionIdx };
+        },
+        learn(prevKey, actionIdx, reward, nextState, done){
+          ensureState(prevKey);
+          const values = qTable.get(prevKey);
+          let target = reward;
+          if(!done && nextState){
+            const nextKey = stateKey(nextState);
+            ensureState(nextKey);
+            const nextValues = qTable.get(nextKey);
+            const maxNext = Math.max(...nextValues);
+            target += gamma * maxNext;
+          }
+          values[actionIdx] += alpha * (target - values[actionIdx]);
+          episodeReward += reward;
+        },
+        startEpisode(){
+          episodeReward = 0;
+        },
+        endEpisode(){
+          totalReward += episodeReward;
+          lastEpisodeReward = episodeReward;
+          episodes++;
+          epsilon = Math.max(epsilon * epsilonDecay, epsilonMin);
+          episodeReward = 0;
+        },
+        getStats(){
+          return {
+            epsilon,
+            episodes,
+            lastEpisodeReward,
+            averageReward: episodes ? totalReward / episodes : 0
+          };
+        }
+      };
     }
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
@@ -1386,6 +1546,10 @@
     }
     function toggleManualMode(){
       manualMode = !manualMode;
+      if(manualMode && rlEnabled){
+        rlEnabled = false;
+        updateRLUI();
+      }
       if(manualMode){
         setInitialManualDirection();
         currentStrategy = 'Manual control';
@@ -1394,6 +1558,183 @@
       }
       updateManualUI();
     }
+    function bucketValue(value, thresholds){
+      for(let i = 0; i < thresholds.length; i++){
+        if(value <= thresholds[i]) return i;
+      }
+      return thresholds.length;
+    }
+    const learningAgent = (() => {
+      const qTable = new Map();
+      let epsilon = 0.2;
+      const alpha = 0.18;
+      const gamma = 0.92;
+      let lastDecision = null;
+      let totalEpisodes = 0;
+      let totalWins = 0;
+      let runningReward = 0;
+      function encodeState(state){
+        const {freeBucket, fruitBucket, ham, loop, compact, endgame, strategy} = state;
+        return [freeBucket, fruitBucket, ham ? 1 : 0, loop ? 1 : 0, compact ? 1 : 0, endgame ? 1 : 0, strategy].join('|');
+      }
+      function encodeAction(move){
+        const head = snake[0] || {x: 0, y: 0};
+        return `${move.x - head.x},${move.y - head.y}`;
+      }
+      function ensureRow(key, actions){
+        if(!qTable.has(key)) qTable.set(key, {});
+        const row = qTable.get(key);
+        actions.forEach(action => {
+          if(!(action in row)) row[action] = 0;
+        });
+        return row;
+      }
+      function selectAction(row, actions){
+        if(!actions.length) return null;
+        if(Math.random() < epsilon){
+          return actions[(Math.random() * actions.length) | 0];
+        }
+        let best = actions[0];
+        let bestValue = -Infinity;
+        actions.forEach(action => {
+          const val = row[action] ?? 0;
+          if(val > bestValue){
+            bestValue = val;
+            best = action;
+          }
+        });
+        return best;
+      }
+      function updateQ(prevKey, actionKey, reward, nextKey, done){
+        if(!prevKey || !actionKey) return;
+        const row = ensureRow(prevKey, [actionKey]);
+        const current = row[actionKey] ?? 0;
+        let target = reward;
+        if(!done && nextKey && qTable.has(nextKey)){
+          const nextRow = qTable.get(nextKey);
+          const values = Object.values(nextRow);
+          if(values.length){
+            const maxNext = Math.max(...values);
+            if(Number.isFinite(maxNext)) target += gamma * maxNext;
+          }
+        }
+        row[actionKey] = current + alpha * (target - current);
+      }
+      return {
+        enabled: false,
+        startNewEpisode(){
+          lastDecision = null;
+        },
+        setEnabled(flag){
+          this.enabled = flag;
+          if(!flag){
+            lastDecision = null;
+          }
+        },
+        onBeforeDecision(state){
+          if(!this.enabled) return;
+          lastDecision = { stateSnapshot: {...state}, strategy: null, key: null, action: null };
+        },
+        chooseMove(strategy, moves){
+          if(!this.enabled || !moves || !moves.length || !lastDecision) return null;
+          const state = {...lastDecision.stateSnapshot, strategy};
+          const stateKey = encodeState(state);
+          const actionKeys = moves.map(move => encodeAction(move));
+          const row = ensureRow(stateKey, actionKeys);
+          const actionKey = selectAction(row, actionKeys);
+          const move = moves.find(m => encodeAction(m) === actionKey) || moves[0];
+          lastDecision = { stateSnapshot: lastDecision.stateSnapshot, strategy, key: stateKey, action: actionKey };
+          return {
+            move,
+            label: strategy === 'greedy' ? 'RL Greedy refinement' : strategy === 'heuristic' ? 'RL Heuristic blend' : 'RL adaptive choice'
+          };
+        },
+        onAfterStep({ate, alive, newState}){
+          if(!this.enabled || !lastDecision?.action) return;
+          const reward = (ate ? 12 : 0) + (alive ? 0.2 : -12);
+          const nextKey = (alive && newState) ? encodeState({...newState, strategy: lastDecision.strategy}) : null;
+          updateQ(lastDecision.key, lastDecision.action, reward, nextKey, !alive);
+          runningReward = 0.9 * runningReward + 0.1 * reward;
+          if(!alive){
+            epsilon = Math.max(0.01, epsilon * 0.995);
+            lastDecision = null;
+          }
+        },
+        completeEpisode({win = false, aborted = false} = {}){
+          if(!this.enabled) return;
+          if(aborted){
+            runningReward = 0.9 * runningReward - 0.5;
+            lastDecision = null;
+            return;
+          }
+          const terminalReward = win ? 40 : -18;
+          runningReward = 0.9 * runningReward + 0.1 * terminalReward;
+          if(lastDecision?.action){
+            updateQ(lastDecision.key, lastDecision.action, terminalReward, null, true);
+          }
+          epsilon = Math.max(0.01, epsilon * (win ? 0.98 : 0.993));
+          totalEpisodes++;
+          if(win) totalWins++;
+          lastDecision = null;
+        },
+        getMetrics(){
+          return {
+            epsilon,
+            episodes: totalEpisodes,
+            winRate: totalEpisodes ? (totalWins / totalEpisodes) * 100 : 0,
+            reward: runningReward
+          };
+        }
+      };
+    })();
+    function getLearningSnapshot(freeCells){
+      const head = snake[0] || {x: 0, y: 0};
+      const fruitDist = (fruit && fruit.x >= 0) ? Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y) : COLS + ROWS;
+      return {
+        freeBucket: bucketValue(freeCells, [5, 15, 40, 80]),
+        fruitBucket: bucketValue(fruitDist, [4, 8, 16, 24]),
+        ham: hamMode,
+        loop: loopDetected,
+        compact: compactMode,
+        endgame: freeCells <= (ENDGAME_THRESHOLD + loopCountAdjust)
+      };
+    }
+    function refreshLearningUI(){
+      if(!learningStatusEl || !learningToggleBtn) return;
+      if(!trainingEnabled){
+        learningStatusEl.textContent = 'Machine learning is currently disabled.';
+        learningToggleBtn.textContent = '🤖 Enable Learning';
+        learningToggleBtn.classList.remove('toggle-active');
+        if(epsilonValueEl) epsilonValueEl.textContent = '—';
+        if(episodesValueEl) episodesValueEl.textContent = '—';
+        if(winRateValueEl) winRateValueEl.textContent = '—';
+        if(rewardValueEl) rewardValueEl.textContent = '—';
+        return;
+      }
+      const metrics = learningAgent.getMetrics();
+      learningStatusEl.textContent = 'Training enabled – the snake refines its instincts every round.';
+      learningToggleBtn.textContent = '🧠 Disable Learning';
+      learningToggleBtn.classList.add('toggle-active');
+      if(epsilonValueEl) epsilonValueEl.textContent = metrics.epsilon.toFixed(2);
+      if(episodesValueEl) episodesValueEl.textContent = metrics.episodes.toString();
+      if(winRateValueEl) winRateValueEl.textContent = `${metrics.winRate.toFixed(1)}%`;
+      if(rewardValueEl) rewardValueEl.textContent = metrics.reward.toFixed(2);
+    }
+    if(learningToggleBtn){
+      learningToggleBtn.addEventListener('click', () => {
+        const wasEnabled = trainingEnabled;
+        trainingEnabled = !trainingEnabled;
+        if(!trainingEnabled && wasEnabled && gameRunning){
+          learningAgent.completeEpisode({aborted: true});
+        }
+        learningAgent.setEnabled(trainingEnabled);
+        if(trainingEnabled){
+          learningAgent.startNewEpisode();
+        }
+        refreshLearningUI();
+      });
+    }
+    refreshLearningUI();
     function getManualNext(){
       const direction = pendingManualDirection || manualDirection;
       manualDirection = direction;
@@ -1406,6 +1747,137 @@
       compactMode = false;
       compactModeSteps = 0;
       return next;
+    }
+    function updateRLUI(){
+      if(!rlEpisodesEl || !rlExplorationEl || !rlLastRewardEl || !rlHint) return;
+      const stats = rlTrainer.getStats();
+      rlEpisodesEl.textContent = stats.episodes.toString();
+      rlExplorationEl.textContent = stats.epsilon.toFixed(2);
+      rlLastRewardEl.textContent = stats.lastReward.toFixed(2);
+      if(rlToggleBtn){
+        if(rlEnabled && !manualMode){
+          rlToggleBtn.textContent = '🤖 RL Training: ON';
+          rlToggleBtn.classList.add('toggle-active');
+        } else {
+          rlToggleBtn.textContent = '🤖 Enable RL Training';
+          rlToggleBtn.classList.remove('toggle-active');
+        }
+      }
+      if(manualMode){
+        rlHint.textContent = 'Manual control – RL paused.';
+      } else if(rlEnabled){
+        rlHint.textContent = 'RL active – Q-learning refines the existing AI every round.';
+      } else {
+        rlHint.textContent = 'RL inactive – snake relies only on handcrafted logic.';
+    function getCurrentDirection(){
+      if(snake.length > 1){
+        const dx = snake[0].x - snake[1].x;
+        const dy = snake[0].y - snake[1].y;
+        if(dx !== 0 || dy !== 0){
+          return {dx: Math.sign(dx), dy: Math.sign(dy)};
+        }
+      }
+      if(lastMoves.length > 1){
+        const head = lastMoves[lastMoves.length - 1];
+        const prev = lastMoves[lastMoves.length - 2];
+        const dx = head.x - prev.x;
+        const dy = head.y - prev.y;
+        if(dx !== 0 || dy !== 0){
+          return {dx: Math.sign(dx), dy: Math.sign(dy)};
+        }
+      }
+      return {dx: 1, dy: 0};
+    }
+    function getDirIndex(dir){
+      const key = `${dir.dx},${dir.dy}`;
+      if(Object.prototype.hasOwnProperty.call(DIR_TO_INDEX, key)){
+        return DIR_TO_INDEX[key];
+      }
+      return DIR_TO_INDEX['1,0'];
+    }
+    function getSafeMovesForRL(){
+      const head = snake[0];
+      if(!head) return [];
+      const safeMoves = [];
+      const tail = snake.length > 1 ? snake[snake.length - 1] : null;
+      for(let i = 0; i < DIRS.length; i++){
+        const d = DIRS[i];
+        const nx = head.x + d.dx;
+        const ny = head.y + d.dy;
+        if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        const key = `${nx},${ny}`;
+        const ate = fruit && fruit.x === nx && fruit.y === ny;
+        const isTailStep = tail && nx === tail.x && ny === tail.y;
+        if(snakeSet.has(key) && !(isTailStep && !ate)) continue;
+        const simulated = ate
+          ? [{x: nx, y: ny}, ...snake]
+          : [{x: nx, y: ny}, ...snake.slice(0, -1)];
+        if(!canReachTailFrom({x: nx, y: ny}, simulated)) continue;
+        safeMoves.push({x: nx, y: ny, dirIndex: i, ate});
+      }
+      return safeMoves;
+    }
+    function buildRlObservation(safeMoves){
+      const head = snake[0];
+      if(!head) return ['empty'];
+      const direction = getCurrentDirection();
+      const safeSet = new Set((safeMoves || []).map(m => m.dirIndex));
+      const frontDir = getDirIndex(direction);
+      const leftDir = getDirIndex({dx: direction.dy, dy: -direction.dx});
+      const rightDir = getDirIndex({dx: -direction.dy, dy: direction.dx});
+      const frontDanger = safeSet.has(frontDir) ? 0 : 1;
+      const leftDanger = safeSet.has(leftDir) ? 0 : 1;
+      const rightDanger = safeSet.has(rightDir) ? 0 : 1;
+      const fruitDX = fruit && fruit.x >= 0 ? Math.sign(fruit.x - head.x) : 0;
+      const fruitDY = fruit && fruit.y >= 0 ? Math.sign(fruit.y - head.y) : 0;
+      const freeCells = COLS * ROWS - snake.length;
+      const freeBucket = Math.min(3, Math.floor(freeCells / Math.max(1, Math.floor((COLS * ROWS) / 4))));
+      return [
+        frontDanger,
+        leftDanger,
+        rightDanger,
+        fruitDX,
+        fruitDY,
+        direction.dx,
+        direction.dy,
+        freeBucket,
+        hamMode ? 1 : 0
+      ];
+    }
+    function applyRlUpdate(reward, done){
+      if(!rlTrainingEnabled){
+        rlPendingChoice = null;
+        return;
+      }
+      if(rlPendingChoice){
+        const nextState = done ? null : buildRlObservation(getSafeMovesForRL());
+        rlAgent.learn(rlPendingChoice.stateKey, rlPendingChoice.actionIdx, reward, nextState, done);
+        if(done && rlEpisodeActive){
+          rlAgent.endEpisode();
+          rlEpisodeActive = false;
+        }
+        rlPendingChoice = null;
+      } else if(done && rlTrainingEnabled && rlEpisodeActive){
+        rlAgent.endEpisode();
+        rlEpisodeActive = false;
+      }
+      updateRlStatus();
+    }
+    function updateRlStatus(){
+      const rlStatusEl = document.getElementById('rlStatus');
+      if(!rlStatusEl) return;
+      if(!rlTrainingEnabled){
+        rlStatusEl.textContent = 'RL disabled – using handcrafted strategies only.';
+        if(rlHint){
+          rlHint.textContent = 'Reinforcement learning is currently disabled.';
+        }
+        return;
+      }
+      const stats = rlAgent.getStats();
+      rlStatusEl.textContent = `RL training active · ε=${stats.epsilon.toFixed(3)} · episodes=${stats.episodes} · last reward=${stats.lastEpisodeReward.toFixed(2)}`;
+      if(rlHint){
+        rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
+      }
     }
     function spawnEatEffect(cellX, cellY){
       const originX = cellX * CELL + CELL / 2;
@@ -1466,6 +1938,26 @@
       event.preventDefault();
     });
     updateManualUI();
+    rlToggleBtn?.addEventListener('click', () => {
+      rlTrainingEnabled = !rlTrainingEnabled;
+      if(rlTrainingEnabled){
+        manualMode = false;
+        updateManualUI();
+        rlPendingChoice = null;
+        rlAgent.startEpisode();
+        rlEpisodeActive = true;
+      } else {
+        if(rlEpisodeActive){
+          rlAgent.endEpisode();
+        }
+        rlEpisodeActive = false;
+        rlPendingChoice = null;
+      }
+      updateRlToggleUI();
+      updateRlStatus();
+    });
+    updateRlToggleUI();
+    updateRlStatus();
     /* ===== SIZE CONTROL ===== */
     const sizeSlider = document.getElementById('sizeSlider');
     sizeSlider.addEventListener('input', (e) => {
@@ -1597,6 +2089,13 @@
       return state;
     }
     function restartGame() {
+      if(trainingEnabled){
+        if(gameRunning){
+          learningAgent.completeEpisode({aborted: true});
+        }
+        learningAgent.startNewEpisode();
+        refreshLearningUI();
+      }
       const fresh = createFreshState();
       snake = fresh.snake;
       snakeSet = fresh.snakeSet;
@@ -1615,14 +2114,28 @@
       if(manualMode){
         setInitialManualDirection();
         currentStrategy = 'Manual control';
+      } else if(rlEnabled){
+        rlTrainer.onEpisodeStart();
       }
       eatParticles = [];
       lastRender = performance.now();
       HAM = buildHamilton();
       if (loopHandle) clearInterval(loopHandle);
       gameRunning = true;
+      if(rlTrainingEnabled){
+        if(rlEpisodeActive){
+          rlAgent.endEpisode();
+        }
+        rlAgent.startEpisode();
+        rlEpisodeActive = true;
+      } else {
+        rlEpisodeActive = false;
+      }
+      rlPendingChoice = null;
+      updateRlStatus();
       draw();
       loopHandle = setInterval(update, SPEED);
+      updateRLUI();
     }
     document.getElementById('restartBtn').addEventListener('click', restartGame);
     /* ===== HAMILTON-SLINGA ===== */
@@ -1707,6 +2220,85 @@
         }
       }
       return false;
+    }
+    function getDirectionLabel(dx, dy){
+      if(dx===0&&dy===-1) return 'UP';
+      if(dx===0&&dy===1) return 'DOWN';
+      if(dx===-1&&dy===0) return 'LEFT';
+      if(dx===1&&dy===0) return 'RIGHT';
+      return 'STAY';
+    }
+    function getSafeMoves(head){
+      const moves=[];
+      for(const d of DIRS){
+        const nx=head.x+d.dx, ny=head.y+d.dy;
+        if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
+        const key=`${nx},${ny}`;
+        const tail=snake[snake.length-1];
+        const isTailStep=snake.length>1&&nx===tail.x&&ny===tail.y;
+        if(snakeSet.has(key)&&!isTailStep) continue;
+        const ate=fruit&&fruit.x>=0&&nx===fruit.x&&ny===fruit.y;
+        const simulated=ate?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
+        if(!canReachTailFrom({x:nx,y:ny},simulated)) continue;
+        moves.push({
+          x:nx,
+          y:ny,
+          dx:d.dx,
+          dy:d.dy,
+          label:getDirectionLabel(d.dx,d.dy),
+          reason: ate ? 'Fruit capture' : (isTailStep ? 'Follow tail' : 'Safe space')
+        });
+      }
+      return moves;
+    }
+    function createRLContext({head, safeMoves, defaultMove, defaultStrategy, fruitObj, freeCellsValue, hamModeValue, compactModeValue, loopDetectedValue}){
+      const fruitDistance = fruitObj && fruitObj.x >= 0 ? Math.abs(head.x - fruitObj.x) + Math.abs(head.y - fruitObj.y) : 0;
+      const fruitDirection = fruitObj && fruitObj.x >= 0 ? {dx: fruitObj.x - head.x, dy: fruitObj.y - head.y} : {dx: 0, dy: 0};
+      const defaultAction = defaultMove ? getDirectionLabel(defaultMove.x - head.x, defaultMove.y - head.y) : null;
+      const freeBucket = Math.floor((freeCellsValue / (COLS * ROWS)) * 5);
+      const annotatedMoves = safeMoves.map(move => {
+        const isDefault = defaultAction && move.label === defaultAction;
+        return {
+          ...move,
+          reason: isDefault ? `Default (${defaultStrategy})` : (move.reason || 'Safe option')
+        };
+      });
+      return {
+        head,
+        safeMoves: annotatedMoves,
+        defaultAction,
+        defaultStrategy,
+        fruitDistance,
+        fruitDirection,
+        freeBucket,
+        hamMode: hamModeValue,
+        compactMode: compactModeValue,
+        loopDetected: loopDetectedValue
+      };
+    }
+    function applyRLChoice(head, candidateMove, strategyLabel, safeSnapshot){
+      if(!rlEnabled || manualMode) return candidateMove;
+      const safeMoves = (safeSnapshot && safeSnapshot.length) ? safeSnapshot : getSafeMoves(head);
+      if(!safeMoves.length) return candidateMove;
+      const context = createRLContext({
+        head,
+        safeMoves,
+        defaultMove: candidateMove,
+        defaultStrategy: strategyLabel,
+        fruitObj: fruit,
+        freeCellsValue: COLS*ROWS - snake.length,
+        hamModeValue: hamMode,
+        compactModeValue: compactMode,
+        loopDetectedValue: loopDetected
+      });
+      const chosen = rlTrainer.selectMove(context);
+      if(!chosen) return candidateMove;
+      if(candidateMove && chosen.label === getDirectionLabel(candidateMove.x - head.x, candidateMove.y - head.y)){
+        currentStrategy = `RL aligned (${strategyLabel})`;
+        return candidateMove;
+      }
+      currentStrategy = `RL policy (${chosen.reason || strategyLabel})`;
+      return {x: chosen.x, y: chosen.y};
     }
     const floodSize=(sx,sy,body)=>{
       const blocked=new Set(body.map(p=>`${p.x},${p.y}`));
@@ -1874,11 +2466,16 @@
     function getNext(){
       HAM = buildHamilton();
       const head=snake[0];
+      const safeSnapshot = rlEnabled ? getSafeMoves(head) : null;
+      const finalizeMove = (move) => applyRLChoice(head, move, currentStrategy, safeSnapshot);
+      const rlSafeMoves = rlTrainingEnabled ? getSafeMovesForRL() : null;
       windowMoves.push(`${head.x},${head.y}`);
       if(windowMoves.length>WINDOW_SIZE) windowMoves.shift();
       lastMoves.push({x:head.x,y:head.y});
       if(lastMoves.length>MAX_LOOP_DETECTION) lastMoves.shift();
       const freeCells=COLS*ROWS - snake.length;
+      const learningState = getLearningSnapshot(freeCells);
+      learningAgent.onBeforeDecision(learningState);
       const isEndgame = freeCells <= (ENDGAME_THRESHOLD + loopCountAdjust);
       if(!hamMode && freeCells > (ENDGAME_THRESHOLD + loopCountAdjust)){
         const uniq=new Set(windowMoves).size;
@@ -1894,20 +2491,20 @@
           const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
           if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
             currentStrategy = "Final Hamilton";
-            return nxt;
+            return finalizeMove(nxt);
           }
         }
       }
       if(isEndgame){
         const back=getBackToHamilton(head);
-        if(back){ currentStrategy="Returning to Hamilton"; return back; }
+        if(back){ currentStrategy="Returning to Hamilton"; return finalizeMove(back); }
         const nxt=hamNext(head);
         if(nxt){
           const key=`${nxt.x},${nxt.y}`;
           const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
           if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
-            currentStrategy="Endgame Hamilton"; return nxt;
+            currentStrategy="Endgame Hamilton"; return finalizeMove(nxt);
           }
         }
       }
@@ -1931,7 +2528,7 @@
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
           if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
             currentStrategy = "Hamilton cycle";
-            return nxt;
+            return finalizeMove(nxt);
           }
         }
         hamMode = false;
@@ -1947,7 +2544,7 @@
       if(loopDetected && snake.length >= 2){
         if(freeCells <= FILL_POCKET_LIMIT){
           const fillMove = fillSmallestPocket();
-          if(fillMove){ currentStrategy="Filling smallest pocket"; return fillMove; }
+          if(fillMove){ currentStrategy="Filling smallest pocket"; return finalizeMove(fillMove); }
         }
         const dmap = getDistancesFromTail();
         let best=null,bestDist=-1;
@@ -1961,7 +2558,25 @@
           const dist=dmap[ny][nx];
           if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
         }
-        if(best){ currentStrategy="Loop break (Longest)"; return best; }
+        if(best){ currentStrategy="Loop break (Longest)"; return finalizeMove(best); }
+      }
+      if(rlTrainingEnabled && !hamMode){
+        if(!rlEpisodeActive){
+          rlAgent.startEpisode();
+          rlEpisodeActive = true;
+        }
+        if(rlSafeMoves && rlSafeMoves.length){
+          const rlState = buildRlObservation(rlSafeMoves);
+          const decision = rlAgent.decide(rlState, rlSafeMoves);
+          if(decision){
+            const selected = rlSafeMoves.find(move => move.dirIndex === decision.actionIdx);
+            if(selected){
+              rlPendingChoice = { stateKey: decision.stateKey, actionIdx: decision.actionIdx };
+              currentStrategy = 'RL policy';
+              return {x: selected.x, y: selected.y};
+            }
+          }
+        }
       }
       const fruitAcc = isFruitAccessible(head);
       if(fruitAcc && freeCells>15){
@@ -1978,7 +2593,12 @@
           if(nd<minD){minD=nd; choices=[{x:nx,y:ny}];}
           else if(nd===minD){choices.push({x:nx,y:ny});}
         }
-        if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
+        if(choices.length){ currentStrategy="Greedy to fruit"; return finalizeMove(choices[(Math.random()*choices.length)|0]); }
+        if(choices.length){
+          const decision = learningAgent.chooseMove('greedy', choices);
+          if(decision){ currentStrategy = decision.label; return decision.move; }
+          currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0];
+        }
       }
       const inPocket = isFruitInPocket();
       if(!compactMode && shouldEnterCompactMode({
@@ -1995,7 +2615,7 @@
           compactMode = false; compactModeSteps = 0;
         } else {
           const zig = calculateZigZagPath();
-          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return zig; }
+          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return finalizeMove(zig); }
           else{ compactMode = false; }
         }
       }
@@ -2004,7 +2624,7 @@
         if(path && path.length){
           const nxt=path[0];
           const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return nxt; }
+          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return finalizeMove(nxt); }
         }
       }
       let bestScore=-Infinity,bestMoves=[];
@@ -2050,7 +2670,7 @@
       if(path && path.length){
         const nxt=path[0];
         const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return nxt; }
+        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return finalizeMove(nxt); }
       }
       currentStrategy="No safe move!";
       return null;
@@ -2185,10 +2805,12 @@
       document.getElementById('snakeLength').textContent = snake.length;
       document.getElementById('freeCells').textContent = freeCellsCount;
       document.getElementById('progress').textContent = ((snake.length / (COLS * ROWS)) * 100).toFixed(1) + '%';
+      updateRlStatus();
     }
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
+      const rlActive = rlEnabled && !manualMode;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
         rlAgent.registerTerminal('death');
@@ -2200,7 +2822,7 @@
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 32px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(snake.length === COLS * ROWS ? "PERFECT! 🎉" : "Game Over", canvas.width/2, canvas.height/2);
+        ctx.fillText(achievedPerfect ? "PERFECT! 🎉" : "Game Over", canvas.width/2, canvas.height/2);
         ctx.font = '20px Inter, sans-serif';
         ctx.fillText(`Final length: ${snake.length}`, canvas.width/2, canvas.height/2 + 40);
         return;
@@ -2242,11 +2864,20 @@
       }
       snake.unshift({x: nxt.x, y: nxt.y});
       snakeSet.add(`${nxt.x},${nxt.y}`);
+      let learningStepHandled = false;
       if(ate){
         loopCountAdjust = 0;
+        stepReward = 5;
         if(snake.length === COLS * ROWS){
           rlAgent.registerTerminal('win');
           fruit = {x: -1, y: -1};
+          if(learningActive){
+            const postState = getLearningSnapshot(COLS * ROWS - snake.length);
+            learningAgent.onAfterStep({ate: true, alive: true, newState: postState});
+            learningAgent.completeEpisode({win: true});
+            refreshLearningUI();
+            learningStepHandled = true;
+          }
           draw();
           clearInterval(loopHandle);
           gameRunning = false;
