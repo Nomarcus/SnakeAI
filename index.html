@@ -1036,6 +1036,7 @@
     let agent = new DQNAgent(game.getState().length, 3, config);
 
     let isTraining = false;
+    let isStepRunning = false;
     let episodeCount = 0;
     let bestScore = 0;
     const rewardHistory = [];
@@ -1070,23 +1071,29 @@
     }
 
     async function runStep() {
-      const currentState = game.getState();
-      const action = agent.act(currentState);
-      const { state: nextState, reward, done } = game.step(action);
-      currentEpisodeReward += reward;
-      agent.remember(currentState, action, reward, nextState, done);
-      await agent.replay();
-      game.render(ctx, config.cellSize);
-      updateUI();
+      if (isStepRunning) return;
+      isStepRunning = true;
+      try {
+        const currentState = game.getState();
+        const action = agent.act(currentState);
+        const { state: nextState, reward, done } = game.step(action);
+        currentEpisodeReward += reward;
+        agent.remember(currentState, action, reward, nextState, done);
+        await agent.replay();
+        game.render(ctx, config.cellSize);
+        updateUI();
 
-      if (done) {
-        episodeCount++;
-        rewardHistory.push(currentEpisodeReward);
-        if (rewardHistory.length > 200) rewardHistory.shift();
-        bestScore = Math.max(bestScore, game.score);
-        log(`Avsnitt ${episodeCount}: poäng ${game.score}, total belöning ${currentEpisodeReward.toFixed(2)}`);
-        currentEpisodeReward = 0;
-        game.reset();
+        if (done) {
+          episodeCount++;
+          rewardHistory.push(currentEpisodeReward);
+          if (rewardHistory.length > 200) rewardHistory.shift();
+          bestScore = Math.max(bestScore, game.score);
+          log(`Avsnitt ${episodeCount}: poäng ${game.score}, total belöning ${currentEpisodeReward.toFixed(2)}`);
+          currentEpisodeReward = 0;
+          game.reset();
+        }
+      } finally {
+        isStepRunning = false;
       }
     }
 
@@ -1115,9 +1122,16 @@
       await runStep();
     });
 
-    document.getElementById('resetAgent').addEventListener('click', () => {
+    async function waitForStepCompletion() {
+      while (isStepRunning) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+    }
+
+    document.getElementById('resetAgent').addEventListener('click', async () => {
       isTraining = false;
       if (trainingHandle) clearTimeout(trainingHandle);
+      await waitForStepCompletion();
       agent.dispose();
       agent = new DQNAgent(game.getState().length, 3, config);
       game.reset();
