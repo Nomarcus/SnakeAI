@@ -1007,6 +1007,8 @@
       let episodeReward = 0;
       let totalReward = 0;
       let lastEpisodeReward = 0;
+      let totalOutcomes = 0;
+      const outcomeCounts = Object.create(null);
       const stateKey = state => state.join('|');
       const ensureState = key => {
         if(!qTable.has(key)){
@@ -1067,12 +1069,21 @@
           epsilon = Math.max(epsilon * epsilonDecay, epsilonMin);
           episodeReward = 0;
         },
+        registerTerminal(outcome){
+          if(typeof outcome !== 'string') return;
+          const key = outcome.trim().toLowerCase();
+          if(!key) return;
+          outcomeCounts[key] = (outcomeCounts[key] || 0) + 1;
+          totalOutcomes++;
+        },
         getStats(){
           return {
             epsilon,
             episodes,
             lastEpisodeReward,
-            averageReward: episodes ? totalReward / episodes : 0
+            averageReward: episodes ? totalReward / episodes : 0,
+            outcomes: { ...outcomeCounts },
+            totalOutcomes
           };
         }
       };
@@ -2098,6 +2109,7 @@
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
         applyRlUpdate(-5, true);
+        rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -2113,6 +2125,7 @@
       }
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
         applyRlUpdate(-5, true);
+        rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -2130,6 +2143,7 @@
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
         applyRlUpdate(-5, true);
+        rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
