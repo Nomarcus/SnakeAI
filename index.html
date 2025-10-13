@@ -264,6 +264,17 @@
     .button:active {
       transform: translateY(0);
     }
+    .button.toggle-active {
+      background: linear-gradient(135deg, var(--success) 0%, var(--accent) 100%);
+      box-shadow: 0 8px 25px rgba(74, 222, 128, 0.45);
+    }
+    .manual-hint {
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      color: var(--light);
+      opacity: 0.7;
+      text-align: center;
+    }
     .button.danger {
       background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
       box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
@@ -577,6 +588,10 @@
             <div style="margin-top: 1rem;">
               <button id="restartBtn" class="button danger" style="width: 100%;">🔄 Restart</button>
             </div>
+            <div style="margin-top: 0.8rem;">
+              <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
+              <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
+            </div>
           </div>
           <div class="controls-section">
             <h3>Grid Size</h3>
@@ -852,6 +867,10 @@
     let SPEED = 100;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
     const MAX_SPEED = 500, MIN_SPEED = 1, SPEED_STEP = 10;
+    let manualMode = false;
+    let manualDirection = {dx: 1, dy: 0};
+    let pendingManualDirection = null;
+    let eatParticles = [];
     /* ===== DYNAMISKA TRÖSKLAR ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
     let ENDGAME_THRESHOLD = 20;
@@ -861,6 +880,7 @@
     /* ===== CANVAS ===== */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    let lastRender = performance.now();
     /* ===== AI-PARAMETRAR ===== */
     let LOOP_STREAK_THRESHOLD = 1;
     let NO_PROGRESS_THRESHOLD = 70;
@@ -907,6 +927,110 @@
         document.getElementById(`${targetPage}-page`).classList.add('active');
       });
     });
+    const manualToggleBtn = document.getElementById('manualToggle');
+    const manualHint = document.getElementById('manualHint');
+    const KEY_TO_DIR = {
+      'arrowup': {dx: 0, dy: -1},
+      'w': {dx: 0, dy: -1},
+      'arrowdown': {dx: 0, dy: 1},
+      's': {dx: 0, dy: 1},
+      'arrowleft': {dx: -1, dy: 0},
+      'a': {dx: -1, dy: 0},
+      'arrowright': {dx: 1, dy: 0},
+      'd': {dx: 1, dy: 0}
+    };
+    function updateManualUI(){
+      if(!manualToggleBtn || !manualHint) return;
+      if(manualMode){
+        manualToggleBtn.classList.add('toggle-active');
+        manualToggleBtn.textContent = '🧠 Return to AI';
+        manualHint.textContent = 'Manual mode active! Use arrow keys or WASD to steer the snake.';
+      } else {
+        manualToggleBtn.classList.remove('toggle-active');
+        manualToggleBtn.textContent = '🕹️ Try Manual Play';
+        manualHint.textContent = 'Manual mode off – AI is playing automatically.';
+      }
+    }
+    function setInitialManualDirection(){
+      if(snake.length > 1){
+        manualDirection = {
+          dx: snake[0].x - snake[1].x,
+          dy: snake[0].y - snake[1].y
+        };
+      } else {
+        manualDirection = {dx: 1, dy: 0};
+      }
+      pendingManualDirection = null;
+    }
+    function setManualDirection(dx, dy){
+      const current = pendingManualDirection || manualDirection;
+      if(current.dx === -dx && current.dy === -dy) return;
+      pendingManualDirection = {dx, dy};
+    }
+    function toggleManualMode(){
+      manualMode = !manualMode;
+      if(manualMode){
+        setInitialManualDirection();
+        currentStrategy = 'Manual control';
+      } else {
+        pendingManualDirection = null;
+      }
+      updateManualUI();
+    }
+    function getManualNext(){
+      const direction = pendingManualDirection || manualDirection;
+      manualDirection = direction;
+      pendingManualDirection = null;
+      const head = snake[0];
+      const next = {x: head.x + direction.dx, y: head.y + direction.dy};
+      currentStrategy = 'Manual control';
+      hamMode = false;
+      loopDetected = false;
+      compactMode = false;
+      compactModeSteps = 0;
+      return next;
+    }
+    function spawnEatEffect(cellX, cellY){
+      const originX = cellX * CELL + CELL / 2;
+      const originY = cellY * CELL + CELL / 2;
+      const count = Math.max(14, Math.floor(CELL / 2));
+      for(let i = 0; i < count; i++){
+        const angle = Math.random() * Math.PI * 2;
+        const speed = (Math.random() * 0.6 + 0.2) * CELL / 8;
+        const lifetime = 1.2 + Math.random() * 0.6;
+        eatParticles.push({
+          x: originX,
+          y: originY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: lifetime,
+          maxLife: lifetime,
+          size: CELL * (0.15 + Math.random() * 0.15),
+          hue: 200 + Math.random() * 40
+        });
+      }
+    }
+    function updateParticles(delta){
+      const decay = delta / 1000;
+      eatParticles = eatParticles.filter(p => {
+        p.life -= decay;
+        if(p.life <= 0) return false;
+        p.x += p.vx * (delta / (1000 / 60));
+        p.y += p.vy * (delta / (1000 / 60));
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        return true;
+      });
+    }
+    manualToggleBtn?.addEventListener('click', toggleManualMode);
+    document.addEventListener('keydown', (event) => {
+      if(!manualMode) return;
+      const dir = KEY_TO_DIR[event.key.toLowerCase()];
+      if(!dir) return;
+      setManualDirection(dir.dx, dir.dy);
+      event.preventDefault();
+    });
+    updateManualUI();
     /* ===== SIZE CONTROL ===== */
     const sizeSlider = document.getElementById('sizeSlider');
     sizeSlider.addEventListener('input', (e) => {
@@ -1038,6 +1162,12 @@
       compactModeSteps = fresh.compactModeSteps;
       loopCountAdjust = fresh.loopCountAdjust;
       currentStrategy = fresh.currentStrategy;
+      if(manualMode){
+        setInitialManualDirection();
+        currentStrategy = 'Manual control';
+      }
+      eatParticles = [];
+      lastRender = performance.now();
       HAM = buildHamilton();
       if (loopHandle) clearInterval(loopHandle);
       gameRunning = true;
@@ -1442,6 +1572,9 @@
     }
     /* ===== RENDER ===== */
     function draw(){
+      const now = performance.now();
+      updateParticles(now - lastRender);
+      lastRender = now;
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       gradient.addColorStop(0, '#1a1a2e');
       gradient.addColorStop(1, '#0f0f23');
@@ -1486,6 +1619,17 @@
         ctx.arc(centerX - appleRadius / 2.2, centerY - appleRadius / 2.2, appleRadius / 4, 0, 2 * Math.PI);
         ctx.fill();
       }
+      eatParticles.forEach(p => {
+        const alpha = Math.max(0, p.life / p.maxLife);
+        const flare = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+        flare.addColorStop(0, `hsla(${p.hue}, 90%, 80%, ${alpha * 0.85})`);
+        flare.addColorStop(0.6, `hsla(${p.hue}, 90%, 65%, ${alpha * 0.45})`);
+        flare.addColorStop(1, `hsla(${p.hue}, 90%, 40%, 0)`);
+        ctx.fillStyle = flare;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
       const headColor = hamMode ? '#4ade80' : compactMode ? '#f97316' : loopDetected ? '#fbbf24' : '#667eea';
       snake.forEach((p, i) => {
         const isHead = i === 0;
@@ -1560,7 +1704,7 @@
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
-      const nxt = getNext();
+      const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
         clearInterval(loopHandle);
         gameRunning = false;
@@ -1588,9 +1732,25 @@
         return;
       }
       const ate = fruit && fruit.x >= 0 && nxt.x === fruit.x && nxt.y === fruit.y;
+      const nextKey = `${nxt.x},${nxt.y}`;
+      const tail = snake[snake.length - 1];
+      const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
+      if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
+        clearInterval(loopHandle);
+        gameRunning = false;
+        draw();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'bold 32px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText("Crash! 💥", canvas.width/2, canvas.height/2);
+        return;
+      }
+      const atePosition = ate ? {x: fruit.x, y: fruit.y} : null;
       if(!ate){
-        const tail = snake.pop();
-        snakeSet.delete(`${tail.x},${tail.y}`);
+        const removed = snake.pop();
+        snakeSet.delete(`${removed.x},${removed.y}`);
       }
       snake.unshift({x: nxt.x, y: nxt.y});
       snakeSet.add(`${nxt.x},${nxt.y}`);
@@ -1619,6 +1779,9 @@
           fruit = spawnFruit();
           prevFruitDist = (fruit.x >= 0) ? Math.abs(snake[0].x - fruit.x) + Math.abs(snake[0].y - fruit.y) : Infinity;
           noProgressMoves = 0;
+        }
+        if(atePosition){
+          spawnEatEffect(atePosition.x, atePosition.y);
         }
       }
       draw();
