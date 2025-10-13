@@ -15,6 +15,7 @@ An intelligent Snake game with sophisticated AI algorithms and real-time paramet
 - **Loop Detection**: Intelligent avoidance of repetitive patterns
 - **Compact Mode**: Efficient navigation in tight spaces
 - **Endgame Optimization**: Special strategy when board fills up
+- **Reinforcement Learning Booster**: Optional Q-learning layer that keeps improving move selection over time
 - **Reinforcement Learning Trainer**: Optional Q-learning module that refines move choices each round
 
 ### 🎮 Interactive Controls
@@ -86,6 +87,7 @@ That's it! The game runs entirely in the browser.
 
 ### 🤖 Self-Learning Mode
 
+Launch reinforcement learning straight from the in-game **Self-Learning** panel or via the browser console for hands-free training. Set how many episodes to run, start the trainer with a single click, and monitor the live learning rate, exploration factor, win rate, and progress without leaving the UI. The AI keeps the existing heuristics but adds an adaptive Q-learning layer that rebalances move choices after every round.
 Kick off reinforcement learning directly from the browser console for hands-free training. The AI keeps the existing heuristics but adds an adaptive Q-learning layer that rebalances move choices after every round.
 
 ```js
