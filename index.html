@@ -919,7 +919,14 @@
         this.trainSteps = 0;
         this.model = this.buildModel();
         this.targetModel = this.buildModel();
+        this.disposed = false;
         this.updateTargetModel();
+      }
+
+      ensureActive() {
+        if (this.disposed) {
+          throw new Error('Agentens modeller är redan avallokerade.');
+        }
       }
 
       buildModel() {
@@ -932,12 +939,15 @@
       }
 
       updateTargetModel() {
+        this.ensureActive();
         const weights = this.model.getWeights();
-        this.targetModel.setWeights(weights.map(w => w.clone()));
+        const targetWeights = weights.map(w => w.clone());
+        this.targetModel.setWeights(targetWeights);
         weights.forEach(w => w.dispose());
       }
 
       act(state) {
+        this.ensureActive();
         if (Math.random() < this.epsilon) {
           return Math.floor(Math.random() * this.actionSize);
         }
@@ -952,22 +962,27 @@
       }
 
       remember(state, action, reward, nextState, done) {
+        this.ensureActive();
         this.memory.push({ state: Array.from(state), action, reward, nextState: Array.from(nextState), done });
       }
 
       setDoubleDQN(enabled) {
+        this.ensureActive();
         this.useDouble = enabled;
       }
 
       setEpsilonMin(value) {
+        this.ensureActive();
         this.epsilonMin = value;
       }
 
       setEpsilonDecay(value) {
+        this.ensureActive();
         this.epsilonDecay = value;
       }
 
       async replay() {
+        this.ensureActive();
         if (this.memory.size() < this.batchSize) return;
         const minibatch = this.memory.sample(this.batchSize);
         const states = [];
@@ -1027,8 +1042,13 @@
       }
 
       dispose() {
+        if (this.disposed) return;
         this.model.dispose();
         this.targetModel.dispose();
+        this.memory.clear();
+        this.disposed = true;
+        this.model = null;
+        this.targetModel = null;
       }
     }
 
@@ -1117,6 +1137,7 @@
         await runStep();
       } catch (error) {
         console.error('Träningsloopen stoppades på grund av fel:', error);
+        log(`Träningsloopen stoppades: ${error.message}`);
         isTraining = false;
         return;
       }
