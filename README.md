@@ -15,13 +15,14 @@ An intelligent Snake game with sophisticated AI algorithms and real-time paramet
 - **Loop Detection**: Intelligent avoidance of repetitive patterns
 - **Compact Mode**: Efficient navigation in tight spaces
 - **Endgame Optimization**: Special strategy when board fills up
-- **Reinforcement Learning Booster**: Optional Q-learning layer that keeps improving move selection over time
+- **Reinforcement Learning Trainer**: Optional Q-learning module that refines move choices each round
 
 ### 🎮 Interactive Controls
 - **Real-time Parameter Tuning**: Adjust AI behavior while playing
 - **Multiple Grid Sizes**: From 10x10 to 60x60 for different challenges
 - **Speed Control**: Adjust game speed from 1ms to 500ms
 - **Live Strategy Display**: See what the AI is thinking in real-time
+- **ML / RL Toggle**: Enable autonomous training and watch the agent improve across episodes
 
 ### 🎨 Modern Design
 - **Glassmorphism UI**: Beautiful modern interface with blur effects
@@ -128,6 +129,7 @@ The game includes several optimized presets:
 - **Hamilton Cycle**: Failsafe guaranteed completion path
 - **Flood Fill**: Space analysis for safe movement
 - **Loop Detection**: Pattern recognition to avoid cycles
+- **Q-learning Policy Blending**: Reinforcement learning that augments handcrafted heuristics with experiential feedback
 
 ### Game Architecture
 ```
