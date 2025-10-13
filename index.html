@@ -694,6 +694,25 @@
               <p id="compactStepStatus"></p>
             </div>
           </div>
+          <div class="controls-section">
+            <h3>ML / RL Trainer</h3>
+            <p class="status-explanation" id="rlHint">RL inactive – snake relies only on handcrafted logic.</p>
+            <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable RL Training</button>
+            <div class="status-display" style="margin-top: 1rem;">
+              <div class="status-item">
+                <span class="status-label">Episodes:</span>
+                <span id="rlEpisodes" class="status-value">0</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Exploration:</span>
+                <span id="rlExploration" class="status-value">0.30</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Last reward:</span>
+                <span id="rlLastReward" class="status-value">0.0</span>
+              </div>
+            </div>
+          </div>
 
         </div>
       </div>
@@ -906,6 +925,125 @@
     let manualDirection = {dx: 1, dy: 0};
     let pendingManualDirection = null;
     let eatParticles = [];
+    let rlEnabled = false;
+    class SnakeRLTrainer {
+      constructor(){
+        this.qTable = new Map();
+        this.alpha = 0.2;
+        this.gamma = 0.9;
+        this.baseEpsilon = 0.3;
+        this.minEpsilon = 0.05;
+        this.decay = 0.995;
+        this.episodes = 0;
+        this.steps = 0;
+        this.totalReward = 0;
+        this.lastReward = 0;
+        this.lastState = null;
+        this.lastAction = null;
+        this.availableActions = [];
+        this.lastFruitDistance = Infinity;
+        this.currentEpsilon = this.baseEpsilon;
+      }
+      onEpisodeStart(){
+        this.episodes++;
+        this.steps = 0;
+        this.totalReward = 0;
+        this.lastReward = 0;
+        this.lastState = null;
+        this.lastAction = null;
+        this.availableActions = [];
+        this.lastFruitDistance = Infinity;
+        this.currentEpsilon = Math.max(this.minEpsilon, this.baseEpsilon * Math.pow(this.decay, this.episodes));
+      }
+      buildState(context){
+        const fx = Math.sign(context.fruitDirection.dx);
+        const fy = Math.sign(context.fruitDirection.dy);
+        const ham = context.hamMode ? 1 : 0;
+        const loop = context.loopDetected ? 1 : 0;
+        const compact = context.compactMode ? 1 : 0;
+        const free = Math.max(0, Math.min(4, context.freeBucket));
+        const def = context.defaultAction || 'NONE';
+        return `fx:${fx}|fy:${fy}|ham:${ham}|loop:${loop}|comp:${compact}|free:${free}|def:${def}`;
+      }
+      getQ(state, action){
+        const key = `${state}|a:${action}`;
+        return this.qTable.get(key) ?? 0;
+      }
+      setQ(state, action, value){
+        const key = `${state}|a:${action}`;
+        this.qTable.set(key, value);
+      }
+      pickAction(state, actions){
+        if(!actions.length) return null;
+        if(Math.random() < this.currentEpsilon){
+          return actions[Math.floor(Math.random()*actions.length)];
+        }
+        let best = actions[0];
+        let bestVal = this.getQ(state, best);
+        for(let i=1;i<actions.length;i++){
+          const act = actions[i];
+          const val = this.getQ(state, act);
+          if(val > bestVal){
+            bestVal = val;
+            best = act;
+          }
+        }
+        return best;
+      }
+      selectMove(context){
+        const state = this.buildState(context);
+        const actions = context.safeMoves.map(m => m.label);
+        if(!actions.length) return null;
+        const chosen = this.pickAction(state, actions) || context.defaultAction || actions[0];
+        this.lastState = state;
+        this.lastAction = chosen;
+        this.availableActions = actions;
+        this.lastFruitDistance = context.fruitDistance;
+        return context.safeMoves.find(m => m.label === chosen) || context.safeMoves[0];
+      }
+      recordStep(reward, nextContext, done){
+        if(this.lastState && this.lastAction){
+          const prevQ = this.getQ(this.lastState, this.lastAction);
+          let target = reward;
+          if(!done && nextContext){
+            const nextState = this.buildState(nextContext);
+            const actions = nextContext.safeMoves.length ? nextContext.safeMoves.map(m => m.label) : this.availableActions;
+            let bestNext = 0;
+            if(actions.length){
+              bestNext = Math.max(...actions.map(a => this.getQ(nextState, a)));
+            }
+            target += this.gamma * bestNext;
+          }
+          const updated = prevQ + this.alpha * (target - prevQ);
+          this.setQ(this.lastState, this.lastAction, updated);
+        }
+        this.lastReward = reward;
+        this.totalReward += reward;
+        this.steps++;
+        if(done){
+          this.lastState = null;
+          this.lastAction = null;
+          this.availableActions = [];
+        } else if(nextContext){
+          this.lastState = this.buildState(nextContext);
+          this.availableActions = nextContext.safeMoves.map(m => m.label);
+          this.lastFruitDistance = nextContext.fruitDistance;
+        }
+      }
+      onEpisodeEnd(success){
+        if(success){
+          this.baseEpsilon = Math.max(this.minEpsilon, this.baseEpsilon * 0.995);
+        }
+      }
+      getStats(){
+        return {
+          episodes: this.episodes,
+          epsilon: this.currentEpsilon,
+          lastReward: this.lastReward
+        };
+      }
+    }
+    const rlTrainer = new SnakeRLTrainer();
     /* ===== DYNAMISKA TRÖSKLAR ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
     let ENDGAME_THRESHOLD = 20;
@@ -997,6 +1135,11 @@
     });
     const manualToggleBtn = document.getElementById('manualToggle');
     const manualHint = document.getElementById('manualHint');
+    const rlToggleBtn = document.getElementById('rlToggle');
+    const rlEpisodesEl = document.getElementById('rlEpisodes');
+    const rlExplorationEl = document.getElementById('rlExploration');
+    const rlLastRewardEl = document.getElementById('rlLastReward');
+    const rlHint = document.getElementById('rlHint');
     const KEY_TO_DIR = {
       'arrowup': {dx: 0, dy: -1},
       'w': {dx: 0, dy: -1},
@@ -1037,6 +1180,10 @@
     }
     function toggleManualMode(){
       manualMode = !manualMode;
+      if(manualMode && rlEnabled){
+        rlEnabled = false;
+        updateRLUI();
+      }
       if(manualMode){
         setInitialManualDirection();
         currentStrategy = 'Manual control';
@@ -1057,6 +1204,29 @@
       compactMode = false;
       compactModeSteps = 0;
       return next;
+    }
+    function updateRLUI(){
+      if(!rlEpisodesEl || !rlExplorationEl || !rlLastRewardEl || !rlHint) return;
+      const stats = rlTrainer.getStats();
+      rlEpisodesEl.textContent = stats.episodes.toString();
+      rlExplorationEl.textContent = stats.epsilon.toFixed(2);
+      rlLastRewardEl.textContent = stats.lastReward.toFixed(2);
+      if(rlToggleBtn){
+        if(rlEnabled && !manualMode){
+          rlToggleBtn.textContent = '🤖 RL Training: ON';
+          rlToggleBtn.classList.add('toggle-active');
+        } else {
+          rlToggleBtn.textContent = '🤖 Enable RL Training';
+          rlToggleBtn.classList.remove('toggle-active');
+        }
+      }
+      if(manualMode){
+        rlHint.textContent = 'Manual control – RL paused.';
+      } else if(rlEnabled){
+        rlHint.textContent = 'RL active – Q-learning refines the existing AI every round.';
+      } else {
+        rlHint.textContent = 'RL inactive – snake relies only on handcrafted logic.';
+      }
     }
     function spawnEatEffect(cellX, cellY){
       const originX = cellX * CELL + CELL / 2;
@@ -1091,6 +1261,21 @@
       });
     }
     manualToggleBtn?.addEventListener('click', toggleManualMode);
+    rlToggleBtn?.addEventListener('click', () => {
+      rlEnabled = !rlEnabled;
+      if(rlEnabled){
+        if(manualMode){
+          manualMode = false;
+          pendingManualDirection = null;
+          updateManualUI();
+        }
+        restartGame();
+      } else {
+        rlTrainer.lastState = null;
+        rlTrainer.lastAction = null;
+      }
+      updateRLUI();
+    });
     document.addEventListener('keydown', (event) => {
       if(!manualMode) return;
       const dir = KEY_TO_DIR[event.key.toLowerCase()];
@@ -1248,6 +1433,8 @@
       if(manualMode){
         setInitialManualDirection();
         currentStrategy = 'Manual control';
+      } else if(rlEnabled){
+        rlTrainer.onEpisodeStart();
       }
       eatParticles = [];
       lastRender = performance.now();
@@ -1256,6 +1443,7 @@
       gameRunning = true;
       draw();
       loopHandle = setInterval(update, SPEED);
+      updateRLUI();
     }
     document.getElementById('restartBtn').addEventListener('click', restartGame);
     /* ===== HAMILTON-SLINGA ===== */
@@ -1340,6 +1528,85 @@
         }
       }
       return false;
+    }
+    function getDirectionLabel(dx, dy){
+      if(dx===0&&dy===-1) return 'UP';
+      if(dx===0&&dy===1) return 'DOWN';
+      if(dx===-1&&dy===0) return 'LEFT';
+      if(dx===1&&dy===0) return 'RIGHT';
+      return 'STAY';
+    }
+    function getSafeMoves(head){
+      const moves=[];
+      for(const d of DIRS){
+        const nx=head.x+d.dx, ny=head.y+d.dy;
+        if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
+        const key=`${nx},${ny}`;
+        const tail=snake[snake.length-1];
+        const isTailStep=snake.length>1&&nx===tail.x&&ny===tail.y;
+        if(snakeSet.has(key)&&!isTailStep) continue;
+        const ate=fruit&&fruit.x>=0&&nx===fruit.x&&ny===fruit.y;
+        const simulated=ate?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
+        if(!canReachTailFrom({x:nx,y:ny},simulated)) continue;
+        moves.push({
+          x:nx,
+          y:ny,
+          dx:d.dx,
+          dy:d.dy,
+          label:getDirectionLabel(d.dx,d.dy),
+          reason: ate ? 'Fruit capture' : (isTailStep ? 'Follow tail' : 'Safe space')
+        });
+      }
+      return moves;
+    }
+    function createRLContext({head, safeMoves, defaultMove, defaultStrategy, fruitObj, freeCellsValue, hamModeValue, compactModeValue, loopDetectedValue}){
+      const fruitDistance = fruitObj && fruitObj.x >= 0 ? Math.abs(head.x - fruitObj.x) + Math.abs(head.y - fruitObj.y) : 0;
+      const fruitDirection = fruitObj && fruitObj.x >= 0 ? {dx: fruitObj.x - head.x, dy: fruitObj.y - head.y} : {dx: 0, dy: 0};
+      const defaultAction = defaultMove ? getDirectionLabel(defaultMove.x - head.x, defaultMove.y - head.y) : null;
+      const freeBucket = Math.floor((freeCellsValue / (COLS * ROWS)) * 5);
+      const annotatedMoves = safeMoves.map(move => {
+        const isDefault = defaultAction && move.label === defaultAction;
+        return {
+          ...move,
+          reason: isDefault ? `Default (${defaultStrategy})` : (move.reason || 'Safe option')
+        };
+      });
+      return {
+        head,
+        safeMoves: annotatedMoves,
+        defaultAction,
+        defaultStrategy,
+        fruitDistance,
+        fruitDirection,
+        freeBucket,
+        hamMode: hamModeValue,
+        compactMode: compactModeValue,
+        loopDetected: loopDetectedValue
+      };
+    }
+    function applyRLChoice(head, candidateMove, strategyLabel, safeSnapshot){
+      if(!rlEnabled || manualMode) return candidateMove;
+      const safeMoves = (safeSnapshot && safeSnapshot.length) ? safeSnapshot : getSafeMoves(head);
+      if(!safeMoves.length) return candidateMove;
+      const context = createRLContext({
+        head,
+        safeMoves,
+        defaultMove: candidateMove,
+        defaultStrategy: strategyLabel,
+        fruitObj: fruit,
+        freeCellsValue: COLS*ROWS - snake.length,
+        hamModeValue: hamMode,
+        compactModeValue: compactMode,
+        loopDetectedValue: loopDetected
+      });
+      const chosen = rlTrainer.selectMove(context);
+      if(!chosen) return candidateMove;
+      if(candidateMove && chosen.label === getDirectionLabel(candidateMove.x - head.x, candidateMove.y - head.y)){
+        currentStrategy = `RL aligned (${strategyLabel})`;
+        return candidateMove;
+      }
+      currentStrategy = `RL policy (${chosen.reason || strategyLabel})`;
+      return {x: chosen.x, y: chosen.y};
     }
     const floodSize=(sx,sy,body)=>{
       const blocked=new Set(body.map(p=>`${p.x},${p.y}`));
@@ -1507,6 +1774,8 @@
     function getNext(){
       HAM = buildHamilton();
       const head=snake[0];
+      const safeSnapshot = rlEnabled ? getSafeMoves(head) : null;
+      const finalizeMove = (move) => applyRLChoice(head, move, currentStrategy, safeSnapshot);
       windowMoves.push(`${head.x},${head.y}`);
       if(windowMoves.length>WINDOW_SIZE) windowMoves.shift();
       lastMoves.push({x:head.x,y:head.y});
@@ -1527,20 +1796,20 @@
           const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
           if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
             currentStrategy = "Final Hamilton";
-            return nxt;
+            return finalizeMove(nxt);
           }
         }
       }
       if(isEndgame){
         const back=getBackToHamilton(head);
-        if(back){ currentStrategy="Returning to Hamilton"; return back; }
+        if(back){ currentStrategy="Returning to Hamilton"; return finalizeMove(back); }
         const nxt=hamNext(head);
         if(nxt){
           const key=`${nxt.x},${nxt.y}`;
           const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
           if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
-            currentStrategy="Endgame Hamilton"; return nxt;
+            currentStrategy="Endgame Hamilton"; return finalizeMove(nxt);
           }
         }
       }
@@ -1564,7 +1833,7 @@
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
           if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
             currentStrategy = "Hamilton cycle";
-            return nxt;
+            return finalizeMove(nxt);
           }
         }
         hamMode = false;
@@ -1580,7 +1849,7 @@
       if(loopDetected && snake.length >= 2){
         if(freeCells <= FILL_POCKET_LIMIT){
           const fillMove = fillSmallestPocket();
-          if(fillMove){ currentStrategy="Filling smallest pocket"; return fillMove; }
+          if(fillMove){ currentStrategy="Filling smallest pocket"; return finalizeMove(fillMove); }
         }
         const dmap = getDistancesFromTail();
         let best=null,bestDist=-1;
@@ -1594,7 +1863,7 @@
           const dist=dmap[ny][nx];
           if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
         }
-        if(best){ currentStrategy="Loop break (Longest)"; return best; }
+        if(best){ currentStrategy="Loop break (Longest)"; return finalizeMove(best); }
       }
       const fruitAcc = isFruitAccessible(head);
       if(fruitAcc && freeCells>15){
@@ -1611,7 +1880,7 @@
           if(nd<minD){minD=nd; choices=[{x:nx,y:ny}];}
           else if(nd===minD){choices.push({x:nx,y:ny});}
         }
-        if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
+        if(choices.length){ currentStrategy="Greedy to fruit"; return finalizeMove(choices[(Math.random()*choices.length)|0]); }
       }
       const inPocket = isFruitInPocket();
       if(!compactMode && shouldEnterCompactMode({
@@ -1628,7 +1897,7 @@
           compactMode = false; compactModeSteps = 0;
         } else {
           const zig = calculateZigZagPath();
-          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return zig; }
+          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return finalizeMove(zig); }
           else{ compactMode = false; }
         }
       }
@@ -1637,7 +1906,7 @@
         if(path && path.length){
           const nxt=path[0];
           const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return nxt; }
+          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return finalizeMove(nxt); }
         }
       }
       let bestScore=-Infinity,bestMoves=[];
@@ -1664,13 +1933,13 @@
         if(score>bestScore){ bestScore=score; bestMoves=[{x:nx,y:ny}]; }
         else if(score===bestScore){ bestMoves.push({x:nx,y:ny}); }
       }
-      if(bestMoves.length){ currentStrategy="Heuristic"; return bestMoves[(Math.random()*bestMoves.length)|0]; }
+      if(bestMoves.length){ currentStrategy="Heuristic"; return finalizeMove(bestMoves[(Math.random()*bestMoves.length)|0]); }
       const tail=snake.length>1?snake[snake.length-1]:head;
       const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
       if(path && path.length){
         const nxt=path[0];
         const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return nxt; }
+        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return finalizeMove(nxt); }
       }
       currentStrategy="No safe move!";
       return null;
@@ -1809,8 +2078,21 @@
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
+      const rlActive = rlEnabled && !manualMode;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
+        if(rlActive){
+          rlTrainer.recordStep(-30, null, true);
+          rlTrainer.onEpisodeEnd(false);
+          updateRLUI();
+          if(rlEnabled && !manualMode){
+            setTimeout(() => {
+              if(rlEnabled && !manualMode){
+                restartGame();
+              }
+            }, 700);
+          }
+        }
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1825,6 +2107,18 @@
         return;
       }
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
+        if(rlActive){
+          rlTrainer.recordStep(-35, null, true);
+          rlTrainer.onEpisodeEnd(false);
+          updateRLUI();
+          if(rlEnabled && !manualMode){
+            setTimeout(() => {
+              if(rlEnabled && !manualMode){
+                restartGame();
+              }
+            }, 700);
+          }
+        }
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1841,6 +2135,18 @@
       const tail = snake[snake.length - 1];
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
+        if(rlActive){
+          rlTrainer.recordStep(-40, null, true);
+          rlTrainer.onEpisodeEnd(false);
+          updateRLUI();
+          if(rlEnabled && !manualMode){
+            setTimeout(() => {
+              if(rlEnabled && !manualMode){
+                restartGame();
+              }
+            }, 700);
+          }
+        }
         clearInterval(loopHandle);
         gameRunning = false;
         draw();
@@ -1862,6 +2168,18 @@
       if(ate){
         loopCountAdjust = 0;
         if(snake.length === COLS * ROWS){
+          if(rlActive){
+            rlTrainer.recordStep(120, null, true);
+            rlTrainer.onEpisodeEnd(true);
+            updateRLUI();
+            if(rlEnabled && !manualMode){
+              setTimeout(() => {
+                if(rlEnabled && !manualMode){
+                  restartGame();
+                }
+              }, 1200);
+            }
+          }
           fruit = {x: -1, y: -1};
           draw();
           clearInterval(loopHandle);
@@ -1888,6 +2206,35 @@
         if(atePosition){
           spawnEatEffect(atePosition.x, atePosition.y);
         }
+      }
+      if(rlActive){
+        let reward = -0.05;
+        if(ate) reward += 15;
+        if(!ate && fruit && fruit.x >= 0 && Number.isFinite(rlTrainer.lastFruitDistance)){
+          const newDist = Math.abs(snake[0].x - fruit.x) + Math.abs(snake[0].y - fruit.y);
+          reward += (rlTrainer.lastFruitDistance - newDist) * 0.2;
+        }
+        if(loopDetected) reward -= 0.02;
+        const nextSafe = getSafeMoves(snake[0]);
+        let defaultMove = null;
+        if(snake.length > 1){
+          const dx = snake[0].x - snake[1].x;
+          const dy = snake[0].y - snake[1].y;
+          defaultMove = nextSafe.find(m => m.dx === dx && m.dy === dy) || null;
+        }
+        const nextContext = createRLContext({
+          head: snake[0],
+          safeMoves: nextSafe,
+          defaultMove,
+          defaultStrategy: currentStrategy,
+          fruitObj: fruit,
+          freeCellsValue: COLS*ROWS - snake.length,
+          hamModeValue: hamMode,
+          compactModeValue: compactMode,
+          loopDetectedValue: loopDetected
+        });
+        rlTrainer.recordStep(reward, nextContext, false);
+        updateRLUI();
       }
       draw();
     }
