@@ -275,6 +275,47 @@
       opacity: 0.7;
       text-align: center;
     }
+    .rl-fieldset {
+      margin-top: 1.5rem;
+      border: 1px solid var(--glass-border);
+      border-radius: 1.2rem;
+      padding: 1.5rem;
+      background: rgba(15, 15, 35, 0.7);
+      transition: opacity 0.3s ease;
+    }
+    .rl-fieldset legend {
+      padding: 0 0.6rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    .rl-fieldset.inactive {
+      opacity: 0.45;
+    }
+    .rl-grid {
+      display: grid;
+      gap: 1rem;
+    }
+    @media (min-width: 480px) {
+      .rl-grid.two-col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    .number-input {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--glass-border);
+      background: var(--glass);
+      color: var(--text);
+      font-weight: 500;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .number-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(240, 147, 251, 0.25);
+    }
     .button.danger {
       background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
       box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
@@ -573,6 +614,7 @@
       <ul class="nav-links">
         <li><a href="#" class="nav-link active" data-page="game">Game</a></li>
         <li><a href="#" class="nav-link" data-page="guide">Guide</a></li>
+        <li><a href="#" class="nav-link" data-page="ai">AI-handbok</a></li>
         <li><a href="#" class="nav-link" data-page="facit">Presets</a></li>
         <li><a href="#" class="nav-link" data-page="contact">Contact</a></li>
       </ul>
@@ -616,6 +658,61 @@
             <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable Reinforcement Learning</button>
             <p id="rlHint" class="manual-hint">Reinforcement learning is currently disabled.</p>
           </div>
+          <fieldset id="rlParamFieldset" class="rl-fieldset inactive" disabled>
+            <legend>Finjustera RL</legend>
+            <p class="manual-hint" style="margin-bottom: 1rem;">Aktivera RL för att låsa upp belöningar och hyperparametrar.</p>
+            <div class="param-control">
+              <label>Stegstraff: <span id="rlStepPenaltyValue">-0.05</span></label>
+              <input type="range" id="rlStepPenalty" class="size-slider" min="-0.5" max="0" step="0.01" value="-0.05">
+              <small>Negativ belöning varje drag – högre straff tvingar agenten att ta kortare vägar.</small>
+            </div>
+            <div class="param-control">
+              <label>Fruktbelöning: <span id="rlFruitRewardValue">5</span></label>
+              <input type="range" id="rlFruitReward" class="size-slider" min="0" max="20" step="0.5" value="5">
+              <small>Positiv belöning när frukten äts. Höj för att prioritera snabb tillväxt.</small>
+            </div>
+            <div class="param-control">
+              <label>Vinstbonus: <span id="rlWinBonusValue">15</span></label>
+              <input type="range" id="rlWinBonus" class="size-slider" min="0" max="40" step="1" value="15">
+              <small>Extra belöning när hela brädet fylls.</small>
+            </div>
+            <div class="param-control">
+              <label>Kraschstraff: <span id="rlDeathPenaltyValue">-5</span></label>
+              <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
+              <small>Negativ belöning vid kollision. Lägre värden gör agenten mer riskmedveten.</small>
+            </div>
+            <div class="rl-grid two-col">
+              <div class="param-control">
+                <label>Lärhastighet α: <span id="rlAlphaValue">0.20</span></label>
+                <input type="number" id="rlAlpha" class="number-input" min="0.01" max="1" step="0.01" value="0.2">
+                <small>Hur snabbt Q-tabellen uppdateras. Höga värden reagerar snabbt men kan bli instabila.</small>
+              </div>
+              <div class="param-control">
+                <label>Diskontering γ: <span id="rlGammaValue">0.90</span></label>
+                <input type="number" id="rlGamma" class="number-input" min="0" max="0.99" step="0.01" value="0.9">
+                <small>Hur mycket framtida belöningar värderas. Höga värden premierar långsiktig planering.</small>
+              </div>
+              <div class="param-control">
+                <label>Start-ε: <span id="rlEpsilonStartValue">0.30</span></label>
+                <input type="number" id="rlEpsilonStart" class="number-input" min="0" max="1" step="0.01" value="0.3">
+                <small>Utforskning i början av träningen. Högt värde = fler slumpdrag.</small>
+              </div>
+              <div class="param-control">
+                <label>Min-ε: <span id="rlEpsilonMinValue">0.05</span></label>
+                <input type="number" id="rlEpsilonMin" class="number-input" min="0" max="0.5" step="0.01" value="0.05">
+                <small>Lägsta utforskning efter lång träning.</small>
+              </div>
+              <div class="param-control">
+                <label>ε-decay: <span id="rlEpsilonDecayValue">0.995</span></label>
+                <input type="number" id="rlEpsilonDecay" class="number-input" min="0.8" max="0.999" step="0.001" value="0.995">
+                <small>Hur snabbt utforskningen minskar för varje episod.</small>
+              </div>
+            </div>
+            <div style="margin-top: 1rem;">
+              <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Återställ RL-lärning</button>
+              <p class="manual-hint">Nollställer Q-tabellen, statistik och sätter ε till startvärdet.</p>
+            </div>
+          </fieldset>
         </div>
           <div class="controls-section">
             <h3>Grid Size</h3>
@@ -816,6 +913,65 @@
       </div>
     </div>
   </div>
+  <!-- AI Handbook Page -->
+  <div id="ai-page" class="page">
+    <div class="container">
+      <div class="hero">
+        <h1>AI-handbok</h1>
+        <p>Förstå hur de smarta delarna samspelar: klassiska algoritmer, heuristisk AI och förstärkningslärning.</p>
+      </div>
+      <div class="info-content">
+        <div class="info-section">
+          <h2>🤔 Vad menas med ML, RL och "rena algoritmer"?</h2>
+          <h3>Maskininlärning (ML)</h3>
+          <p>Maskininlärning är samlingsnamnet för tekniker där en modell lär sig av data. I Snake används ML när vi låter en agent samla erfarenhet från spel och justera sitt beteende utifrån utfallet. Förstärkningslärning (RL) är en specialgren av ML.</p>
+          <h3>Förstärkningslärning (RL)</h3>
+          <p>I förstärkningslärning testar agenten olika drag, får <em>belöningar</em> eller <em>straff</em> och uppdaterar en intern tabell (Q-tabell) som beskriver hur bra varje drag är i en viss situation. Med tiden lär sig agenten att maximera den förväntade belöningen.</p>
+          <h3>Rena algoritmer (regler / heuristik)</h3>
+          <p>Utöver ML finns färdigskrivna algoritmer, till exempel Hamilton-cykeln, BFS-sökning och kompakta zig-zag-rörelser. Dessa är deterministiska regler som alltid gör samma sak för samma läge och fungerar utan att "lära" sig.</p>
+        </div>
+        <div class="info-section">
+          <h2>🔗 Så samarbetar delarna</h2>
+          <ul>
+            <li><strong>Bas-säkerhet via algoritmer:</strong> Hamilton-cykeln och BFS garanterar att ormen har en säker väg när brädet blir trångt.</li>
+            <li><strong>Heuristiska växlar:</strong> Loop- och kompaktläget analyserar situationen och styr över till säkra mönster vid behov.</li>
+            <li><strong>RL ovanpå allt:</strong> När RL är aktiverat får agenten välja mellan de säkra dragen. Den försöker hitta vilket drag som i längden leder till flest poäng genom att justera Q-tabellen.</li>
+            <li><strong>Resultat:</strong> Du kan kombinera stabiliteten från algoritmerna med flexibiliteten hos ML. Agenten provar nya vägar men faller tillbaka på säkerhetsnätet när det behövs.</li>
+          </ul>
+          <p>En episod startar när spelet börjar och slutar när ormen kraschar eller fyller hela brädet. Efter varje episod uppdateras utforskningen (ε) enligt dina inställningar.</p>
+        </div>
+        <div class="info-section">
+          <h2>🧮 Belöningssystemet</h2>
+          <p>När RL är igång räknas varje drag som ett inlärningstillfälle. Du kan själv styra hur attraktiva olika utfall är:</p>
+          <ul>
+            <li><strong>Stegstraff:</strong> Ett litet negativt värde för varje drag så att agenten inte segar runt i onödan.</li>
+            <li><strong>Fruktbelöning:</strong> Positiv belöning när en frukt äts – påverkar hur offensivt agenten jagar frukt.</li>
+            <li><strong>Vinstbonus:</strong> Extra belöning för att fylla hela brädet, vilket belönar långsiktig överlevnad.</li>
+            <li><strong>Kraschstraff:</strong> Stort negativt värde vid kollision för att undvika självmål.</li>
+          </ul>
+          <p>Tryck på <strong>"Återställ RL-lärning"</strong> om du vill börja om från noll med de nya belöningsvärdena.</p>
+        </div>
+        <div class="info-section">
+          <h2>⚙️ Hyperparametrar för RL</h2>
+          <ul>
+            <li><strong>Lärhastighet (α):</strong> Hur snabbt Q-värdena uppdateras. Hög α kan lära sig snabbare men riskerar instabilitet.</li>
+            <li><strong>Diskontering (γ):</strong> Hur mycket framtida belöningar värderas. Hög γ gör agenten mer långsiktig.</li>
+            <li><strong>Utforskning (ε):</strong> Styr hur ofta agenten provar nya drag. Med tiden minskar ε mot Min-ε enligt ε-decay.</li>
+          </ul>
+          <p>Justera parametern och spela några rundor. Följ upp i <strong>AI Status</strong>-panelen där du ser aktuell ε, antal episoder och snittbelöning.</p>
+        </div>
+        <div class="info-section">
+          <h2>🧭 Rekommenderade strategier</h2>
+          <ul>
+            <li><strong>Snabb start:</strong> Högt start-ε (0.5–0.7) och något högre stegstraff för att uppmuntra utforskning.</li>
+            <li><strong>Finslipning:</strong> Sänk α till 0.1 och ε-decay till 0.998 för stabilisering när agenten hittat ett beteende du gillar.</li>
+            <li><strong>Riskkontroll:</strong> Kombinera högt kraschstraff med hög fruktbelöning för att balansera säkerhet och offensiv.</li>
+          </ul>
+          <p>Du kan alltid växla tillbaka till den heuristiska AI:n genom att stänga av RL – då används enbart de handskrivna algoritmerna.</p>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- Facit Page (Presets) -->
   <div id="facit-page" class="page">
     <div class="container">
@@ -919,6 +1075,17 @@
     let rlTrainingEnabled = false;
     let rlPendingChoice = null;
     let rlEpisodeActive = false;
+    const rlConfig = {
+      stepPenalty: -0.05,
+      fruitReward: 5,
+      winBonus: 15,
+      deathPenalty: -5,
+      alpha: 0.2,
+      gamma: 0.9,
+      epsilonStart: 0.3,
+      epsilonMin: 0.05,
+      epsilonDecay: 0.995
+    };
     /* ===== DYNAMISKA TRÖSKLAR ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
     let ENDGAME_THRESHOLD = 20;
@@ -967,7 +1134,7 @@
       }
     };
     let loopCountAdjust = 0;
-    const rlAgent = createReinforcementAgent();
+    const rlAgent = createReinforcementAgent(rlConfig);
     /* ===== SPELSTATE ===== */
     let snake=[], snakeSet=new Set();
     let fruit, prevFruitDist=Infinity, noProgressMoves=0;
@@ -996,12 +1163,12 @@
     function getStrategyExplanation(strategy) {
       return STRATEGY_DESCRIPTIONS[strategy] || "Assessing the board and adapting to the current situation.";
     }
-    function createReinforcementAgent(){
-      const alpha = 0.2;
-      const gamma = 0.9;
-      let epsilon = 0.3;
-      const epsilonMin = 0.05;
-      const epsilonDecay = 0.995;
+    function createReinforcementAgent(config = {}){
+      let alpha = typeof config.alpha === 'number' ? config.alpha : 0.2;
+      let gamma = typeof config.gamma === 'number' ? config.gamma : 0.9;
+      let epsilon = typeof config.epsilonStart === 'number' ? config.epsilonStart : 0.3;
+      let epsilonMin = typeof config.epsilonMin === 'number' ? config.epsilonMin : 0.05;
+      let epsilonDecay = typeof config.epsilonDecay === 'number' ? config.epsilonDecay : 0.995;
       const qTable = new Map();
       let episodes = 0;
       let episodeReward = 0;
@@ -1013,6 +1180,29 @@
       const ensureState = key => {
         if(!qTable.has(key)){
           qTable.set(key, Array(DIRS.length).fill(0));
+        }
+      };
+      const applyHyperparameters = values => {
+        if(values && typeof values === 'object'){
+          if(typeof values.alpha === 'number'){
+            alpha = values.alpha;
+            config.alpha = values.alpha;
+          }
+          if(typeof values.gamma === 'number'){
+            gamma = values.gamma;
+            config.gamma = values.gamma;
+          }
+          if(typeof values.epsilonMin === 'number'){
+            epsilonMin = values.epsilonMin;
+            config.epsilonMin = values.epsilonMin;
+          }
+          if(typeof values.epsilonDecay === 'number'){
+            epsilonDecay = values.epsilonDecay;
+            config.epsilonDecay = values.epsilonDecay;
+          }
+          if(typeof values.epsilonStart === 'number'){
+            config.epsilonStart = values.epsilonStart;
+          }
         }
       };
       return {
@@ -1076,6 +1266,31 @@
           outcomeCounts[key] = (outcomeCounts[key] || 0) + 1;
           totalOutcomes++;
         },
+        setHyperparameters(values){
+          applyHyperparameters(values);
+        },
+        resetEpsilon(value){
+          const next = typeof value === 'number' ? value : config.epsilonStart;
+          if(typeof next === 'number' && !Number.isNaN(next)){
+            epsilon = next;
+            config.epsilonStart = next;
+          }
+        },
+        resetLearning(){
+          qTable.clear();
+          episodes = 0;
+          episodeReward = 0;
+          totalReward = 0;
+          lastEpisodeReward = 0;
+          totalOutcomes = 0;
+          for(const key in outcomeCounts){
+            if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
+              delete outcomeCounts[key];
+            }
+          }
+          applyHyperparameters(config);
+          this.resetEpsilon(config.epsilonStart);
+        },
         getStats(){
           return {
             epsilon,
@@ -1105,6 +1320,8 @@
     const manualHint = document.getElementById('manualHint');
     const rlToggleBtn = document.getElementById('rlToggle');
     const rlHint = document.getElementById('rlHint');
+    const rlParamFieldset = document.getElementById('rlParamFieldset');
+    const rlResetButton = document.getElementById('rlResetLearning');
     const KEY_TO_DIR = {
       'arrowup': {dx: 0, dy: -1},
       'w': {dx: 0, dy: -1},
@@ -1164,6 +1381,10 @@
         rlToggleBtn.classList.remove('toggle-active');
         rlToggleBtn.textContent = '🤖 Enable Reinforcement Learning';
         rlHint.textContent = 'Reinforcement learning is currently disabled.';
+      }
+      if(rlParamFieldset){
+        rlParamFieldset.disabled = !rlTrainingEnabled;
+        rlParamFieldset.classList.toggle('inactive', !rlTrainingEnabled);
       }
     }
     function getManualNext(){
@@ -1284,10 +1505,50 @@
         return;
       }
       const stats = rlAgent.getStats();
-      rlStatusEl.textContent = `RL training active · ε=${stats.epsilon.toFixed(3)} · episodes=${stats.episodes} · last reward=${stats.lastEpisodeReward.toFixed(2)}`;
+      rlStatusEl.textContent = `RL training active · ε=${stats.epsilon.toFixed(3)} · episoder=${stats.episodes} · senaste belöning=${stats.lastEpisodeReward.toFixed(2)} · snitt=${stats.averageReward.toFixed(2)}`;
       if(rlHint){
         rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
       }
+    }
+    function setupRlControls(){
+      const bindings = [
+        { id: 'rlStepPenalty', valueId: 'rlStepPenaltyValue', key: 'stepPenalty', parser: parseFloat, format: v => v.toFixed(2) },
+        { id: 'rlFruitReward', valueId: 'rlFruitRewardValue', key: 'fruitReward', parser: parseFloat, format: v => v.toFixed(1) },
+        { id: 'rlWinBonus', valueId: 'rlWinBonusValue', key: 'winBonus', parser: parseFloat, format: v => v.toFixed(0) },
+        { id: 'rlDeathPenalty', valueId: 'rlDeathPenaltyValue', key: 'deathPenalty', parser: parseFloat, format: v => v.toFixed(0) },
+        { id: 'rlAlpha', valueId: 'rlAlphaValue', key: 'alpha', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ alpha: v }) },
+        { id: 'rlGamma', valueId: 'rlGammaValue', key: 'gamma', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ gamma: v }) },
+        { id: 'rlEpsilonStart', valueId: 'rlEpsilonStartValue', key: 'epsilonStart', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { rlAgent.setHyperparameters({ epsilonStart: v }); rlAgent.resetEpsilon(v); } },
+        { id: 'rlEpsilonMin', valueId: 'rlEpsilonMinValue', key: 'epsilonMin', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ epsilonMin: v }) },
+        { id: 'rlEpsilonDecay', valueId: 'rlEpsilonDecayValue', key: 'epsilonDecay', parser: parseFloat, format: v => v.toFixed(3), onChange: v => rlAgent.setHyperparameters({ epsilonDecay: v }) }
+      ];
+      bindings.forEach(binding => {
+        const input = document.getElementById(binding.id);
+        const valueEl = document.getElementById(binding.valueId);
+        if(!input || !valueEl) return;
+        const applyValue = raw => {
+          if(Number.isNaN(raw)) return;
+          rlConfig[binding.key] = raw;
+          valueEl.textContent = typeof binding.format === 'function' ? binding.format(raw) : raw;
+          if(typeof binding.onChange === 'function'){
+            binding.onChange(raw);
+          }
+          updateRlStatus();
+        };
+        const initial = binding.parser(input.value);
+        applyValue(initial);
+        input.addEventListener('input', event => {
+          const parsed = binding.parser(event.target.value);
+          applyValue(parsed);
+        });
+      });
+      rlResetButton?.addEventListener('click', () => {
+        rlAgent.resetLearning();
+        updateRlStatus();
+        if(rlHint){
+          rlHint.textContent = 'RL reset – start a new training run to collect data.';
+        }
+      });
     }
     function spawnEatEffect(cellX, cellY){
       const originX = cellX * CELL + CELL / 2;
@@ -1336,6 +1597,7 @@
         manualMode = false;
         updateManualUI();
         rlPendingChoice = null;
+        rlAgent.resetEpsilon(rlConfig.epsilonStart);
         rlAgent.startEpisode();
         rlEpisodeActive = true;
       } else {
@@ -1350,6 +1612,7 @@
     });
     updateRlToggleUI();
     updateRlStatus();
+    setupRlControls();
     /* ===== SIZE CONTROL ===== */
     const sizeSlider = document.getElementById('sizeSlider');
     sizeSlider.addEventListener('input', (e) => {
@@ -2104,11 +2367,11 @@
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; return; }
-      let stepReward = -0.05;
+      let stepReward = rlConfig.stepPenalty;
       let stepDone = false;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
-        applyRlUpdate(-5, true);
+        applyRlUpdate(rlConfig.deathPenalty, true);
         rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
@@ -2124,7 +2387,7 @@
         return;
       }
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
-        applyRlUpdate(-5, true);
+        applyRlUpdate(rlConfig.deathPenalty, true);
         rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
@@ -2142,7 +2405,7 @@
       const tail = snake[snake.length - 1];
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
-        applyRlUpdate(-5, true);
+        applyRlUpdate(rlConfig.deathPenalty, true);
         rlAgent.registerTerminal('loss');
         clearInterval(loopHandle);
         gameRunning = false;
@@ -2164,11 +2427,11 @@
       snakeSet.add(`${nxt.x},${nxt.y}`);
       if(ate){
         loopCountAdjust = 0;
-        stepReward = 5;
+        stepReward = rlConfig.fruitReward;
         if(snake.length === COLS * ROWS){
           rlAgent.registerTerminal('win');
           fruit = {x: -1, y: -1};
-          stepReward = 15;
+          stepReward = rlConfig.winBonus;
           stepDone = true;
           applyRlUpdate(stepReward, stepDone);
           draw();
