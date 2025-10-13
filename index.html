@@ -1931,10 +1931,23 @@
         score+=Math.min(nx,ny,COLS-1-nx,ROWS-1-ny);
         score+=randomFactor;
         score+=freeAfter*2;
-        if(score>bestScore){ bestScore=score; bestMoves=[{x:nx,y:ny}]; }
-        else if(score===bestScore){ bestMoves.push({x:nx,y:ny}); }
+        const moveData = {
+          x: nx,
+          y: ny,
+          dx: d.dx,
+          dy: d.dy,
+          baseScore: score,
+          willEat: fruit && fruit.x === nx && fruit.y === ny,
+          freeAfter
+        };
+        if(score>bestScore){ bestScore=score; bestMoves=[moveData]; }
+        else if(score===bestScore){ bestMoves.push(moveData); }
       }
-      if(bestMoves.length){ currentStrategy="Heuristic"; return bestMoves[(Math.random()*bestMoves.length)|0]; }
+      if(bestMoves.length){
+        currentStrategy="Heuristic";
+        const rlChoice = rlAgent.chooseMove(head, bestMoves, {isEndgame});
+        return rlChoice || bestMoves[(Math.random()*bestMoves.length)|0];
+      }
       const tail=snake.length>1?snake[snake.length-1]:head;
       const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
       if(path && path.length){
@@ -2139,6 +2152,7 @@
         loopCountAdjust = 0;
         stepReward = 5;
         if(snake.length === COLS * ROWS){
+          rlAgent.registerTerminal('win');
           fruit = {x: -1, y: -1};
           stepReward = 15;
           stepDone = true;
@@ -2186,6 +2200,12 @@
         }
       }
     }
+    async function trainSnakeAgent(episodes = 10, options = {}){
+      if(typeof episodes !== 'number' || episodes <= 0) throw new Error('Episodes must be a positive number.');
+      return rlAgent.startTraining(episodes, options);
+    }
+    window.trainSnakeAgent = trainSnakeAgent;
+    window.rlAgent = rlAgent;
     /* ===== PRESET LOADING ===== */
     const presetButtons = document.querySelectorAll('.load-preset');
     presetButtons.forEach(btn => {
