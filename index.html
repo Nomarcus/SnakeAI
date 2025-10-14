@@ -111,20 +111,6 @@
     background: var(--glass);
   }
 
-  .page {
-    display: none;
-    animation: fadeIn 0.5s ease-in-out;
-  }
-
-  .page.active {
-    display: block;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
   .container {
     width: 100%;
     max-width: 1200px;
@@ -172,55 +158,73 @@
     margin: 0 auto;
   }
 
+  /* SPELRUTAN */
   .game-container {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: flex;
     flex-direction: column;
-    background: var(--glass);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    border-radius: 1.2rem;
-    padding: 1rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1 1 50%;
+    border: 2px solid var(--glass-border);
+    border-radius: 1rem;
+    padding: 0.8rem;
+    background: transparent;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
     position: relative;
-    overflow: hidden;
-    flex: 1 1 45%;
-  }
-
-  .game-container::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(45deg, var(--accent), var(--primary), var(--secondary));
-    border-radius: inherit;
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .game-container:hover::before {
-    opacity: 0.5;
   }
 
   .canvas-wrapper {
-    display: inline-block;
-    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 700px;
+    aspect-ratio: 1 / 1;
   }
 
-  #game {
+  .canvas-wrapper canvas {
+    width: 100%;
+    height: 100%;
     display: block;
-    width: auto;
-    height: auto;
     border-radius: 0.75rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    transition: transform 0.3s;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  }
+
+  /* KONTROLLER */
+  .controls-container {
+    flex: 1 1 45%;
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+    max-width: 450px;
+    min-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .controls-container h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--light);
+  }
+
+  .controls-container button,
+  .controls-container .slider,
+  .controls-container .toggle {
+    width: 100%;
+    margin: 0.3rem 0;
   }
 
   #game:hover {
     transform: scale(1.02);
   }
-</style>
+  </style>
 
     /* Controls panel */
     .controls-panel {
