@@ -5,229 +5,223 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Snake Simulation - Intelligent Snake Experience</title>
-  
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    :root {
-      --primary: #667eea;
-      --secondary: #764ba2;
-      --accent: #f093fb;
-      --success: #4ade80;
-      --danger: #ef4444;
-      --warning: #fbbf24;
-      --dark: #1a1a2e;
-      --darker: #0f0f23;
-      --light: #eef2ff;
-      --text: #e2e8f0;
-      --glass: rgba(255, 255, 255, 0.1);
-      --glass-border: rgba(255, 255, 255, 0.2);
-      --canvas-size: 650px;
-    }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
-      min-height: 100vh;
-      color: var(--text);
-      overflow-x: hidden;
-      position: relative;
-    }
-    body::before {
-      content: '';
-      position: fixed;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
-      opacity: 0.03;
-      animation: rotate 60s linear infinite;
-      z-index: -1;
-    }
-    @keyframes rotate {
-      to { transform: rotate(360deg); }
-    }
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-    /* Navigation */
-    nav {
-      background: var(--glass);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--glass-border);
-      padding: 1rem 2rem;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-    .nav-container {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .logo {
-      font-size: 1.8rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .logo::before {
-      content: '🐍';
-      font-size: 2rem;
-      -webkit-text-fill-color: initial;
-    }
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
-    .nav-links a {
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.3s;
-      position: relative;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-    }
-    .nav-links a:hover {
-      color: var(--accent);
-      background: var(--glass);
-    }
-    .nav-links a.active {
-      color: var(--accent);
-      background: var(--glass);
-    }
-    /* Page transitions */
-    .page {
-      display: none;
-      animation: fadeIn 0.5s ease-in-out;
-    }
-    .page.active {
-      display: block;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    /* Main container */
-    .container {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 3rem 1.5rem 4rem;
-    }
-    /* Hero section */
-    .hero {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-    .hero h1 {
-      font-size: 3.5rem;
-      font-weight: 900;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, var(--light) 0%, var(--accent) 50%, var(--primary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradient 3s ease-in-out infinite;
-      background-size: 200%;
-    }
-    @keyframes gradient {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    .hero p {
-      font-size: 1.2rem;
-      color: var(--text);
-      opacity: 0.8;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    /* Game section */
-.game-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  gap: 2.5rem;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-}
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-.game-container {
-  flex: 1 1 0;
-  width: 100%;
-  max-width: 700px;
-  background: var(--glass);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: 1.5rem;
-  padding: 2.5rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  :root {
+    --primary: #667eea;
+    --secondary: #764ba2;
+    --accent: #f093fb;
+    --success: #4ade80;
+    --danger: #ef4444;
+    --warning: #fbbf24;
+    --dark: #1a1a2e;
+    --darker: #0f0f23;
+    --light: #eef2ff;
+    --text: #e2e8f0;
+    --glass: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+  }
 
-.canvas-wrapper {
-  width: min(100%, var(--canvas-size));
-  aspect-ratio: 1 / 1;
-  display: flex;
-  margin: 0 auto;
-}
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+    min-height: 100vh;
+    color: var(--text);
+    overflow-x: hidden;
+    position: relative;
+  }
 
-.canvas-wrapper canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    opacity: 0.03;
+    animation: rotate 60s linear infinite;
+    z-index: -1;
+  }
 
-    .game-container::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      background: linear-gradient(45deg, var(--accent), var(--primary), var(--secondary));
-      border-radius: 2rem;
-      z-index: -1;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .game-container:hover::before {
-      opacity: 0.5;
-    }
-    #game {
-      border-radius: 1rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      transition: transform 0.3s;
-    }
-    #game:hover {
-      transform: scale(1.02);
-    }
+  @keyframes rotate {
+    to { transform: rotate(360deg); }
+  }
+
+  nav {
+    background: var(--glass);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .logo::before {
+    content: '🐍';
+    font-size: 2rem;
+    -webkit-text-fill-color: initial;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+    position: relative;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active {
+    color: var(--accent);
+    background: var(--glass);
+  }
+
+  .page {
+    display: none;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .page.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .hero h1 {
+    font-size: 3.5rem;
+    font-weight: 900;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--light) 0%, var(--accent) 50%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient 3s ease-in-out infinite;
+    background-size: 200%;
+  }
+
+  @keyframes gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .hero p {
+    font-size: 1.2rem;
+    color: var(--text);
+    opacity: 0.8;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* --- GAME SECTION --- */
+  .game-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .game-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.2rem;
+    padding: 1rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    flex: 1 1 45%;
+  }
+
+  .game-container::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, var(--accent), var(--primary), var(--secondary));
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .game-container:hover::before {
+    opacity: 0.5;
+  }
+
+  .canvas-wrapper {
+    display: inline-block;
+    position: relative;
+  }
+
+  #game {
+    display: block;
+    width: auto;
+    height: auto;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s;
+  }
+
+  #game:hover {
+    transform: scale(1.02);
+  }
+</style>
+
     /* Controls panel */
     .controls-panel {
       background: var(--glass);
