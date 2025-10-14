@@ -855,6 +855,11 @@
                   <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
                 </div>
                 <div class="param-control">
+                  <label>Dead-end Penalty: <span id="rlDeadEndPenaltyValue">-4.0</span></label>
+                  <input type="range" id="rlDeadEndPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-4">
+                  <small>Penalty applied when the snake traps itself with no safe exits.</small>
+                </div>
+                <div class="param-control">
                   <label>Loop Stall Penalty: <span id="rlLoopPenaltyValue">-2</span></label>
                   <input type="range" id="rlLoopPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-2">
                   <small>Penalty applied when an episode is terminated for a persistent loop.</small>
@@ -1207,6 +1212,7 @@
             <li><strong>Fruit reward:</strong> Positive reward when fruit is eaten – controls how aggressively the agent hunts fruit.</li>
             <li><strong>Win bonus:</strong> Extra reward for filling the whole board, rewarding long-term survival.</li>
             <li><strong>Crash penalty:</strong> A large negative value on collision to avoid self-destructing plays.</li>
+            <li><strong>Dead-end penalty:</strong> Punishes moves that leave no safe escape so the agent learns to avoid cul-de-sacs.</li>
           </ul>
           <p>Press <strong>"Reset RL learning"</strong> to start over with the current reward values.</p>
         </div>
@@ -1346,6 +1352,7 @@
       fruitReward: 5,
       winBonus: 15,
       deathPenalty: -5,
+      deadEndPenalty: -4,
       endgamePlanReward: 1.5,
       compactModeReward: 1,
       loopPenalty: -2,
@@ -2202,6 +2209,7 @@
         { id: 'rlEndgameReward', valueId: 'rlEndgameRewardValue', key: 'endgamePlanReward', parser: parseFloat, format: v => v.toFixed(1) },
         { id: 'rlCompactReward', valueId: 'rlCompactRewardValue', key: 'compactModeReward', parser: parseFloat, format: v => v.toFixed(1) },
         { id: 'rlDeathPenalty', valueId: 'rlDeathPenaltyValue', key: 'deathPenalty', parser: parseFloat, format: v => v.toFixed(0) },
+        { id: 'rlDeadEndPenalty', valueId: 'rlDeadEndPenaltyValue', key: 'deadEndPenalty', parser: parseFloat, format: v => v.toFixed(1) },
         { id: 'rlLoopPenalty', valueId: 'rlLoopPenaltyValue', key: 'loopPenalty', parser: parseFloat, format: v => v.toFixed(1) },
         { id: 'rlAlpha', valueId: 'rlAlphaValue', key: 'alpha', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ alpha: v }) },
         { id: 'rlGamma', valueId: 'rlGammaValue', key: 'gamma', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ gamma: v }) },
@@ -3237,6 +3245,25 @@
         }
         if(atePosition){
           spawnEatEffect(atePosition.x, atePosition.y);
+        }
+      }
+      if(rlTrainingEnabled && !stepDone){
+        const trapPenalty = typeof rlConfig.deadEndPenalty === 'number' ? rlConfig.deadEndPenalty : 0;
+        if(trapPenalty){
+          const upcomingSafeMoves = getSafeMovesForRL();
+          const freeCellsRemaining = COLS * ROWS - snake.length;
+          if(Array.isArray(upcomingSafeMoves) && freeCellsRemaining > 0){
+            if(upcomingSafeMoves.length === 0){
+              stepReward += trapPenalty;
+            } else if(upcomingSafeMoves.length === 1 && freeCellsRemaining > 2){
+              const onlyMove = upcomingSafeMoves[0];
+              const upcomingTail = snake.length > 1 ? snake[snake.length - 1] : null;
+              const isTailEscape = upcomingTail && !onlyMove.ate && onlyMove.x === upcomingTail.x && onlyMove.y === upcomingTail.y;
+              if(!isTailEscape){
+                stepReward += trapPenalty * 0.5;
+              }
+            }
+          }
         }
       }
       applyRlUpdate(stepReward, stepDone);
