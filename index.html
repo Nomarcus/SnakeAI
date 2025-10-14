@@ -337,6 +337,16 @@
     .button.warning:hover {
       box-shadow: 0 6px 20px rgba(251, 191, 36, 0.6);
     }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+    }
+    .button-row .button {
+      flex: 1 1 180px;
+      min-width: 0;
+    }
     .manual-hint {
       font-size: 0.85rem;
       margin-top: 0.5rem;
@@ -907,6 +917,15 @@
                     <span>Auto restart after every episode (wins or crashes keep training rolling).</span>
                   </label>
                   <p id="rlLiveMetrics" class="manual-hint" style="margin-bottom: 1rem;">Live metrics will appear here once RL starts.</p>
+                  <div class="param-control">
+                    <label>Training data &amp; AI settings</label>
+                    <div class="button-row">
+                      <button type="button" id="rlExportButton" class="button">💾 Export</button>
+                      <button type="button" id="rlImportButton" class="button">📂 Import</button>
+                    </div>
+                    <small>Backup the Q-table, rewards, and AI configuration — or load a previous session.</small>
+                    <input type="file" id="rlImportFile" accept="application/json" class="visually-hidden">
+                  </div>
                   <div class="episode-history-card">
                     <div class="episode-history-heading">
                       <h4>📊 Episode tracker</h4>
@@ -1585,6 +1604,88 @@
             config.epsilonStart = next;
           }
         },
+        exportData(){
+          const serializedTable = [];
+          qTable.forEach((values, key) => {
+            serializedTable.push([key, values.map(v => Number.isFinite(v) ? v : 0)]);
+          });
+          return {
+            version: 1,
+            hyperparameters: {
+              alpha,
+              gamma,
+              epsilon,
+              epsilonMin,
+              epsilonDecay,
+              epsilonStart: config.epsilonStart
+            },
+            stats: {
+              episodes,
+              episodeReward,
+              totalReward,
+              lastEpisodeReward,
+              lastEpisodeDuration,
+              totalEpisodeDuration,
+              currentEpisodeDeaths,
+              lastEpisodeDeaths,
+              totalEpisodeDeaths,
+              totalOutcomes
+            },
+            outcomes: { ...outcomeCounts },
+            qTable: serializedTable
+          };
+        },
+        importData(snapshot = {}){
+          if(!snapshot || typeof snapshot !== 'object') return false;
+          qTable.clear();
+          const tableData = Array.isArray(snapshot.qTable) ? snapshot.qTable : [];
+          for(const entry of tableData){
+            if(!Array.isArray(entry) || entry.length < 2) continue;
+            const [key, rawValues] = entry;
+            if(typeof key !== 'string' || !Array.isArray(rawValues)) continue;
+            const normalized = rawValues.map(v => Number.isFinite(v) ? v : 0);
+            while(normalized.length < DIRS.length){
+              normalized.push(0);
+            }
+            if(normalized.length > DIRS.length){
+              normalized.length = DIRS.length;
+            }
+            qTable.set(key, normalized);
+          }
+          const hyper = snapshot.hyperparameters || {};
+          applyHyperparameters(hyper);
+          if(typeof hyper.epsilon === 'number' && !Number.isNaN(hyper.epsilon)){
+            epsilon = hyper.epsilon;
+          } else if(typeof config.epsilonStart === 'number' && !Number.isNaN(config.epsilonStart)){
+            epsilon = config.epsilonStart;
+          }
+          const stats = snapshot.stats || {};
+          if(Number.isFinite(stats.episodes)) episodes = stats.episodes;
+          if(Number.isFinite(stats.episodeReward)) episodeReward = stats.episodeReward;
+          if(Number.isFinite(stats.totalReward)) totalReward = stats.totalReward;
+          if(Number.isFinite(stats.lastEpisodeReward)) lastEpisodeReward = stats.lastEpisodeReward;
+          if(Number.isFinite(stats.lastEpisodeDuration)) lastEpisodeDuration = stats.lastEpisodeDuration;
+          if(Number.isFinite(stats.totalEpisodeDuration)) totalEpisodeDuration = stats.totalEpisodeDuration;
+          if(Number.isFinite(stats.currentEpisodeDeaths)) currentEpisodeDeaths = stats.currentEpisodeDeaths;
+          if(Number.isFinite(stats.lastEpisodeDeaths)) lastEpisodeDeaths = stats.lastEpisodeDeaths;
+          if(Number.isFinite(stats.totalEpisodeDeaths)) totalEpisodeDeaths = stats.totalEpisodeDeaths;
+          if(Number.isFinite(stats.totalOutcomes)) totalOutcomes = stats.totalOutcomes;
+          for(const key in outcomeCounts){
+            if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
+              delete outcomeCounts[key];
+            }
+          }
+          if(snapshot.outcomes && typeof snapshot.outcomes === 'object'){
+            for(const key of Object.keys(snapshot.outcomes)){
+              const value = snapshot.outcomes[key];
+              if(Number.isFinite(value)){
+                outcomeCounts[key] = value;
+              }
+            }
+          }
+          episodeStartTime = null;
+          return true;
+        },
         resetLearning(){
           qTable.clear();
           episodes = 0;
@@ -1652,6 +1753,9 @@
     const rlLiveMetricsEl = document.getElementById('rlLiveMetrics');
     const rlEpisodeHistoryRows = document.getElementById('rlEpisodeHistoryRows');
     const rlPanelToggleBtn = document.getElementById('rlPanelToggle');
+    const rlExportButton = document.getElementById('rlExportButton');
+    const rlImportButton = document.getElementById('rlImportButton');
+    const rlImportFileInput = document.getElementById('rlImportFile');
     const rlConfigSectionEl = document.querySelector('.rl-config-section');
     const rlParamContentEl = document.getElementById('rlParamContent');
     const gridSizeSectionEl = document.getElementById('gridSizeSection');
@@ -1669,6 +1773,21 @@
     const aiStatusSectionEl = document.getElementById('aiStatusSection');
     const aiStatusToggleBtn = document.getElementById('aiStatusToggle');
     const aiStatusContentEl = document.getElementById('aiStatusContent');
+    const RL_CONTROL_BINDINGS = [
+      { id: 'rlStepPenalty', valueId: 'rlStepPenaltyValue', key: 'stepPenalty', parser: parseFloat, format: v => v.toFixed(2) },
+      { id: 'rlFruitReward', valueId: 'rlFruitRewardValue', key: 'fruitReward', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlWinBonus', valueId: 'rlWinBonusValue', key: 'winBonus', parser: parseFloat, format: v => v.toFixed(0) },
+      { id: 'rlEndgameReward', valueId: 'rlEndgameRewardValue', key: 'endgamePlanReward', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlCompactReward', valueId: 'rlCompactRewardValue', key: 'compactModeReward', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlDeathPenalty', valueId: 'rlDeathPenaltyValue', key: 'deathPenalty', parser: parseFloat, format: v => v.toFixed(0) },
+      { id: 'rlDeadEndPenalty', valueId: 'rlDeadEndPenaltyValue', key: 'deadEndPenalty', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlLoopPenalty', valueId: 'rlLoopPenaltyValue', key: 'loopPenalty', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlAlpha', valueId: 'rlAlphaValue', key: 'alpha', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ alpha: v }) },
+      { id: 'rlGamma', valueId: 'rlGammaValue', key: 'gamma', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ gamma: v }) },
+      { id: 'rlEpsilonStart', valueId: 'rlEpsilonStartValue', key: 'epsilonStart', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { rlAgent.setHyperparameters({ epsilonStart: v }); rlAgent.resetEpsilon(v); } },
+      { id: 'rlEpsilonMin', valueId: 'rlEpsilonMinValue', key: 'epsilonMin', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ epsilonMin: v }) },
+      { id: 'rlEpsilonDecay', valueId: 'rlEpsilonDecayValue', key: 'epsilonDecay', parser: parseFloat, format: v => v.toFixed(3), onChange: v => rlAgent.setHyperparameters({ epsilonDecay: v }) }
+    ];
     const MAX_EPISODE_HISTORY = 10;
     const rlEpisodeLog = [];
     function formatRewardValue(value){
@@ -2202,22 +2321,7 @@
       updateRlLiveMetrics();
     }
     function setupRlControls(){
-      const bindings = [
-        { id: 'rlStepPenalty', valueId: 'rlStepPenaltyValue', key: 'stepPenalty', parser: parseFloat, format: v => v.toFixed(2) },
-        { id: 'rlFruitReward', valueId: 'rlFruitRewardValue', key: 'fruitReward', parser: parseFloat, format: v => v.toFixed(1) },
-        { id: 'rlWinBonus', valueId: 'rlWinBonusValue', key: 'winBonus', parser: parseFloat, format: v => v.toFixed(0) },
-        { id: 'rlEndgameReward', valueId: 'rlEndgameRewardValue', key: 'endgamePlanReward', parser: parseFloat, format: v => v.toFixed(1) },
-        { id: 'rlCompactReward', valueId: 'rlCompactRewardValue', key: 'compactModeReward', parser: parseFloat, format: v => v.toFixed(1) },
-        { id: 'rlDeathPenalty', valueId: 'rlDeathPenaltyValue', key: 'deathPenalty', parser: parseFloat, format: v => v.toFixed(0) },
-        { id: 'rlDeadEndPenalty', valueId: 'rlDeadEndPenaltyValue', key: 'deadEndPenalty', parser: parseFloat, format: v => v.toFixed(1) },
-        { id: 'rlLoopPenalty', valueId: 'rlLoopPenaltyValue', key: 'loopPenalty', parser: parseFloat, format: v => v.toFixed(1) },
-        { id: 'rlAlpha', valueId: 'rlAlphaValue', key: 'alpha', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ alpha: v }) },
-        { id: 'rlGamma', valueId: 'rlGammaValue', key: 'gamma', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ gamma: v }) },
-        { id: 'rlEpsilonStart', valueId: 'rlEpsilonStartValue', key: 'epsilonStart', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { rlAgent.setHyperparameters({ epsilonStart: v }); rlAgent.resetEpsilon(v); } },
-        { id: 'rlEpsilonMin', valueId: 'rlEpsilonMinValue', key: 'epsilonMin', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ epsilonMin: v }) },
-        { id: 'rlEpsilonDecay', valueId: 'rlEpsilonDecayValue', key: 'epsilonDecay', parser: parseFloat, format: v => v.toFixed(3), onChange: v => rlAgent.setHyperparameters({ epsilonDecay: v }) }
-      ];
-      bindings.forEach(binding => {
+      RL_CONTROL_BINDINGS.forEach(binding => {
         const input = document.getElementById(binding.id);
         const valueEl = document.getElementById(binding.valueId);
         if(!input || !valueEl) return;
@@ -2247,6 +2351,18 @@
         if(rlHint){
           rlHint.textContent = 'RL reset – start a new training run to collect data.';
         }
+      });
+    }
+    function applyRlConfigValues(values){
+      if(!values || typeof values !== 'object') return;
+      RL_CONTROL_BINDINGS.forEach(binding => {
+        if(!(binding.key in values)) return;
+        const target = values[binding.key];
+        if(typeof target !== 'number' || Number.isNaN(target)) return;
+        const input = document.getElementById(binding.id);
+        if(!input) return;
+        input.value = target;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
       });
     }
     function spawnEatEffect(cellX, cellY){
@@ -2317,6 +2433,16 @@
     updateRlToggleUI();
     updateRlStatus();
     setupRlControls();
+    rlExportButton?.addEventListener('click', () => {
+      downloadTrainingSnapshot(createTrainingSnapshot());
+      if(rlHint){
+        rlHint.textContent = 'Training snapshot downloaded to your device.';
+      }
+    });
+    rlImportButton?.addEventListener('click', () => {
+      rlImportFileInput?.click();
+    });
+    rlImportFileInput?.addEventListener('change', handleTrainingImport);
     /* ===== SIZE CONTROL ===== */
     const sizeSlider = document.getElementById('sizeSlider');
     sizeSlider.addEventListener('input', (e) => {
@@ -2405,6 +2531,172 @@
     compactProfileSelect?.addEventListener('change', (e) => {
       updateCompactProfile(e.target.value);
     });
+    function gatherAiSettings(){
+      const rlConfigCopy = {};
+      Object.keys(rlConfig).forEach(key => {
+        const value = rlConfig[key];
+        rlConfigCopy[key] = typeof value === 'number' ? Number(value) : value;
+      });
+      return {
+        grid: {
+          cols: COLS,
+          rows: ROWS,
+          canvasSize: canvas.width
+        },
+        thresholds: {
+          loopStreak: LOOP_STREAK_THRESHOLD,
+          noProgress: NO_PROGRESS_THRESHOLD,
+          endgame: ENDGAME_THRESHOLD,
+          compactSteps: COMPACT_MODE_MAX_STEPS
+        },
+        compactProfile: COMPACT_MODE_PROFILE,
+        speed: SPEED,
+        safetyNetEnabled,
+        autoRestartEnabled,
+        rlConfig: rlConfigCopy,
+        toggles: {
+          rlTrainingEnabled,
+          manualMode
+        }
+      };
+    }
+    function applyAiSettings(settings){
+      if(!settings || typeof settings !== 'object') return;
+      const { grid, thresholds, compactProfile, speed, safetyNetEnabled: safetyFlag, autoRestartEnabled: autoFlag, rlConfig: rlValues, toggles } = settings;
+      if(grid && typeof grid === 'object'){
+        const targetCols = Number.isFinite(grid.cols) ? Math.max(5, Math.round(grid.cols)) : null;
+        const targetRows = Number.isFinite(grid.rows) ? Math.max(5, Math.round(grid.rows)) : targetCols;
+        const canvasSize = Number.isFinite(grid.canvasSize) ? Math.max(100, Math.round(grid.canvasSize)) : null;
+        if(targetCols){
+          window.loadingPreset = true;
+          colsSlider.value = targetCols;
+          rowsSlider.value = targetRows || targetCols;
+          updateGridSize(targetCols);
+          window.loadingPreset = false;
+        }
+        if(canvasSize){
+          sizeSlider.value = canvasSize;
+          canvas.width = canvasSize;
+          canvas.height = canvasSize;
+          CELL = canvas.width / COLS;
+        }
+      }
+      if(thresholds && typeof thresholds === 'object'){
+        if(Number.isFinite(thresholds.loopStreak)){
+          LOOP_STREAK_THRESHOLD = Math.max(0, Math.round(thresholds.loopStreak));
+          loopThreshSlider.value = LOOP_STREAK_THRESHOLD;
+          document.getElementById('loopThreshValue').textContent = LOOP_STREAK_THRESHOLD;
+        }
+        if(Number.isFinite(thresholds.noProgress)){
+          NO_PROGRESS_THRESHOLD = Math.max(0, Math.round(thresholds.noProgress));
+          progThreshSlider.value = NO_PROGRESS_THRESHOLD;
+          document.getElementById('progThreshValue').textContent = NO_PROGRESS_THRESHOLD;
+        }
+        if(Number.isFinite(thresholds.endgame)){
+          ENDGAME_THRESHOLD = Math.max(0, Math.round(thresholds.endgame));
+          endgameSlider.value = ENDGAME_THRESHOLD;
+          document.getElementById('endgameValue').textContent = ENDGAME_THRESHOLD;
+        }
+        if(Number.isFinite(thresholds.compactSteps)){
+          COMPACT_MODE_MAX_STEPS = Math.max(0, Math.round(thresholds.compactSteps));
+          compactSlider.value = COMPACT_MODE_MAX_STEPS;
+          document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
+        }
+      }
+      if(typeof compactProfile === 'string'){
+        updateCompactProfile(compactProfile);
+      }
+      if(Number.isFinite(speed)){
+        changeSpeed(Math.max(MIN_SPEED, Math.min(MAX_SPEED, Math.round(speed))));
+      }
+      if(typeof safetyFlag === 'boolean'){
+        setSafetyNet(safetyFlag);
+      }
+      if(typeof autoFlag === 'boolean' && autoRestartToggle){
+        autoRestartEnabled = autoFlag;
+        autoRestartToggle.checked = autoFlag;
+      }
+      if(rlValues && typeof rlValues === 'object'){
+        applyRlConfigValues(rlValues);
+      }
+      if(toggles && typeof toggles === 'object'){
+        if(typeof toggles.manualMode === 'boolean'){
+          manualMode = toggles.manualMode;
+          updateManualUI();
+        }
+        if(typeof toggles.rlTrainingEnabled === 'boolean'){
+          rlTrainingEnabled = toggles.rlTrainingEnabled;
+          rlEpisodeActive = false;
+          updateRlToggleUI();
+        }
+      }
+      updateSafetyNetUI();
+      updateRlStatus();
+    }
+    function createTrainingSnapshot(){
+      const rlSnapshot = rlAgent.exportData();
+      return {
+        version: 1,
+        timestamp: new Date().toISOString(),
+        rl: rlSnapshot,
+        aiSettings: gatherAiSettings()
+      };
+    }
+    function downloadTrainingSnapshot(snapshot){
+      try {
+        const serialized = JSON.stringify(snapshot, null, 2);
+        const blob = new Blob([serialized], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const filename = `snake-training-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      } catch (error){
+        console.error('Failed to export training snapshot', error);
+        alert('Export failed – please try again.');
+      }
+    }
+    async function handleTrainingImport(event){
+      const input = event.target;
+      const file = input?.files && input.files[0];
+      if(!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const rlPayload = parsed.rl || parsed.training || parsed;
+        const imported = rlAgent.importData(rlPayload);
+        if(!imported){
+          throw new Error('Invalid RL payload');
+        }
+        if(parsed.aiSettings){
+          applyAiSettings(parsed.aiSettings);
+        } else if(parsed.settings){
+          applyAiSettings(parsed.settings);
+        }
+        rlPendingChoice = null;
+        rlEpisodeActive = false;
+        rlEpisodeLog.length = 0;
+        lastObservedReward = 0;
+        renderRlEpisodeHistory();
+        updateRlLiveMetrics(0);
+        updateRlStatus();
+        if(rlHint){
+          rlHint.textContent = 'RL data loaded – ready to continue training.';
+        }
+        restartGame();
+      } catch (error){
+        console.error('Failed to import training data', error);
+        alert('Import failed – please ensure the file was exported from this simulator.');
+      } finally {
+        if(input){
+          input.value = '';
+        }
+      }
+    }
     /* ===== RESTART FUNCTION ===== */
     function spawnFruitForState(state){
       const free=[];
