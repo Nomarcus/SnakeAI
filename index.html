@@ -208,8 +208,8 @@
       border: 1px solid var(--glass-border);
       border-radius: 1.5rem;
       padding: 2rem;
-      min-width: 350px;
-      max-width: 400px;
+      min-width: 380px;
+      max-width: 440px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       max-height: 90vh;
       overflow-y: auto;
@@ -828,9 +828,24 @@
                   <small>Extra reward for filling the entire board.</small>
                 </div>
                 <div class="param-control">
+                  <label>Endgame Plan Reward: <span id="rlEndgameRewardValue">1.5</span></label>
+                  <input type="range" id="rlEndgameReward" class="size-slider" min="0" max="5" step="0.1" value="1.5">
+                  <small>Bonus when the snake commits to the Hamilton endgame plan.</small>
+                </div>
+                <div class="param-control">
+                  <label>Compact Mode Reward: <span id="rlCompactRewardValue">1.0</span></label>
+                  <input type="range" id="rlCompactReward" class="size-slider" min="0" max="5" step="0.1" value="1">
+                  <small>Encourages entering and sustaining compact manoeuvres when space is tight.</small>
+                </div>
+                <div class="param-control">
                   <label>Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
                   <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
                   <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
+                </div>
+                <div class="param-control">
+                  <label>Loop Stall Penalty: <span id="rlLoopPenaltyValue">-2</span></label>
+                  <input type="range" id="rlLoopPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-2">
+                  <small>Penalty applied when an episode is terminated for a persistent loop.</small>
                 </div>
                 <div class="rl-grid two-col">
                   <div class="param-control">
@@ -1317,6 +1332,9 @@
       fruitReward: 5,
       winBonus: 15,
       deathPenalty: -5,
+      endgamePlanReward: 1.5,
+      compactModeReward: 1,
+      loopPenalty: -2,
       alpha: 0.2,
       gamma: 0.9,
       epsilonStart: 0.3,
@@ -1329,6 +1347,7 @@
     let MAX_LOOP_DETECTION = Math.max(8,(COLS+ROWS)/2|0);
     let WINDOW_SIZE = Math.max(10, COLS + ROWS);
     let FILL_POCKET_LIMIT = COLS * 4;
+    let LOOP_ESCAPE_LIMIT = Math.max(40, Math.floor((COLS * ROWS) / 2));
     /* ===== CANVAS ===== */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
@@ -1378,6 +1397,9 @@
     let lastMoves=[], windowMoves=[], loopDetected=false, loopStreak=0,
         hamMode=false, compactMode=false, compactModeSteps=0,
         loopHandle=null, currentStrategy="Initializing";
+    let compactModeJustActivated = false;
+    let endgamePlanThisMove = false;
+    let persistentLoopCounter = 0;
     let gameRunning = false;
     const STRATEGY_DESCRIPTIONS = {
       "Initializing": "Setting up a safe opening path before committing to a plan.",
@@ -2009,7 +2031,10 @@
         { id: 'rlStepPenalty', valueId: 'rlStepPenaltyValue', key: 'stepPenalty', parser: parseFloat, format: v => v.toFixed(2) },
         { id: 'rlFruitReward', valueId: 'rlFruitRewardValue', key: 'fruitReward', parser: parseFloat, format: v => v.toFixed(1) },
         { id: 'rlWinBonus', valueId: 'rlWinBonusValue', key: 'winBonus', parser: parseFloat, format: v => v.toFixed(0) },
+        { id: 'rlEndgameReward', valueId: 'rlEndgameRewardValue', key: 'endgamePlanReward', parser: parseFloat, format: v => v.toFixed(1) },
+        { id: 'rlCompactReward', valueId: 'rlCompactRewardValue', key: 'compactModeReward', parser: parseFloat, format: v => v.toFixed(1) },
         { id: 'rlDeathPenalty', valueId: 'rlDeathPenaltyValue', key: 'deathPenalty', parser: parseFloat, format: v => v.toFixed(0) },
+        { id: 'rlLoopPenalty', valueId: 'rlLoopPenaltyValue', key: 'loopPenalty', parser: parseFloat, format: v => v.toFixed(1) },
         { id: 'rlAlpha', valueId: 'rlAlphaValue', key: 'alpha', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ alpha: v }) },
         { id: 'rlGamma', valueId: 'rlGammaValue', key: 'gamma', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ gamma: v }) },
         { id: 'rlEpsilonStart', valueId: 'rlEpsilonStartValue', key: 'epsilonStart', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { rlAgent.setHyperparameters({ epsilonStart: v }); rlAgent.resetEpsilon(v); } },
@@ -2144,6 +2169,7 @@
           MAX_LOOP_DETECTION = Math.max(8, (COLS + ROWS) / 2 | 0);
           FILL_POCKET_LIMIT = COLS * 4;
           WINDOW_SIZE = Math.max(10, COLS + ROWS);
+          LOOP_ESCAPE_LIMIT = Math.max(40, Math.floor((COLS * ROWS) / 2));
           NO_PROGRESS_THRESHOLD = Math.max(30, (COLS * ROWS) / 6);
           COMPACT_MODE_MAX_STEPS = Math.floor((COLS * ROWS) / 2);
           document.getElementById('progThreshValue').textContent = Math.floor(NO_PROGRESS_THRESHOLD);
@@ -2261,6 +2287,9 @@
       compactModeSteps = fresh.compactModeSteps;
       loopCountAdjust = fresh.loopCountAdjust;
       currentStrategy = fresh.currentStrategy;
+      compactModeJustActivated = false;
+      endgamePlanThisMove = false;
+      persistentLoopCounter = 0;
       if(manualMode){
         setInitialManualDirection();
         currentStrategy = 'Manual control';
@@ -2536,6 +2565,8 @@
       HAM = buildHamilton();
       const head=snake[0];
       const rlSafeMoves = rlTrainingEnabled ? getSafeMovesForRL() : null;
+      endgamePlanThisMove = false;
+      compactModeJustActivated = false;
       windowMoves.push(`${head.x},${head.y}`);
       if(windowMoves.length>WINDOW_SIZE) windowMoves.shift();
       lastMoves.push({x:head.x,y:head.y});
@@ -2556,20 +2587,21 @@
           const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
           if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
             currentStrategy = "Final Hamilton";
+            endgamePlanThisMove = true;
             return nxt;
           }
         }
       }
       if(isEndgame){
         const back=getBackToHamilton(head);
-        if(back){ currentStrategy="Returning to Hamilton"; return back; }
+        if(back){ currentStrategy="Returning to Hamilton"; endgamePlanThisMove = true; return back; }
         const nxt=hamNext(head);
         if(nxt){
           const key=`${nxt.x},${nxt.y}`;
           const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
           if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
-            currentStrategy="Endgame Hamilton"; return nxt;
+            currentStrategy="Endgame Hamilton"; endgamePlanThisMove = true; return nxt;
           }
         }
       }
@@ -2593,6 +2625,7 @@
           const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
           if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
             currentStrategy = "Hamilton cycle";
+            if(isEndgame) endgamePlanThisMove = true;
             return nxt;
           }
         }
@@ -2668,7 +2701,7 @@
         fruitAcc,
         freeCells
       })){
-        compactMode = true; compactModeSteps = 0;
+        compactMode = true; compactModeSteps = 0; compactModeJustActivated = true;
       }
       if(compactMode){
         if(compactModeSteps >= COMPACT_MODE_MAX_STEPS){
@@ -2890,6 +2923,46 @@
         ctx.fillText(`Final length: ${snake.length}`, canvas.width/2, canvas.height/2 + 40);
         return;
       }
+      if(loopDetected){
+        persistentLoopCounter++;
+      } else {
+        persistentLoopCounter = 0;
+      }
+      if(rlTrainingEnabled && persistentLoopCounter >= LOOP_ESCAPE_LIMIT){
+        const loopPenalty = typeof rlConfig.loopPenalty === 'number' ? rlConfig.loopPenalty : rlConfig.stepPenalty;
+        applyRlUpdate(loopPenalty, true);
+        rlAgent.registerTerminal('stalled');
+        clearInterval(loopHandle);
+        gameRunning = false;
+        finishRun(false);
+        draw();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 28px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Loop limit reached – advancing episode', canvas.width/2, canvas.height/2);
+        if(autoRestartEnabled || rlTrainingEnabled){
+          setTimeout(() => {
+            if(!gameRunning){
+              restartGame();
+            }
+          }, 450);
+        }
+        persistentLoopCounter = 0;
+        return;
+      }
+      if(rlTrainingEnabled){
+        if(endgamePlanThisMove){
+          stepReward += rlConfig.endgamePlanReward;
+        }
+        if(compactModeJustActivated){
+          stepReward += rlConfig.compactModeReward;
+        } else if(compactMode && currentStrategy === 'Compact zig-zag'){
+          stepReward += rlConfig.compactModeReward * 0.5;
+        }
+      }
+      compactModeJustActivated = false;
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
         applyRlUpdate(rlConfig.deathPenalty, true);
         rlAgent.registerTerminal('loss');
