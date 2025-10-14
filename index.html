@@ -329,6 +329,14 @@
       background: linear-gradient(135deg, var(--success) 0%, var(--accent) 100%);
       box-shadow: 0 8px 25px rgba(74, 222, 128, 0.45);
     }
+    .button.warning {
+      background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%);
+      color: #1f2937;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.45);
+    }
+    .button.warning:hover {
+      box-shadow: 0 6px 20px rgba(251, 191, 36, 0.6);
+    }
     .manual-hint {
       font-size: 0.85rem;
       margin-top: 0.5rem;
@@ -370,7 +378,7 @@
     .episode-history-grid-header,
     .episode-history-row {
       display: grid;
-      grid-template-columns: 0.7fr 1fr 1fr 1fr 1fr;
+      grid-template-columns: 0.7fr 1fr 1fr 0.8fr 1fr 1fr;
       gap: 0.5rem;
       align-items: center;
       font-size: 0.82rem;
@@ -794,6 +802,10 @@
               <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
               <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
             </div>
+            <div style="margin-top: 0.8rem;">
+              <button id="safetyNetToggle" class="button toggle-active" style="width: 100%;">🛡️ Safety Net: ON</button>
+              <p id="safetyNetHint" class="manual-hint">Safety net algorithms are active.</p>
+            </div>
           </div>
           <div class="controls-section" style="margin-top: 1.5rem;">
             <h3>ML / RL Training</h3>
@@ -887,7 +899,7 @@
                 <div class="param-control">
                   <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
                     <input type="checkbox" id="autoRestartToggle" style="width: 18px; height: 18px;">
-                    <span>Auto restart after a perfect game (keeps training on repeat).</span>
+                    <span>Auto restart after every episode (wins or crashes keep training rolling).</span>
                   </label>
                   <p id="rlLiveMetrics" class="manual-hint" style="margin-bottom: 1rem;">Live metrics will appear here once RL starts.</p>
                   <div class="episode-history-card">
@@ -899,6 +911,7 @@
                       <span>Episode</span>
                       <span>Reward</span>
                       <span>Avg reward</span>
+                      <span>Deaths (ep/avg)</span>
                       <span>Duration</span>
                       <span>Avg duration</span>
                     </div>
@@ -1318,6 +1331,7 @@
     let manualDirection = {dx: 1, dy: 0};
     let pendingManualDirection = null;
     let eatParticles = [];
+    let safetyNetEnabled = true;
     let rlTrainingEnabled = false;
     let rlPendingChoice = null;
     let rlEpisodeActive = false;
@@ -1417,7 +1431,10 @@
       "BFS to fruit": "Calculating the safest shortest path to the fruit.",
       "BFS to tail": "Using breadth-first search to reconnect with the tail safely.",
       "Heuristic": "Balancing fruit hunting with safety heuristics.",
-      "No safe move!": "No safe moves remain – preparing for impact."
+      "No safe move!": "No safe moves remain – preparing for impact.",
+      "Unsafe chase": "Chasing the fruit without the usual safety checks.",
+      "Unsafe roam": "Moving freely – expect risky behaviour.",
+      "Unsafe random": "Taking a random step with no safety guarantees."
     };
     function getStrategyExplanation(strategy) {
       return STRATEGY_DESCRIPTIONS[strategy] || "Assessing the board and adapting to the current situation.";
@@ -1436,6 +1453,9 @@
       let episodeStartTime = null;
       let lastEpisodeDuration = 0;
       let totalEpisodeDuration = 0;
+      let currentEpisodeDeaths = 0;
+      let lastEpisodeDeaths = 0;
+      let totalEpisodeDeaths = 0;
       let totalOutcomes = 0;
       const outcomeCounts = Object.create(null);
       const stateKey = state => state.join('|');
@@ -1517,6 +1537,7 @@
         startEpisode(){
           episodeReward = 0;
           episodeStartTime = nowMs();
+          currentEpisodeDeaths = 0;
         },
         endEpisode(){
           const finishedAt = nowMs();
@@ -1530,14 +1551,20 @@
           episodeStartTime = null;
           totalReward += episodeReward;
           lastEpisodeReward = episodeReward;
+          lastEpisodeDeaths = currentEpisodeDeaths;
+          totalEpisodeDeaths += currentEpisodeDeaths;
           episodes++;
           epsilon = Math.max(epsilon * epsilonDecay, epsilonMin);
           episodeReward = 0;
+          currentEpisodeDeaths = 0;
         },
         registerTerminal(outcome){
           if(typeof outcome !== 'string') return;
           const key = outcome.trim().toLowerCase();
           if(!key) return;
+          if(key === 'loss'){
+            currentEpisodeDeaths += 1;
+          }
           outcomeCounts[key] = (outcomeCounts[key] || 0) + 1;
           totalOutcomes++;
         },
@@ -1560,6 +1587,9 @@
           episodeStartTime = null;
           lastEpisodeDuration = 0;
           totalEpisodeDuration = 0;
+          currentEpisodeDeaths = 0;
+          lastEpisodeDeaths = 0;
+          totalEpisodeDeaths = 0;
           totalOutcomes = 0;
           for(const key in outcomeCounts){
             if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
@@ -1577,6 +1607,8 @@
             averageReward: episodes ? totalReward / episodes : 0,
             lastEpisodeDuration,
             averageEpisodeDuration: episodes ? totalEpisodeDuration / episodes : 0,
+            lastEpisodeDeaths,
+            averageDeaths: episodes ? totalEpisodeDeaths / episodes : 0,
             alpha,
             gamma,
             epsilonMin,
@@ -1603,6 +1635,8 @@
     });
     const manualToggleBtn = document.getElementById('manualToggle');
     const manualHint = document.getElementById('manualHint');
+    const safetyNetToggleBtn = document.getElementById('safetyNetToggle');
+    const safetyNetHint = document.getElementById('safetyNetHint');
     const rlToggleBtn = document.getElementById('rlToggle');
     const rlHint = document.getElementById('rlHint');
     const rlParamFieldset = document.getElementById('rlParamFieldset');
@@ -1644,6 +1678,11 @@
       }
       return `${(ms / 1000).toFixed(2)}s`;
     }
+    function formatDeathSummary(deaths, avgDeaths){
+      const deathCount = Number.isFinite(deaths) ? deaths : 0;
+      const avgText = Number.isFinite(avgDeaths) ? avgDeaths.toFixed(2) : '--';
+      return `${deathCount} (${avgText})`;
+    }
     function renderRlEpisodeHistory(){
       if(!rlEpisodeHistoryRows) return;
       if(!rlEpisodeLog.length){
@@ -1658,6 +1697,7 @@
           <span>#${entry.episode}</span>
           <span>${formatRewardValue(entry.reward)}</span>
           <span>${formatRewardValue(entry.avgReward)}</span>
+          <span>${formatDeathSummary(entry.deaths, entry.avgDeaths)}</span>
           <span>${formatEpisodeDuration(entry.duration)}</span>
           <span>${formatEpisodeDuration(entry.avgDuration)}</span>
         </div>
@@ -1671,6 +1711,8 @@
         episode: stats.episodes,
         reward: stats.lastEpisodeReward,
         avgReward: stats.averageReward,
+        deaths: stats.lastEpisodeDeaths,
+        avgDeaths: stats.averageDeaths,
         duration: stats.lastEpisodeDuration,
         avgDuration: stats.averageEpisodeDuration
       });
@@ -1812,6 +1854,51 @@
         manualHint.textContent = 'Manual mode off – AI is playing automatically.';
       }
     }
+    function updateSafetyNetUI(){
+      if(!safetyNetToggleBtn) return;
+      if(safetyNetEnabled){
+        safetyNetToggleBtn.classList.add('toggle-active');
+        safetyNetToggleBtn.classList.remove('warning');
+        safetyNetToggleBtn.textContent = '🛡️ Safety Net: ON';
+        safetyNetToggleBtn.setAttribute('aria-pressed', 'true');
+        if(safetyNetHint){
+          safetyNetHint.textContent = 'Safety net algorithms are active.';
+        }
+      } else {
+        safetyNetToggleBtn.classList.remove('toggle-active');
+        safetyNetToggleBtn.classList.add('warning');
+        safetyNetToggleBtn.textContent = '⚠️ Safety Net: OFF';
+        safetyNetToggleBtn.setAttribute('aria-pressed', 'false');
+        if(safetyNetHint){
+          safetyNetHint.textContent = 'Safety net disabled – the snake is on its own.';
+        }
+      }
+    }
+    function setSafetyNet(enabled){
+      const next = !!enabled;
+      const changed = next !== safetyNetEnabled;
+      safetyNetEnabled = next;
+      if(!safetyNetEnabled){
+        hamMode = false;
+        compactMode = false;
+        compactModeSteps = 0;
+        loopDetected = false;
+        loopStreak = 0;
+        loopCountAdjust = 0;
+        noProgressMoves = 0;
+        prevFruitDist = Infinity;
+        persistentLoopCounter = 0;
+        windowMoves = [];
+        lastMoves = [];
+        endgamePlanThisMove = false;
+        currentStrategy = 'Unsafe roam';
+      } else if(changed){
+        currentStrategy = 'Initializing';
+      }
+      updateSafetyNetUI();
+      updateRlStatus();
+      draw();
+    }
     function setInitialManualDirection(){
       if(snake.length > 1){
         manualDirection = {
@@ -1914,13 +2001,90 @@
         const ate = fruit && fruit.x === nx && fruit.y === ny;
         const isTailStep = tail && nx === tail.x && ny === tail.y;
         if(snakeSet.has(key) && !(isTailStep && !ate)) continue;
-        const simulated = ate
-          ? [{x: nx, y: ny}, ...snake]
-          : [{x: nx, y: ny}, ...snake.slice(0, -1)];
-        if(!canReachTailFrom({x: nx, y: ny}, simulated)) continue;
+        if(safetyNetEnabled){
+          const simulated = ate
+            ? [{x: nx, y: ny}, ...snake]
+            : [{x: nx, y: ny}, ...snake.slice(0, -1)];
+          if(!canReachTailFrom({x: nx, y: ny}, simulated)) continue;
+        }
         safeMoves.push({x: nx, y: ny, dirIndex: i, ate});
       }
       return safeMoves;
+    }
+    function isMoveLethal(move){
+      return move?.outOfBounds || move?.hitsBody;
+    }
+    function pickViableMove(preferred, moves){
+      if(!moves || !moves.length) return null;
+      const preferredMatch = preferred
+        ? moves.find(move => move.dirIndex === preferred.dirIndex)
+        : null;
+      if(preferredMatch && !isMoveLethal(preferredMatch)){
+        return preferredMatch;
+      }
+      const safeOptions = moves.filter(move => !isMoveLethal(move));
+      if(safeOptions.length){
+        return safeOptions[(Math.random() * safeOptions.length) | 0];
+      }
+      return preferredMatch || moves[(Math.random() * moves.length) | 0];
+    }
+    function getAllMovesForRL(){
+      const head = snake[0];
+      if(!head) return [];
+      const moves = [];
+      const tail = snake.length > 1 ? snake[snake.length - 1] : null;
+      for(let i = 0; i < DIRS.length; i++){
+        const d = DIRS[i];
+        const nx = head.x + d.dx;
+        const ny = head.y + d.dy;
+        const ate = fruit && fruit.x === nx && fruit.y === ny;
+        const isTailStep = tail && nx === tail.x && ny === tail.y;
+        const hitsBody = snakeSet.has(`${nx},${ny}`) && !(isTailStep && !ate);
+        moves.push({
+          x: nx,
+          y: ny,
+          dirIndex: i,
+          ate,
+          outOfBounds: nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS,
+          hitsBody
+        });
+      }
+      return moves;
+    }
+    function pickUnsafeMove(){
+      const head = snake[0];
+      if(!head) return null;
+      const moves = getAllMovesForRL();
+      if(!moves.length) return null;
+      const safeMoves = moves.filter(move => !isMoveLethal(move));
+      const currentDist = fruit && fruit.x >= 0
+        ? Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y)
+        : Infinity;
+      let best = null;
+      const candidates = safeMoves.length ? safeMoves : moves;
+      for(const move of candidates){
+        let score = 0;
+        if(move.ate) score += 50;
+        if(!move.outOfBounds) score += 20; else score -= 15;
+        if(!move.hitsBody) score += 15; else score -= 10;
+        if(fruit && fruit.x >= 0){
+          const dist = Math.abs(move.x - fruit.x) + Math.abs(move.y - fruit.y);
+          score += (currentDist - dist) * 5;
+        }
+        score += Math.random();
+        move.score = score;
+        if(!best || score > best.score){
+          best = move;
+        }
+      }
+      if(best){
+        return {x: best.x, y: best.y};
+      }
+      const fallback = pickViableMove(null, moves);
+      if(fallback){
+        return {x: fallback.x, y: fallback.y};
+      }
+      return null;
     }
     function buildRlObservation(safeMoves){
       const head = snake[0];
@@ -1972,7 +2136,9 @@
       const lastDurationText = formatEpisodeDuration(stats.lastEpisodeDuration);
       const avgDurationText = formatEpisodeDuration(stats.averageEpisodeDuration);
       const lineOne = `Live: reward=${rewardText} · last episode=${lastEpisodeText} · avg=${avgText}`;
-      const lineTwo = `episodes=${episodesText} · states=${stateCountText} · time last=${lastDurationText} · avg=${avgDurationText}`;
+      const lastDeathsText = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
+      const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
+      const lineTwo = `episodes=${episodesText} · states=${stateCountText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} · avg=${avgDurationText}`;
       const lineThree = `ε=${epsilonText} (min=${epsilonMinText}, decay=${epsilonDecayText}) · α=${alphaText} · γ=${gammaText}`;
       rlLiveMetricsEl.innerHTML = `${lineOne}<br>${lineTwo}<br>${lineThree}`;
     }
@@ -2020,7 +2186,9 @@
       const avgRewardText = formatRewardValue(stats.averageReward);
       const lastDurationText = formatEpisodeDuration(stats.lastEpisodeDuration);
       const avgDurationText = formatEpisodeDuration(stats.averageEpisodeDuration);
-      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · last=${lastRewardText} · avg=${avgRewardText} · time last=${lastDurationText} (avg=${avgDurationText})`;
+      const lastDeathsText = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
+      const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
+      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · last=${lastRewardText} · avg=${avgRewardText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} (avg=${avgDurationText})`;
       if(rlHint){
         rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
       }
@@ -2106,6 +2274,7 @@
       });
     }
     manualToggleBtn?.addEventListener('click', toggleManualMode);
+    safetyNetToggleBtn?.addEventListener('click', () => setSafetyNet(!safetyNetEnabled));
     document.addEventListener('keydown', (event) => {
       if(!manualMode) return;
       const dir = KEY_TO_DIR[event.key.toLowerCase()];
@@ -2117,6 +2286,7 @@
       autoRestartEnabled = !!event.target.checked;
     });
     updateManualUI();
+    updateSafetyNetUI();
     rlToggleBtn?.addEventListener('click', () => {
       rlTrainingEnabled = !rlTrainingEnabled;
       if(rlTrainingEnabled){
@@ -2573,79 +2743,158 @@
       if(lastMoves.length>MAX_LOOP_DETECTION) lastMoves.shift();
       const freeCells=COLS*ROWS - snake.length;
       const isEndgame = freeCells <= (ENDGAME_THRESHOLD + loopCountAdjust);
-      if(!hamMode && freeCells > (ENDGAME_THRESHOLD + loopCountAdjust)){
-        const uniq=new Set(windowMoves).size;
-        if(uniq < WINDOW_SIZE/2){
+      if(safetyNetEnabled){
+        if(!hamMode && freeCells > (ENDGAME_THRESHOLD + loopCountAdjust)){
+          const uniq=new Set(windowMoves).size;
+          if(uniq < WINDOW_SIZE/2){
+            hamMode = true; loopStreak = 0; noProgressMoves = 0;
+            currentStrategy = "Forcing Hamilton (Stagnation)";
+            loopCountAdjust++;
+          }
+        }
+        if(freeCells <= 1){
+          const nxt = hamNext(head);
+          if(nxt){
+            const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
+            if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
+              currentStrategy = "Final Hamilton";
+              endgamePlanThisMove = true;
+              return nxt;
+            }
+          }
+        }
+        if(isEndgame){
+          const back=getBackToHamilton(head);
+          if(back){ currentStrategy="Returning to Hamilton"; endgamePlanThisMove = true; return back; }
+          const nxt=hamNext(head);
+          if(nxt){
+            const key=`${nxt.x},${nxt.y}`;
+            const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
+            const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+            if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
+              currentStrategy="Endgame Hamilton"; endgamePlanThisMove = true; return nxt;
+            }
+          }
+        }
+        if(fruit && fruit.x >= 0){
+          const d = Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y);
+          if(d < prevFruitDist){ prevFruitDist = d; noProgressMoves = 0; }
+          else noProgressMoves++;
+        } else {
+          prevFruitDist = Infinity; noProgressMoves = 0;
+        }
+        if(!hamMode && noProgressMoves >= NO_PROGRESS_THRESHOLD){
           hamMode = true; loopStreak = 0; noProgressMoves = 0;
-          currentStrategy = "Forcing Hamilton (Stagnation)";
+          currentStrategy = "Forcing Hamilton (No progress)";
           loopCountAdjust++;
         }
-      }
-      if(freeCells <= 1){
-        const nxt = hamNext(head);
-        if(nxt){
-          const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
-          if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
-            currentStrategy = "Final Hamilton";
-            endgamePlanThisMove = true;
-            return nxt;
+        if(hamMode){
+          const nxt = hamNext(head);
+          if(nxt){
+            const key=`${nxt.x},${nxt.y}`;
+            const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
+            const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+            if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
+              currentStrategy = "Hamilton cycle";
+              if(isEndgame) endgamePlanThisMove = true;
+              return nxt;
+            }
+          }
+          hamMode = false;
+        }
+        loopDetected = detectLoop();
+        loopStreak = loopDetected ? loopStreak + 1 : 0;
+        if(loopDetected && !hamMode){
+          hamMode = true;
+          loopStreak = 0;
+          currentStrategy = "Forcing Hamilton (Immediate Loop)";
+          loopCountAdjust++;
+        }
+        if(loopDetected && snake.length >= 2){
+          if(freeCells <= FILL_POCKET_LIMIT){
+            const fillMove = fillSmallestPocket();
+            if(fillMove){ currentStrategy="Filling smallest pocket"; return fillMove; }
+          }
+          const dmap = getDistancesFromTail();
+          let best=null,bestDist=-1;
+          for(const d of DIRS){
+            const nx=head.x+d.dx, ny=head.y+d.dy;
+            if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
+            const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
+            if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
+            const sim=(nx===fruit?.x&&ny===fruit?.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
+            if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
+            const dist=dmap[ny][nx];
+            if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
+          }
+          if(best){ currentStrategy="Loop break (Longest)"; return best; }
+        }
+        if(rlTrainingEnabled && !hamMode){
+          if(!rlEpisodeActive){
+            rlAgent.startEpisode();
+            rlEpisodeActive = true;
+          }
+          if(rlSafeMoves && rlSafeMoves.length){
+            const rlState = buildRlObservation(rlSafeMoves);
+            const decision = rlAgent.decide(rlState, rlSafeMoves);
+            if(decision){
+              const selected = rlSafeMoves.find(move => move.dirIndex === decision.actionIdx);
+              if(selected){
+                rlPendingChoice = { stateKey: decision.stateKey, actionIdx: decision.actionIdx };
+                currentStrategy = 'RL policy';
+                return {x: selected.x, y: selected.y};
+              }
+            }
           }
         }
-      }
-      if(isEndgame){
-        const back=getBackToHamilton(head);
-        if(back){ currentStrategy="Returning to Hamilton"; endgamePlanThisMove = true; return back; }
-        const nxt=hamNext(head);
-        if(nxt){
-          const key=`${nxt.x},${nxt.y}`;
-          const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
-          const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
-            currentStrategy="Endgame Hamilton"; endgamePlanThisMove = true; return nxt;
+        const fruitAcc = isFruitAccessible(head);
+        if(fruitAcc && freeCells>15){
+          let choices=[],minD=Infinity;
+          for(const d of DIRS){
+            const nx=head.x+d.dx, ny=head.y+d.dy;
+            if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
+            const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
+            if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
+            const nd=Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y);
+            if(nd>minD) continue;
+            const sim=(nx===fruit.x&&ny===fruit.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
+            if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
+            if(nd<minD){minD=nd; choices=[{x:nx,y:ny}];}
+            else if(nd===minD){choices.push({x:nx,y:ny});}
+          }
+          if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
+        }
+        const inPocket = isFruitInPocket();
+        if(!compactMode && shouldEnterCompactMode({
+          inPocket,
+          loopDetected,
+          loopStreak,
+          fruitAcc,
+          freeCells
+        })){
+          compactMode = true; compactModeSteps = 0; compactModeJustActivated = true;
+        }
+        if(compactMode){
+          if(compactModeSteps >= COMPACT_MODE_MAX_STEPS){
+            compactMode = false; compactModeSteps = 0;
+          } else {
+            const zig = calculateZigZagPath();
+            if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return zig; }
+            else{ compactMode = false; }
           }
         }
-      }
-      if(fruit && fruit.x >= 0){
-        const d = Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y);
-        if(d < prevFruitDist){ prevFruitDist = d; noProgressMoves = 0; }
-        else noProgressMoves++;
-      } else {
-        prevFruitDist = Infinity; noProgressMoves = 0;
-      }
-      if(!hamMode && noProgressMoves >= NO_PROGRESS_THRESHOLD){
-        hamMode = true; loopStreak = 0; noProgressMoves = 0;
-        currentStrategy = "Forcing Hamilton (No progress)";
-        loopCountAdjust++;
-      }
-      if(hamMode){
-        const nxt = hamNext(head);
-        if(nxt){
-          const key=`${nxt.x},${nxt.y}`;
-          const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
-          const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
-            currentStrategy = "Hamilton cycle";
-            if(isEndgame) endgamePlanThisMove = true;
-            return nxt;
+        if(fruitAcc && freeCells>1){
+          const path=bfsWithAlternatives(head.x,head.y,fruit.x,fruit.y,false,loopDetected);
+          if(path && path.length){
+            const nxt=path[0];
+            const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+            if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return nxt; }
           }
         }
-        hamMode = false;
-      }
-      loopDetected = detectLoop();
-      loopStreak = loopDetected ? loopStreak + 1 : 0;
-      if(loopDetected && !hamMode){
-        hamMode = true;
-        loopStreak = 0;
-        currentStrategy = "Forcing Hamilton (Immediate Loop)";
-        loopCountAdjust++;
-      }
-      if(loopDetected && snake.length >= 2){
-        if(freeCells <= FILL_POCKET_LIMIT){
-          const fillMove = fillSmallestPocket();
-          if(fillMove){ currentStrategy="Filling smallest pocket"; return fillMove; }
-        }
-        const dmap = getDistancesFromTail();
-        let best=null,bestDist=-1;
+        let bestScore=-Infinity,bestMoves=[];
+        const tailPos=snake.length>1?snake[snake.length-1]:null;
+        const randomFactor=loopDetected?Math.random()*5:0;
+        const avoidFactor=loopDetected?0.5:1;
         for(const d of DIRS){
           const nx=head.x+d.dx, ny=head.y+d.dy;
           if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
@@ -2653,119 +2902,80 @@
           if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
           const sim=(nx===fruit?.x&&ny===fruit?.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
           if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
-          const dist=dmap[ny][nx];
-          if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
+          const freeAfter=floodSize(nx,ny,sim);
+          if(freeAfter<COLS*ROWS-sim.length) continue;
+          let score=0;
+          if(fruit&&fruit.x>=0&&freeCells>Math.max(6, COLS-2)){
+            score+=(COLS+ROWS-(Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y)))*2*avoidFactor;
+          }
+          if(isEndgame && tailPos && nx===tailPos.x && ny===tailPos.y) score+=10000;
+          score+=Math.min(nx,ny,COLS-1-nx,ROWS-1-ny);
+          score+=randomFactor;
+          score+=freeAfter*2;
+          const moveData = {
+            x: nx,
+            y: ny,
+            dx: d.dx,
+            dy: d.dy,
+            baseScore: score,
+            willEat: fruit && fruit.x === nx && fruit.y === ny,
+            freeAfter
+          };
+          if(score>bestScore){ bestScore=score; bestMoves=[moveData]; }
+          else if(score===bestScore){ bestMoves.push(moveData); }
         }
-        if(best){ currentStrategy="Loop break (Longest)"; return best; }
+        if(bestMoves.length){
+          currentStrategy="Heuristic";
+          const rlChoice = rlAgent.chooseMove(head, bestMoves, {isEndgame});
+          return rlChoice || bestMoves[(Math.random()*bestMoves.length)|0];
+        }
+        const tail=snake.length>1?snake[snake.length-1]:head;
+        const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
+        if(path && path.length){
+          const nxt=path[0];
+          const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return nxt; }
+        }
+        currentStrategy="No safe move!";
+        return null;
       }
-      if(rlTrainingEnabled && !hamMode){
+      loopDetected = false;
+      loopStreak = 0;
+      compactMode = false;
+      compactModeSteps = 0;
+      hamMode = false;
+      const rlMoves = rlTrainingEnabled ? getAllMovesForRL() : [];
+      if(rlTrainingEnabled){
         if(!rlEpisodeActive){
           rlAgent.startEpisode();
           rlEpisodeActive = true;
         }
-        if(rlSafeMoves && rlSafeMoves.length){
-          const rlState = buildRlObservation(rlSafeMoves);
-          const decision = rlAgent.decide(rlState, rlSafeMoves);
+        if(rlMoves && rlMoves.length){
+          const rlState = buildRlObservation(rlSafeMoves || []);
+          const decision = rlAgent.decide(rlState, rlMoves);
           if(decision){
-            const selected = rlSafeMoves.find(move => move.dirIndex === decision.actionIdx);
+            const selected = pickViableMove({ dirIndex: decision.actionIdx }, rlMoves);
             if(selected){
-              rlPendingChoice = { stateKey: decision.stateKey, actionIdx: decision.actionIdx };
+              rlPendingChoice = { stateKey: decision.stateKey, actionIdx: selected.dirIndex };
               currentStrategy = 'RL policy';
               return {x: selected.x, y: selected.y};
             }
           }
         }
       }
-      const fruitAcc = isFruitAccessible(head);
-      if(fruitAcc && freeCells>15){
-        let choices=[],minD=Infinity;
-        for(const d of DIRS){
-          const nx=head.x+d.dx, ny=head.y+d.dy;
-          if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
-          const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
-          if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
-          const nd=Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y);
-          if(nd>minD) continue;
-          const sim=(nx===fruit.x&&ny===fruit.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
-          if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
-          if(nd<minD){minD=nd; choices=[{x:nx,y:ny}];}
-          else if(nd===minD){choices.push({x:nx,y:ny});}
-        }
-        if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
+      const unsafeMove = pickUnsafeMove();
+      if(unsafeMove){
+        currentStrategy = fruit && fruit.x >= 0 ? 'Unsafe chase' : 'Unsafe roam';
+        return unsafeMove;
       }
-      const inPocket = isFruitInPocket();
-      if(!compactMode && shouldEnterCompactMode({
-        inPocket,
-        loopDetected,
-        loopStreak,
-        fruitAcc,
-        freeCells
-      })){
-        compactMode = true; compactModeSteps = 0; compactModeJustActivated = true;
-      }
-      if(compactMode){
-        if(compactModeSteps >= COMPACT_MODE_MAX_STEPS){
-          compactMode = false; compactModeSteps = 0;
-        } else {
-          const zig = calculateZigZagPath();
-          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return zig; }
-          else{ compactMode = false; }
+      if(rlMoves && rlMoves.length){
+        const randomPick = pickViableMove(null, rlMoves);
+        currentStrategy = 'Unsafe random';
+        if(randomPick){
+          return {x: randomPick.x, y: randomPick.y};
         }
       }
-      if(fruitAcc && freeCells>1){
-        const path=bfsWithAlternatives(head.x,head.y,fruit.x,fruit.y,false,loopDetected);
-        if(path && path.length){
-          const nxt=path[0];
-          const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return nxt; }
-        }
-      }
-      let bestScore=-Infinity,bestMoves=[];
-      const tailPos=snake.length>1?snake[snake.length-1]:null;
-      const randomFactor=loopDetected?Math.random()*5:0;
-      const avoidFactor=loopDetected?0.5:1;
-      for(const d of DIRS){
-        const nx=head.x+d.dx, ny=head.y+d.dy;
-        if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
-        const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
-        if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
-        const sim=(nx===fruit?.x&&ny===fruit?.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
-        if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
-        const freeAfter=floodSize(nx,ny,sim);
-        if(freeAfter<COLS*ROWS-sim.length) continue;
-        let score=0;
-        if(fruit&&fruit.x>=0&&freeCells>Math.max(6, COLS-2)){
-          score+=(COLS+ROWS-(Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y)))*2*avoidFactor;
-        }
-        if(isEndgame && tailPos && nx===tailPos.x && ny===tailPos.y) score+=10000;
-        score+=Math.min(nx,ny,COLS-1-nx,ROWS-1-ny);
-        score+=randomFactor;
-        score+=freeAfter*2;
-        const moveData = {
-          x: nx,
-          y: ny,
-          dx: d.dx,
-          dy: d.dy,
-          baseScore: score,
-          willEat: fruit && fruit.x === nx && fruit.y === ny,
-          freeAfter
-        };
-        if(score>bestScore){ bestScore=score; bestMoves=[moveData]; }
-        else if(score===bestScore){ bestMoves.push(moveData); }
-      }
-      if(bestMoves.length){
-        currentStrategy="Heuristic";
-        const rlChoice = rlAgent.chooseMove(head, bestMoves, {isEndgame});
-        return rlChoice || bestMoves[(Math.random()*bestMoves.length)|0];
-      }
-      const tail=snake.length>1?snake[snake.length-1]:head;
-      const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
-      if(path && path.length){
-        const nxt=path[0];
-        const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return nxt; }
-      }
-      currentStrategy="No safe move!";
+      currentStrategy = 'No safe move!';
       return null;
     }
     /* ===== RENDER ===== */
@@ -2900,6 +3110,40 @@
       document.getElementById('progress').textContent = ((snake.length / (COLS * ROWS)) * 100).toFixed(1) + '%';
       updateRlStatus();
     }
+    function showOverlay(title, subtitle, color = '#ef4444'){
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = color;
+      ctx.font = 'bold 32px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(title, canvas.width / 2, canvas.height / 2);
+      if(subtitle){
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px Inter, sans-serif';
+        ctx.fillText(subtitle, canvas.width / 2, canvas.height / 2 + 40);
+      }
+    }
+    function scheduleAutoRestart(delay = 600, force = false){
+      if(!rlTrainingEnabled) return;
+      if(!force && !autoRestartEnabled) return;
+      setTimeout(() => {
+        if(!gameRunning){
+          restartGame();
+        }
+      }, delay);
+    }
+    function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = '#ef4444', penalty = rlConfig.deathPenalty } = {}){
+      if(rlTrainingEnabled){
+        rlAgent.registerTerminal('loss');
+      }
+      applyRlUpdate(typeof penalty === 'number' ? penalty : rlConfig.deathPenalty, true);
+      clearInterval(loopHandle);
+      gameRunning = false;
+      finishRun(false);
+      draw();
+      showOverlay(title, subtitle ?? `Final length: ${snake.length}`, color);
+      scheduleAutoRestart();
+    }
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; finishRun(false); return; }
@@ -2907,20 +3151,11 @@
       let stepDone = false;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
-        applyRlUpdate(rlConfig.deathPenalty, true);
-        rlAgent.registerTerminal('loss');
-        clearInterval(loopHandle);
-        gameRunning = false;
-        finishRun(false);
-        draw();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 32px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(snake.length === COLS * ROWS ? "PERFECT! 🎉" : "Game Over", canvas.width/2, canvas.height/2);
-        ctx.font = '20px Inter, sans-serif';
-        ctx.fillText(`Final length: ${snake.length}`, canvas.width/2, canvas.height/2 + 40);
+        handleSnakeDeath({ title: 'Trapped! ❌', subtitle: `Final length: ${snake.length}`, color: '#f97316' });
+        return;
+      }
+      if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
+        handleSnakeDeath({ title: 'Wall crash! 🧱', subtitle: `Final length: ${snake.length}` });
         return;
       }
       if(loopDetected){
@@ -2936,19 +3171,8 @@
         gameRunning = false;
         finishRun(false);
         draw();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#fbbf24';
-        ctx.font = 'bold 28px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Loop limit reached – advancing episode', canvas.width/2, canvas.height/2);
-        if(autoRestartEnabled || rlTrainingEnabled){
-          setTimeout(() => {
-            if(!gameRunning){
-              restartGame();
-            }
-          }, 450);
-        }
+        showOverlay('Loop limit reached – advancing episode', '', '#fbbf24');
+        scheduleAutoRestart(450, true);
         persistentLoopCounter = 0;
         return;
       }
@@ -2963,38 +3187,12 @@
         }
       }
       compactModeJustActivated = false;
-      if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
-        applyRlUpdate(rlConfig.deathPenalty, true);
-        rlAgent.registerTerminal('loss');
-        clearInterval(loopHandle);
-        gameRunning = false;
-        finishRun(false);
-        draw();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#ef4444';
-        ctx.font = 'bold 32px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText("Crash! 💥", canvas.width/2, canvas.height/2);
-        return;
-      }
       const ate = fruit && fruit.x >= 0 && nxt.x === fruit.x && nxt.y === fruit.y;
       const nextKey = `${nxt.x},${nxt.y}`;
       const tail = snake[snake.length - 1];
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
-        applyRlUpdate(rlConfig.deathPenalty, true);
-        rlAgent.registerTerminal('loss');
-        clearInterval(loopHandle);
-        gameRunning = false;
-        finishRun(false);
-        draw();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#ef4444';
-        ctx.font = 'bold 32px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText("Crash! 💥", canvas.width/2, canvas.height/2);
+        handleSnakeDeath({ title: 'Crash! 💥', subtitle: `Final length: ${snake.length}` });
         return;
       }
       const atePosition = ate ? {x: fruit.x, y: fruit.y} : null;
@@ -3030,13 +3228,7 @@
           ctx.fillStyle = '#fff';
           ctx.font = '24px Inter, sans-serif';
           ctx.fillText("You filled the entire board!", canvas.width/2, canvas.height/2 + 50);
-          if(autoRestartEnabled && rlTrainingEnabled){
-            setTimeout(() => {
-              if(!gameRunning){
-                restartGame();
-              }
-            }, 600);
-          }
+          scheduleAutoRestart();
           return;
         } else {
           fruit = spawnFruit();
