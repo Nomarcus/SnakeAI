@@ -418,6 +418,101 @@
       background: rgba(240, 147, 251, 0.35);
       border-radius: 999px;
     }
+    .reward-impact-card {
+      margin-top: 1.25rem;
+      padding: 1rem 1.1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      box-shadow: inset 0 0 0 1px rgba(102, 126, 234, 0.08);
+    }
+    .reward-impact-card h4 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .section-title-row.compact {
+      margin-bottom: 0.6rem;
+    }
+    .reward-impact-table {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-top: 0.5rem;
+      overflow-x: auto;
+    }
+    .reward-impact-table::-webkit-scrollbar {
+      height: 6px;
+    }
+    .reward-impact-table::-webkit-scrollbar-thumb {
+      background: rgba(102, 126, 234, 0.4);
+      border-radius: 999px;
+    }
+    .reward-impact-row {
+      display: grid;
+      grid-template-columns: 1.6fr 0.9fr 0.9fr 0.9fr 1fr;
+      gap: 0.4rem;
+      align-items: center;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.75rem;
+      background: rgba(15, 15, 35, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.82rem;
+      min-width: 520px;
+    }
+    .reward-impact-row span:last-child {
+      justify-self: flex-end;
+    }
+    .reward-impact-row.reward-impact-header {
+      background: transparent;
+      border: none;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.65;
+      padding-bottom: 0;
+    }
+    .reward-impact-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .reward-impact-row.impact-top {
+      border-color: rgba(240, 147, 251, 0.45);
+      box-shadow: 0 0 0 1px rgba(240, 147, 251, 0.25);
+      background: rgba(102, 126, 234, 0.15);
+    }
+    .reward-impact-empty {
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.75;
+      padding: 0.5rem 0;
+    }
+    .trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-weight: 600;
+    }
+    .trend-up {
+      color: var(--success);
+    }
+    .trend-down {
+      color: var(--danger);
+    }
+    .trend-flat {
+      opacity: 0.6;
+    }
+    .reward-impact-summary {
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+    }
     .episode-history-row {
       background: rgba(255, 255, 255, 0.035);
       border-radius: 0.8rem;
@@ -926,6 +1021,31 @@
                     <small>Backup the Q-table, rewards, and AI configuration — or load a previous session.</small>
                     <input type="file" id="rlImportFile" accept="application/json" class="visually-hidden">
                   </div>
+                  <div class="reward-impact-card collapsible-section" id="rewardImpactSection">
+                    <div class="section-title-row compact">
+                      <h4>🎯 Reward impact monitor</h4>
+                      <button id="rewardImpactToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="rewardImpactContent" title="Show or hide reward impact breakdown">
+                        <span class="chevron">▾</span>
+                        <span class="collapse-label">Show breakdown</span>
+                      </button>
+                    </div>
+                    <div id="rewardImpactContent" class="collapsible-content" hidden aria-hidden="true">
+                      <p class="manual-hint" id="rewardImpactIntro">See which rewards and penalties shape RL training the most. Updates after each completed episode.</p>
+                      <div class="reward-impact-table">
+                        <div class="reward-impact-row reward-impact-header">
+                          <span>Component</span>
+                          <span>Last</span>
+                          <span>Average</span>
+                          <span>Share</span>
+                          <span>Trend</span>
+                        </div>
+                        <div id="rlRewardImpactRows" class="reward-impact-rows">
+                          <p class="reward-impact-empty">Enable RL to start tracking reward impact.</p>
+                        </div>
+                      </div>
+                      <p id="rlRewardImpactSummary" class="manual-hint reward-impact-summary">Waiting for RL training to begin.</p>
+                    </div>
+                  </div>
                   <div class="episode-history-card">
                     <div class="episode-history-heading">
                       <h4>📊 Episode tracker</h4>
@@ -1370,6 +1490,36 @@
     let lastElapsedMs = 0;
     let bestTimeMs = null;
     let lastObservedReward = 0;
+    const RL_REWARD_COMPONENTS = [
+      { id: 'stepPenalty', label: 'Step penalty' },
+      { id: 'fruitReward', label: 'Fruit reward' },
+      { id: 'winBonus', label: 'Win bonus' },
+      { id: 'endgamePlanReward', label: 'Endgame plan bonus' },
+      { id: 'compactModeReward', label: 'Compact mode bonus' },
+      { id: 'deadEndPenalty', label: 'Dead-end penalty' },
+      { id: 'deathPenalty', label: 'Crash penalty' },
+      { id: 'loopPenalty', label: 'Loop stall penalty' }
+    ];
+    const RL_REWARD_COMPONENT_MAP = RL_REWARD_COMPONENTS.reduce((acc, entry) => {
+      acc[entry.id] = entry;
+      return acc;
+    }, {});
+    function createEmptyRewardImpactSnapshot(){
+      return RL_REWARD_COMPONENTS.reduce((acc, entry) => {
+        acc[entry.id] = 0;
+        return acc;
+      }, {});
+    }
+    const rlRewardImpactStats = {
+      components: RL_REWARD_COMPONENTS.reduce((acc, entry) => {
+        acc[entry.id] = { label: entry.label, total: 0, last: 0, prev: 0 };
+        return acc;
+      }, {}),
+      episodes: 0,
+      lastTotal: 0,
+      prevTotal: 0
+    };
+    let rlRewardEpisodeAccumulator = createEmptyRewardImpactSnapshot();
     const BASE_TIMEOUT_PER_CELL_MS = 150;
     const MIN_RUN_TIMEOUT_MS = 30000;
     const MAX_RUN_TIMEOUT_MS = 120000;
@@ -1780,6 +1930,9 @@
     const rlExportButton = document.getElementById('rlExportButton');
     const rlImportButton = document.getElementById('rlImportButton');
     const rlImportFileInput = document.getElementById('rlImportFile');
+    const rewardImpactSectionEl = document.getElementById('rewardImpactSection');
+    const rewardImpactToggleBtn = document.getElementById('rewardImpactToggle');
+    const rewardImpactContentEl = document.getElementById('rewardImpactContent');
     const rlConfigSectionEl = document.querySelector('.rl-config-section');
     const rlParamContentEl = document.getElementById('rlParamContent');
     const gridSizeSectionEl = document.getElementById('gridSizeSection');
@@ -1833,6 +1986,150 @@
     const rlEpisodeLog = [];
     function formatRewardValue(value){
       return Number.isFinite(value) ? value.toFixed(2) : '--';
+    }
+    function formatRewardChange(value){
+      if(!Number.isFinite(value)) return '--';
+      const rounded = value.toFixed(2);
+      if(value > 0) return `+${rounded}`;
+      if(value === 0) return '0.00';
+      return rounded;
+    }
+    function formatImpactTrend(diff){
+      if(!Number.isFinite(diff) || Math.abs(diff) < 0.01){
+        return '<span class="trend trend-flat">—</span>';
+      }
+      const directionClass = diff > 0 ? 'trend-up' : 'trend-down';
+      const arrow = diff > 0 ? '▲' : '▼';
+      return `<span class="trend ${directionClass}">${arrow} ${formatRewardChange(diff)}</span>`;
+    }
+    function normalizeRewardBreakdown(entries, reward, effectiveReward, scaleApplied, scaleValue){
+      if(!Array.isArray(entries) || !entries.length) return [];
+      const sanitized = entries
+        .map(entry => ({ id: entry?.id, amount: Number(entry?.amount) }))
+        .filter(entry => entry.id && RL_REWARD_COMPONENT_MAP[entry.id] && Number.isFinite(entry.amount));
+      if(!sanitized.length) return [];
+      let factor = 1;
+      if(scaleApplied && Number.isFinite(scaleValue) && scaleValue !== 1){
+        if(Number.isFinite(reward) && Math.abs(reward) > 1e-9){
+          factor = effectiveReward / reward;
+        } else if(Number.isFinite(effectiveReward)){
+          factor = scaleValue;
+        }
+      }
+      if(factor !== 1){
+        return sanitized.map(entry => ({ id: entry.id, amount: entry.amount * factor }));
+      }
+      return sanitized;
+    }
+    function recordRewardBreakdown(entries){
+      if(!Array.isArray(entries) || !entries.length) return;
+      entries.forEach(entry => {
+        if(!(entry.id in rlRewardEpisodeAccumulator)) return;
+        const value = Number(entry.amount);
+        if(!Number.isFinite(value)) return;
+        rlRewardEpisodeAccumulator[entry.id] += value;
+      });
+    }
+    function resetRewardImpactEpisode(){
+      rlRewardEpisodeAccumulator = createEmptyRewardImpactSnapshot();
+    }
+    function resetRewardImpactStats(){
+      RL_REWARD_COMPONENTS.forEach(entry => {
+        rlRewardImpactStats.components[entry.id] = {
+          label: entry.label,
+          total: 0,
+          last: 0,
+          prev: 0
+        };
+      });
+      rlRewardImpactStats.episodes = 0;
+      rlRewardImpactStats.prevTotal = 0;
+      rlRewardImpactStats.lastTotal = 0;
+      resetRewardImpactEpisode();
+      updateRewardImpactUI();
+    }
+    function finalizeRewardImpactEpisode(){
+      rlRewardImpactStats.episodes += 1;
+      let episodeTotal = 0;
+      RL_REWARD_COMPONENTS.forEach(entry => {
+        const stats = rlRewardImpactStats.components[entry.id];
+        const amount = rlRewardEpisodeAccumulator[entry.id] ?? 0;
+        stats.prev = stats.last;
+        stats.last = amount;
+        stats.total += amount;
+        episodeTotal += amount;
+      });
+      rlRewardImpactStats.prevTotal = rlRewardImpactStats.lastTotal;
+      rlRewardImpactStats.lastTotal = episodeTotal;
+      resetRewardImpactEpisode();
+      updateRewardImpactUI();
+    }
+    function updateRewardImpactUI(){
+      const rowsContainer = document.getElementById('rlRewardImpactRows');
+      const summaryEl = document.getElementById('rlRewardImpactSummary');
+      if(!rowsContainer) return;
+      if(rlRewardImpactStats.episodes === 0){
+        const message = rlTrainingEnabled
+          ? 'Play an RL episode to populate impact data.'
+          : 'Enable RL to start tracking reward impact.';
+        rowsContainer.innerHTML = `<p class="reward-impact-empty">${message}</p>`;
+        if(summaryEl){
+          summaryEl.textContent = rlTrainingEnabled
+            ? 'Waiting for the first RL episode to complete.'
+            : 'Reward impact stats will appear once RL training is active.';
+        }
+        return;
+      }
+      const rowsData = RL_REWARD_COMPONENTS.map(entry => {
+        const stats = rlRewardImpactStats.components[entry.id];
+        const average = rlRewardImpactStats.episodes > 0
+          ? stats.total / rlRewardImpactStats.episodes
+          : 0;
+        return {
+          id: entry.id,
+          label: entry.label,
+          last: stats.last,
+          avg: average,
+          diff: stats.last - stats.prev
+        };
+      });
+      const totalAbsAvg = rowsData.reduce((sum, row) => sum + Math.abs(row.avg), 0);
+      const maxShare = rowsData.reduce((max, row) => {
+        const share = totalAbsAvg > 0 ? Math.abs(row.avg) / totalAbsAvg : 0;
+        return Math.max(max, share);
+      }, 0);
+      const rowsHtml = rowsData.map(row => {
+        const share = totalAbsAvg > 0 ? Math.abs(row.avg) / totalAbsAvg : 0;
+        const shareText = `${Math.round(share * 100)}%`;
+        const classes = ['reward-impact-row'];
+        if(maxShare > 0 && Math.abs(share - maxShare) < 1e-6){
+          classes.push('impact-top');
+        }
+        return `
+          <div class="${classes.join(' ')}">
+            <span>${row.label}</span>
+            <span>${formatRewardValue(row.last)}</span>
+            <span>${formatRewardValue(row.avg)}</span>
+            <span>${shareText}</span>
+            <span>${formatImpactTrend(row.diff)}</span>
+          </div>
+        `;
+      }).join('');
+      rowsContainer.innerHTML = rowsHtml;
+      if(summaryEl){
+        const summaryParts = [
+          `Episodes tracked: ${rlRewardImpactStats.episodes}`,
+          `Last total: ${formatRewardValue(rlRewardImpactStats.lastTotal)}`
+        ];
+        if(rlRewardImpactStats.episodes > 1){
+          const delta = rlRewardImpactStats.lastTotal - rlRewardImpactStats.prevTotal;
+          summaryParts.push(`Δ vs prev: ${formatRewardChange(delta)}`);
+        }
+        if(rlEpisodeActive){
+          summaryParts.push('Current episode running…');
+        }
+        summaryEl.textContent = summaryParts.join(' · ');
+      }
     }
     function formatEpisodeDuration(ms){
       if(!Number.isFinite(ms) || ms <= 0){
@@ -1974,6 +2271,12 @@
       rlParamContentEl,
       { expandedLabel: 'Hide settings', collapsedLabel: 'Show settings' }
     );
+    setupCollapsibleSection(
+      rewardImpactSectionEl,
+      rewardImpactToggleBtn,
+      rewardImpactContentEl,
+      { collapsed: true, expandedLabel: 'Hide breakdown', collapsedLabel: 'Show breakdown' }
+    );
     setupCollapsibleSection(gridSizeSectionEl, gridSizeToggleBtn, gridSizeContentEl);
     setupCollapsibleSection(canvasSizeSectionEl, canvasSizeToggleBtn, canvasSizeContentEl);
     setupCollapsibleSection(aiParamsSectionEl, aiParamsToggleBtn, aiParamsContentEl);
@@ -1989,6 +2292,7 @@
       aiStatusContentEl,
       { expandedLabel: 'Hide status', collapsedLabel: 'Show status' }
     );
+    updateRewardImpactUI();
     const elapsedTimeEl = document.getElementById('elapsedTime');
     const bestTimeEl = document.getElementById('bestTime');
     const completedRoundsEl = document.getElementById('completedRounds');
@@ -2179,6 +2483,7 @@
       }
       updateRlLiveMetrics();
       renderRlEpisodeHistory();
+      updateRewardImpactUI();
     }
     function getManualNext(){
       const direction = pendingManualDirection || manualDirection;
@@ -2383,6 +2688,16 @@
       const shouldScale = !options.skipScaling && typeof reward === 'number' && Number.isFinite(reward);
       const scale = Number.isFinite(rlConfig.rewardScale) ? rlConfig.rewardScale : 1;
       const effectiveReward = shouldScale && scale !== 1 ? reward * scale : reward;
+      const breakdownEntries = normalizeRewardBreakdown(
+        options.breakdown,
+        reward,
+        effectiveReward,
+        shouldScale && scale !== 1,
+        scale
+      );
+      if(breakdownEntries.length){
+        recordRewardBreakdown(breakdownEntries);
+      }
       let episodeJustEnded = false;
       if(rlPendingChoice){
         const nextState = done ? null : buildRlObservation(getSafeMovesForRL());
@@ -2402,6 +2717,7 @@
       if(episodeJustEnded){
         recordRlEpisodeSnapshot();
         completionInfo = handleRlEpisodeCompletion();
+        finalizeRewardImpactEpisode();
       }
       if(completionInfo?.trainingDisabled){
         rlHintOverride = completionInfo.message ?? rlHintOverride;
@@ -2472,6 +2788,7 @@
         updateRlStatus();
         updateRlLiveMetrics(0);
         renderRlEpisodeHistory();
+        resetRewardImpactStats();
         if(rlHint){
           rlHint.textContent = 'RL reset – start a new training run to collect data.';
         }
@@ -2554,6 +2871,7 @@
         rlAgent.resetEpsilon(rlConfig.epsilonStart);
         rlAgent.startEpisode();
         rlEpisodeActive = true;
+        resetRewardImpactEpisode();
       } else {
         if(rlEpisodeActive){
           rlAgent.endEpisode();
@@ -2563,12 +2881,14 @@
         rlHintOverride = null;
         cancelScheduledAutoRestart();
         resetRlBatchProgress();
+        resetRewardImpactEpisode();
       }
       updateRlToggleUI();
       updateRlStatus();
       if(rlTrainingEnabled && rlBatchActive && rlHint){
         rlHint.textContent = `Batch training ${rlBatchPlannedEpisodes} episodes – episode 1 in progress.`;
       }
+      updateRewardImpactUI();
     });
     updateRlToggleUI();
     updateRlStatus();
@@ -2917,8 +3237,10 @@
         if(rlEpisodeActive){
           rlAgent.endEpisode();
         }
+        resetRewardImpactEpisode();
         rlAgent.startEpisode();
         rlEpisodeActive = true;
+        updateRewardImpactUI();
       } else {
         rlEpisodeActive = false;
       }
@@ -3276,8 +3598,10 @@
         }
         if(rlTrainingEnabled && !hamMode){
           if(!rlEpisodeActive){
+            resetRewardImpactEpisode();
             rlAgent.startEpisode();
             rlEpisodeActive = true;
+            updateRewardImpactUI();
           }
           if(rlSafeMoves && rlSafeMoves.length){
             const rlState = buildRlObservation(rlSafeMoves);
@@ -3392,8 +3716,10 @@
       const rlMoves = rlTrainingEnabled ? getAllMovesForRL() : [];
       if(rlTrainingEnabled){
         if(!rlEpisodeActive){
+          resetRewardImpactEpisode();
           rlAgent.startEpisode();
           rlEpisodeActive = true;
+          updateRewardImpactUI();
         }
         if(rlMoves && rlMoves.length){
           const rlState = buildRlObservation(rlSafeMoves || []);
@@ -3583,7 +3909,14 @@
       if(rlTrainingEnabled){
         rlAgent.registerTerminal(outcome);
       }
-      applyRlUpdate(typeof penalty === 'number' ? penalty : rlConfig.deathPenalty, true, { skipScaling: true });
+      const penaltyValue = Number.isFinite(penalty) ? penalty : rlConfig.deathPenalty;
+      const penaltyComponent = (penaltyValue === rlConfig.deadEndPenalty || outcome === 'timeout')
+        ? 'deadEndPenalty'
+        : 'deathPenalty';
+      const penaltyBreakdown = rlTrainingEnabled
+        ? [{ id: penaltyComponent, amount: penaltyValue }]
+        : null;
+      applyRlUpdate(penaltyValue, true, { skipScaling: true, breakdown: penaltyBreakdown });
       clearInterval(loopHandle);
       gameRunning = false;
       finishRun(false);
@@ -3606,6 +3939,7 @@
         return;
       }
       let stepReward = rlConfig.stepPenalty;
+      let rewardBreakdown = rlTrainingEnabled ? [{ id: 'stepPenalty', amount: rlConfig.stepPenalty }] : null;
       let stepDone = false;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
@@ -3623,7 +3957,8 @@
       }
       if(rlTrainingEnabled && persistentLoopCounter >= LOOP_ESCAPE_LIMIT){
         const loopPenalty = typeof rlConfig.loopPenalty === 'number' ? rlConfig.loopPenalty : rlConfig.stepPenalty;
-        applyRlUpdate(loopPenalty, true);
+        const loopBreakdown = rlTrainingEnabled ? [{ id: 'loopPenalty', amount: loopPenalty }] : null;
+        applyRlUpdate(loopPenalty, true, { breakdown: loopBreakdown });
         rlAgent.registerTerminal('stalled');
         clearInterval(loopHandle);
         gameRunning = false;
@@ -3637,11 +3972,15 @@
       if(rlTrainingEnabled){
         if(endgamePlanThisMove){
           stepReward += rlConfig.endgamePlanReward;
+          rewardBreakdown?.push({ id: 'endgamePlanReward', amount: rlConfig.endgamePlanReward });
         }
         if(compactModeJustActivated){
           stepReward += rlConfig.compactModeReward;
+          rewardBreakdown?.push({ id: 'compactModeReward', amount: rlConfig.compactModeReward });
         } else if(compactMode && currentStrategy === 'Compact zig-zag'){
-          stepReward += rlConfig.compactModeReward * 0.5;
+          const compactBonus = rlConfig.compactModeReward * 0.5;
+          stepReward += compactBonus;
+          rewardBreakdown?.push({ id: 'compactModeReward', amount: compactBonus });
         }
       }
       compactModeJustActivated = false;
@@ -3663,14 +4002,16 @@
       if(ate){
         loopCountAdjust = 0;
         stepReward = rlConfig.fruitReward;
+        rewardBreakdown = rlTrainingEnabled ? [{ id: 'fruitReward', amount: rlConfig.fruitReward }] : rewardBreakdown;
         if(snake.length === COLS * ROWS){
           if(rlTrainingEnabled){
             rlAgent.registerTerminal('win');
           }
           fruit = {x: -1, y: -1};
           stepReward = rlConfig.winBonus;
+          rewardBreakdown = rlTrainingEnabled ? [{ id: 'winBonus', amount: rlConfig.winBonus }] : rewardBreakdown;
           stepDone = true;
-          applyRlUpdate(stepReward, stepDone);
+          applyRlUpdate(stepReward, stepDone, { breakdown: rewardBreakdown });
           draw();
           clearInterval(loopHandle);
           gameRunning = false;
@@ -3710,18 +4051,21 @@
           if(Array.isArray(upcomingSafeMoves) && freeCellsRemaining > 0){
             if(upcomingSafeMoves.length === 0){
               stepReward += trapPenalty;
+              rewardBreakdown?.push({ id: 'deadEndPenalty', amount: trapPenalty });
             } else if(upcomingSafeMoves.length === 1 && freeCellsRemaining > 2){
               const onlyMove = upcomingSafeMoves[0];
               const upcomingTail = snake.length > 1 ? snake[snake.length - 1] : null;
               const isTailEscape = upcomingTail && !onlyMove.ate && onlyMove.x === upcomingTail.x && onlyMove.y === upcomingTail.y;
               if(!isTailEscape){
-                stepReward += trapPenalty * 0.5;
+                const partialPenalty = trapPenalty * 0.5;
+                stepReward += partialPenalty;
+                rewardBreakdown?.push({ id: 'deadEndPenalty', amount: partialPenalty });
               }
             }
           }
         }
       }
-      applyRlUpdate(stepReward, stepDone);
+      applyRlUpdate(stepReward, stepDone, { breakdown: rewardBreakdown });
       draw();
     }
     /* ===== SPEED CONTROLS & STARTUP ===== */
