@@ -275,17 +275,20 @@
       display: inline-block;
       transition: transform 0.2s ease;
     }
-    .rl-config-section.collapsed .collapse-toggle .chevron {
+    .collapsible-section.collapsed .collapse-toggle .chevron {
       transform: rotate(-90deg);
+    }
+    .collapsible-section.collapsed .collapsible-content {
+      display: none;
+    }
+    .collapsible-content[hidden] {
+      display: none;
+    }
+    .collapsible-section.collapsed {
+      margin-bottom: 1.5rem;
     }
     .rl-config-section fieldset {
       margin: 0;
-    }
-    .rl-config-section.collapsed fieldset {
-      display: none;
-    }
-    .rl-config-section.collapsed {
-      margin-bottom: 1.5rem;
     }
     /* Modern buttons */
     .button {
@@ -717,164 +720,216 @@
             <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable Reinforcement Learning</button>
             <p id="rlHint" class="manual-hint">Reinforcement learning is currently disabled.</p>
           </div>
-          <div class="controls-section rl-config-section">
+          <div class="controls-section rl-config-section collapsible-section">
             <div class="section-title-row">
               <h3>Fine-tune RL</h3>
-              <button id="rlPanelToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="rlParamFieldset" title="Show or hide reinforcement learning fine-tuning settings">
+              <button id="rlPanelToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="rlParamContent" title="Show or hide reinforcement learning fine-tuning settings">
                 <span class="chevron">▾</span>
                 <span class="collapse-label">Hide settings</span>
               </button>
             </div>
-            <fieldset id="rlParamFieldset" class="rl-fieldset inactive" disabled>
-              <legend class="visually-hidden">Fine-tune RL</legend>
-              <p class="manual-hint" style="margin-bottom: 1rem;">Turn on RL to unlock reward tuning and hyperparameters.</p>
+            <div id="rlParamContent" class="collapsible-content">
+              <fieldset id="rlParamFieldset" class="rl-fieldset inactive" disabled>
+                <legend class="visually-hidden">Fine-tune RL</legend>
+                <p class="manual-hint" style="margin-bottom: 1rem;">Turn on RL to unlock reward tuning and hyperparameters.</p>
+                <div class="param-control">
+                  <label>Step Penalty: <span id="rlStepPenaltyValue">-0.05</span></label>
+                  <input type="range" id="rlStepPenalty" class="size-slider" min="-0.5" max="0" step="0.01" value="-0.05">
+                  <small>Negative reward every move – increasing the penalty forces shorter routes.</small>
+                </div>
+                <div class="param-control">
+                  <label>Fruit Reward: <span id="rlFruitRewardValue">5</span></label>
+                  <input type="range" id="rlFruitReward" class="size-slider" min="0" max="20" step="0.5" value="5">
+                  <small>Positive reward when fruit is eaten. Raise it to prioritise fast growth.</small>
+                </div>
+                <div class="param-control">
+                  <label>Win Bonus: <span id="rlWinBonusValue">15</span></label>
+                  <input type="range" id="rlWinBonus" class="size-slider" min="0" max="40" step="1" value="15">
+                  <small>Extra reward for filling the entire board.</small>
+                </div>
+                <div class="param-control">
+                  <label>Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
+                  <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
+                  <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
+                </div>
+                <div class="rl-grid two-col">
+                  <div class="param-control">
+                    <label>Learning rate α: <span id="rlAlphaValue">0.20</span></label>
+                    <input type="number" id="rlAlpha" class="number-input" min="0.01" max="1" step="0.01" value="0.2">
+                    <small>How fast the Q-table updates. Higher values react quickly but can be unstable.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>Discount γ: <span id="rlGammaValue">0.90</span></label>
+                    <input type="number" id="rlGamma" class="number-input" min="0" max="0.99" step="0.01" value="0.9">
+                    <small>How much future rewards are valued. Higher values favour long-term planning.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>Start ε: <span id="rlEpsilonStartValue">0.30</span></label>
+                    <input type="number" id="rlEpsilonStart" class="number-input" min="0" max="1" step="0.01" value="0.3">
+                    <small>Exploration at the beginning of training. Higher values = more random moves.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>Min ε: <span id="rlEpsilonMinValue">0.05</span></label>
+                    <input type="number" id="rlEpsilonMin" class="number-input" min="0" max="0.5" step="0.01" value="0.05">
+                    <small>Lowest exploration after long training.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>ε decay: <span id="rlEpsilonDecayValue">0.995</span></label>
+                    <input type="number" id="rlEpsilonDecay" class="number-input" min="0.8" max="0.999" step="0.001" value="0.995">
+                    <small>How quickly exploration shrinks each episode.</small>
+                  </div>
+                </div>
+                <div class="param-control">
+                  <label>Training Episodes: <span id="rlEpisodesValue">1</span></label>
+                  <input type="number" id="rlEpisodes" class="number-input" min="1" max="100" step="1" value="1">
+                  <small>Run multiple consecutive games before returning to manual control.</small>
+                </div>
+                <div class="param-control">
+                  <label>Reward Scaling: <span id="rlRewardScaleValue">1.0</span></label>
+                  <input type="range" id="rlRewardScale" class="size-slider" min="0.1" max="2" step="0.1" value="1">
+                  <small>Multiply all rewards (except crash penalty). Fine-tune how aggressive the agent becomes.</small>
+                </div>
+                <div class="param-control">
+                  <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                    <input type="checkbox" id="autoRestartToggle" style="width: 18px; height: 18px;">
+                    <span>Auto restart after a perfect game (keeps training on repeat).</span>
+                  </label>
+                  <p id="rlLiveMetrics" class="manual-hint" style="margin-bottom: 1rem;">Live metrics will appear here once RL starts.</p>
+                  <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Reset RL learning</button>
+                  <p class="manual-hint">Clears the Q-table, stats, and sets ε back to its starting value.</p>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+          <div class="controls-section collapsible-section" id="gridSizeSection">
+            <div class="section-title-row">
+              <h3>Grid Size</h3>
+              <button id="gridSizeToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="gridSizeContent" title="Show or hide grid size settings">
+                <span class="chevron">▾</span>
+                <span class="collapse-label">Hide settings</span>
+              </button>
+            </div>
+            <div id="gridSizeContent" class="collapsible-content">
               <div class="param-control">
-                <label>Step Penalty: <span id="rlStepPenaltyValue">-0.05</span></label>
-                <input type="range" id="rlStepPenalty" class="size-slider" min="-0.5" max="0" step="0.01" value="-0.05">
-                <small>Negative reward every move – increasing the penalty forces shorter routes.</small>
+                <label>Columns (COLS): <span id="colsValue">20</span></label>
+                <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="5">
               </div>
               <div class="param-control">
-                <label>Fruit Reward: <span id="rlFruitRewardValue">5</span></label>
-                <input type="range" id="rlFruitReward" class="size-slider" min="0" max="20" step="0.5" value="5">
-                <small>Positive reward when fruit is eaten. Raise it to prioritise fast growth.</small>
+                <label>Rows (ROWS): <span id="rowsValue">20</span></label>
+                <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="20" step="5">
+              </div>
+              <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
+                ⚡Changing grid size will restart the game
+              </small>
+            </div>
+          </div>
+          <div class="controls-section collapsible-section" id="canvasSizeSection">
+            <div class="section-title-row">
+              <h3>Canvas Size</h3>
+              <button id="canvasSizeToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="canvasSizeContent" title="Show or hide canvas size settings">
+                <span class="chevron">▾</span>
+                <span class="collapse-label">Hide settings</span>
+              </button>
+            </div>
+            <div id="canvasSizeContent" class="collapsible-content">
+              <div class="size-controls">
+                <span>Small</span>
+                <input type="range" id="sizeSlider" class="size-slider" min="300" max="800" value="400" step="50">
+                <span>Large</span>
+              </div>
+            </div>
+          </div>
+          <div class="controls-section collapsible-section" id="aiParamsSection">
+            <div class="section-title-row">
+              <h3>AI Parameters</h3>
+              <button id="aiParamsToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="aiParamsContent" title="Show or hide AI parameter settings">
+                <span class="chevron">▾</span>
+                <span class="collapse-label">Hide settings</span>
+              </button>
+            </div>
+            <div id="aiParamsContent" class="collapsible-content">
+              <div class="param-control">
+                <label>Endgame Threshold: <span id="endgameValue">20</span></label>
+                <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="20" step="5">
+                <small>Free cells for endgame mode</small>
               </div>
               <div class="param-control">
-                <label>Win Bonus: <span id="rlWinBonusValue">15</span></label>
-                <input type="range" id="rlWinBonus" class="size-slider" min="0" max="40" step="1" value="15">
-                <small>Extra reward for filling the entire board.</small>
+                <label>Loop Streak Threshold: <span id="loopThreshValue">3</span></label>
+                <input type="range" id="loopThreshSlider" class="size-slider" min="1" max="10" value="3" step="1">
+                <small>Loops detected before → Hamilton mode</small>
               </div>
               <div class="param-control">
-                <label>Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
-                <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
-                <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
+                <label>No Progress Threshold: <span id="progThreshValue">70</span></label>
+                <input type="range" id="progThreshSlider" class="size-slider" min="10" max="200" value="70" step="5">
+                <small>Moves without progress → Hamilton mode</small>
               </div>
-              <div class="rl-grid two-col">
-                <div class="param-control">
-                  <label>Learning rate α: <span id="rlAlphaValue">0.20</span></label>
-                  <input type="number" id="rlAlpha" class="number-input" min="0.01" max="1" step="0.01" value="0.2">
-                  <small>How fast the Q-table updates. Higher values react quickly but can be unstable.</small>
-                </div>
-                <div class="param-control">
-                  <label>Discount γ: <span id="rlGammaValue">0.90</span></label>
-                  <input type="number" id="rlGamma" class="number-input" min="0" max="0.99" step="0.01" value="0.9">
-                  <small>How much future rewards are valued. Higher values favour long-term planning.</small>
-                </div>
-                <div class="param-control">
-                  <label>Start ε: <span id="rlEpsilonStartValue">0.30</span></label>
-                  <input type="number" id="rlEpsilonStart" class="number-input" min="0" max="1" step="0.01" value="0.3">
-                  <small>Exploration at the beginning of training. Higher values = more random moves.</small>
-                </div>
-                <div class="param-control">
-                  <label>Min ε: <span id="rlEpsilonMinValue">0.05</span></label>
-                  <input type="number" id="rlEpsilonMin" class="number-input" min="0" max="0.5" step="0.01" value="0.05">
-                  <small>Lowest exploration after long training.</small>
-                </div>
-                <div class="param-control">
-                  <label>ε decay: <span id="rlEpsilonDecayValue">0.995</span></label>
-                  <input type="number" id="rlEpsilonDecay" class="number-input" min="0.8" max="0.999" step="0.001" value="0.995">
-                  <small>How quickly exploration shrinks each episode.</small>
-                </div>
+              <div class="param-control">
+                <label for="compactProfile">Compact Mode Style</label>
+                <select id="compactProfile" class="select-control">
+                  <option value="cautious">Extremely cautious</option>
+                  <option value="balanced" selected>Balanced (current)</option>
+                  <option value="risky">Extremely daring</option>
+                </select>
+                <small id="compactProfileHint">Default behaviour that reacts to pockets or loops.</small>
               </div>
-              <div style="margin-top: 1rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                  <input type="checkbox" id="autoRestartToggle" style="width: 18px; height: 18px;">
-                  <span>Auto restart after a perfect game (keeps training on repeat).</span>
-                </label>
-                <p id="rlLiveMetrics" class="manual-hint" style="margin-bottom: 1rem;">Live metrics will appear here once RL starts.</p>
-                <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Reset RL learning</button>
-                <p class="manual-hint">Clears the Q-table, stats, and sets ε back to its starting value.</p>
-              </div>
-            </fieldset>
-          </div>
-          <div class="controls-section">
-            <h3>Grid Size</h3>
-            <div class="param-control">
-              <label>Columns (COLS): <span id="colsValue">20</span></label>
-              <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="5">
-            </div>
-            <div class="param-control">
-              <label>Rows (ROWS): <span id="rowsValue">20</span></label>
-              <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="20" step="5">
-            </div>
-            <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
-              ⚡Changing grid size will restart the game
-            </small>
-          </div>
-          <div class="controls-section">
-            <h3>Canvas Size</h3>
-            <div class="size-controls">
-              <span>Small</span>
-              <input type="range" id="sizeSlider" class="size-slider" min="300" max="800" value="400" step="50">
-              <span>Large</span>
-            </div>
-          </div>
-          <div class="controls-section">
-            <h3>AI Parameters</h3>
-            <div class="param-control">
-              <label>Endgame Threshold: <span id="endgameValue">20</span></label>
-              <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="20" step="5">
-              <small>Free cells for endgame mode</small>
-            </div>
-            <div class="param-control">
-              <label>Loop Streak Threshold: <span id="loopThreshValue">3</span></label>
-              <input type="range" id="loopThreshSlider" class="size-slider" min="1" max="10" value="3" step="1">
-              <small>Loops detected before → Hamilton mode</small>
-            </div>
-            <div class="param-control">
-              <label>No Progress Threshold: <span id="progThreshValue">70</span></label>
-              <input type="range" id="progThreshSlider" class="size-slider" min="10" max="200" value="70" step="5">
-              <small>Moves without progress → Hamilton mode</small>
-            </div>
-            <div class="param-control">
-              <label for="compactProfile">Compact Mode Style</label>
-              <select id="compactProfile" class="select-control">
-                <option value="cautious">Extremely cautious</option>
-                <option value="balanced" selected>Balanced (current)</option>
-                <option value="risky">Extremely daring</option>
-              </select>
-              <small id="compactProfileHint">Default behaviour that reacts to pockets or loops.</small>
-            </div>
-            <div class="param-control">
-              <label>Compact Mode Steps: <span id="compactValue">200</span></label>
-              <input type="range" id="compactSlider" class="size-slider" min="0" max="300" value="200" step="10">
-              <small>Max steps in compact mode</small>
-            </div>
-          </div>
-          <div class="controls-section">
-            <h3>Game Status</h3>
-            <div class="status-display">
-              <div class="status-item">
-                <span class="status-label">Length:</span>
-                <span id="snakeLength" class="status-value">3</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Free cells:</span>
-                <span id="freeCells" class="status-value">222</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Progress:</span>
-                <span id="progress" class="status-value">1.3%</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Elapsed:</span>
-                <span id="elapsedTime" class="status-value">00:00.0</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">Best time:</span>
-                <span id="bestTime" class="status-value">--</span>
+              <div class="param-control">
+                <label>Compact Mode Steps: <span id="compactValue">200</span></label>
+                <input type="range" id="compactSlider" class="size-slider" min="0" max="300" value="200" step="10">
+                <small>Max steps in compact mode</small>
               </div>
             </div>
           </div>
-          <div class="controls-section">
-            <h3>AI Status</h3>
-            <div id="statusMessages">
-              <p id="strategyStatus">Strategy: Initializing</p>
-              <p id="strategyExplanation" class="status-explanation"></p>
-              <p id="hamStatus"></p>
-              <p id="loopStatus"></p>
-              <p id="compactStatus"></p>
-              <p id="compactStepStatus"></p>
-              <p id="rlStatus"></p>
+          <div class="controls-section collapsible-section" id="gameStatusSection">
+            <div class="section-title-row">
+              <h3>Game Status</h3>
+              <button id="gameStatusToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="gameStatusContent" title="Show or hide live game status">
+                <span class="chevron">▾</span>
+                <span class="collapse-label">Hide status</span>
+              </button>
+            </div>
+            <div id="gameStatusContent" class="collapsible-content">
+              <div class="status-display">
+                <div class="status-item">
+                  <span class="status-label">Length:</span>
+                  <span id="snakeLength" class="status-value">3</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">Free cells:</span>
+                  <span id="freeCells" class="status-value">222</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">Progress:</span>
+                  <span id="progress" class="status-value">1.3%</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">Elapsed:</span>
+                  <span id="elapsedTime" class="status-value">00:00.0</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">Best time:</span>
+                  <span id="bestTime" class="status-value">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="controls-section collapsible-section" id="aiStatusSection">
+            <div class="section-title-row">
+              <h3>AI Status</h3>
+              <button id="aiStatusToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="aiStatusContent" title="Show or hide AI status updates">
+                <span class="chevron">▾</span>
+                <span class="collapse-label">Hide status</span>
+              </button>
+            </div>
+            <div id="aiStatusContent" class="collapsible-content">
+              <div id="statusMessages">
+                <p id="strategyStatus">Strategy: Initializing</p>
+                <p id="strategyExplanation" class="status-explanation"></p>
+                <p id="hamStatus"></p>
+                <p id="loopStatus"></p>
+                <p id="compactStatus"></p>
+                <p id="compactStepStatus"></p>
+                <p id="rlStatus"></p>
+              </div>
             </div>
           </div>
 
@@ -1417,26 +1472,76 @@
     const rlLiveMetricsEl = document.getElementById('rlLiveMetrics');
     const rlPanelToggleBtn = document.getElementById('rlPanelToggle');
     const rlConfigSectionEl = document.querySelector('.rl-config-section');
-    let rlPanelCollapsed = false;
-    function setRlPanelCollapsed(collapsed = false){
-      rlPanelCollapsed = !!collapsed;
-      if(rlConfigSectionEl){
-        rlConfigSectionEl.classList.toggle('collapsed', rlPanelCollapsed);
-      }
-      if(rlPanelToggleBtn){
-        const labelEl = rlPanelToggleBtn.querySelector('.collapse-label');
-        rlPanelToggleBtn.setAttribute('aria-expanded', String(!rlPanelCollapsed));
+    const rlParamContentEl = document.getElementById('rlParamContent');
+    const gridSizeSectionEl = document.getElementById('gridSizeSection');
+    const gridSizeToggleBtn = document.getElementById('gridSizeToggle');
+    const gridSizeContentEl = document.getElementById('gridSizeContent');
+    const canvasSizeSectionEl = document.getElementById('canvasSizeSection');
+    const canvasSizeToggleBtn = document.getElementById('canvasSizeToggle');
+    const canvasSizeContentEl = document.getElementById('canvasSizeContent');
+    const aiParamsSectionEl = document.getElementById('aiParamsSection');
+    const aiParamsToggleBtn = document.getElementById('aiParamsToggle');
+    const aiParamsContentEl = document.getElementById('aiParamsContent');
+    const gameStatusSectionEl = document.getElementById('gameStatusSection');
+    const gameStatusToggleBtn = document.getElementById('gameStatusToggle');
+    const gameStatusContentEl = document.getElementById('gameStatusContent');
+    const aiStatusSectionEl = document.getElementById('aiStatusSection');
+    const aiStatusToggleBtn = document.getElementById('aiStatusToggle');
+    const aiStatusContentEl = document.getElementById('aiStatusContent');
+    function setupCollapsibleSection(sectionEl, buttonEl, contentEl, options = {}){
+      if(!sectionEl || !buttonEl || !contentEl) return null;
+      const {
+        collapsed = false,
+        expandedLabel = 'Hide settings',
+        collapsedLabel = 'Show settings'
+      } = options;
+      let isCollapsed = !!collapsed;
+      const labelEl = buttonEl.querySelector('.collapse-label');
+      function sync(){
+        sectionEl.classList.toggle('collapsed', isCollapsed);
+        buttonEl.setAttribute('aria-expanded', String(!isCollapsed));
         if(labelEl){
-          labelEl.textContent = rlPanelCollapsed ? 'Show settings' : 'Hide settings';
+          labelEl.textContent = isCollapsed ? collapsedLabel : expandedLabel;
         }
+        contentEl.hidden = isCollapsed;
+        contentEl.setAttribute('aria-hidden', String(isCollapsed));
       }
-    }
-    if(rlPanelToggleBtn){
-      rlPanelToggleBtn.addEventListener('click', () => {
-        setRlPanelCollapsed(!rlPanelCollapsed);
+      buttonEl.addEventListener('click', () => {
+        isCollapsed = !isCollapsed;
+        sync();
       });
-      setRlPanelCollapsed(false);
+      sync();
+      return {
+        setCollapsed(value){
+          isCollapsed = !!value;
+          sync();
+        },
+        isCollapsed(){
+          return isCollapsed;
+        }
+      };
     }
+    setupCollapsibleSection(
+      rlConfigSectionEl,
+      rlPanelToggleBtn,
+      rlParamContentEl,
+      { expandedLabel: 'Hide settings', collapsedLabel: 'Show settings' }
+    );
+    setupCollapsibleSection(gridSizeSectionEl, gridSizeToggleBtn, gridSizeContentEl);
+    setupCollapsibleSection(canvasSizeSectionEl, canvasSizeToggleBtn, canvasSizeContentEl);
+    setupCollapsibleSection(aiParamsSectionEl, aiParamsToggleBtn, aiParamsContentEl);
+    setupCollapsibleSection(
+      gameStatusSectionEl,
+      gameStatusToggleBtn,
+      gameStatusContentEl,
+      { expandedLabel: 'Hide status', collapsedLabel: 'Show status' }
+    );
+    setupCollapsibleSection(
+      aiStatusSectionEl,
+      aiStatusToggleBtn,
+      aiStatusContentEl,
+      { expandedLabel: 'Hide status', collapsedLabel: 'Show status' }
+    );
     const elapsedTimeEl = document.getElementById('elapsedTime');
     const bestTimeEl = document.getElementById('bestTime');
     function formatTime(ms){
