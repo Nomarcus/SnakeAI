@@ -49,6 +49,17 @@
     @keyframes rotate {
       to { transform: rotate(360deg); }
     }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     /* Navigation */
     nav {
       background: var(--glass);
@@ -228,6 +239,53 @@
     .controls-section h3::before {
       content: '⚡';
       font-size: 1.5rem;
+    }
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .section-title-row h3 {
+      margin-bottom: 0;
+    }
+    .collapse-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+    .collapse-toggle:hover,
+    .collapse-toggle:focus-visible {
+      color: var(--accent);
+      background: rgba(255, 255, 255, 0.08);
+      outline: none;
+    }
+    .collapse-toggle .chevron {
+      display: inline-block;
+      transition: transform 0.2s ease;
+    }
+    .rl-config-section.collapsed .collapse-toggle .chevron {
+      transform: rotate(-90deg);
+    }
+    .rl-config-section fieldset {
+      margin: 0;
+    }
+    .rl-config-section.collapsed fieldset {
+      display: none;
+    }
+    .rl-config-section.collapsed {
+      margin-bottom: 1.5rem;
     }
     /* Modern buttons */
     .button {
@@ -649,76 +707,85 @@
             <div style="margin-top: 1rem;">
               <button id="restartBtn" class="button danger" style="width: 100%;">🔄 Restart</button>
             </div>
-          <div style="margin-top: 0.8rem;">
-            <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
-            <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
+            <div style="margin-top: 0.8rem;">
+              <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
+              <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
+            </div>
           </div>
           <div class="controls-section" style="margin-top: 1.5rem;">
             <h3>ML / RL Training</h3>
             <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable Reinforcement Learning</button>
             <p id="rlHint" class="manual-hint">Reinforcement learning is currently disabled.</p>
           </div>
-          <fieldset id="rlParamFieldset" class="rl-fieldset inactive" disabled>
-            <legend>Fine-tune RL</legend>
-            <p class="manual-hint" style="margin-bottom: 1rem;">Turn on RL to unlock reward tuning and hyperparameters.</p>
-            <div class="param-control">
-              <label>Step Penalty: <span id="rlStepPenaltyValue">-0.05</span></label>
-              <input type="range" id="rlStepPenalty" class="size-slider" min="-0.5" max="0" step="0.01" value="-0.05">
-              <small>Negative reward every move – increasing the penalty forces shorter routes.</small>
+          <div class="controls-section rl-config-section">
+            <div class="section-title-row">
+              <h3>Fine-tune RL</h3>
+              <button id="rlPanelToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="rlParamFieldset" title="Show or hide reinforcement learning fine-tuning settings">
+                <span class="chevron">▾</span>
+                <span class="collapse-label">Hide settings</span>
+              </button>
             </div>
-            <div class="param-control">
-              <label>Fruit Reward: <span id="rlFruitRewardValue">5</span></label>
-              <input type="range" id="rlFruitReward" class="size-slider" min="0" max="20" step="0.5" value="5">
-              <small>Positive reward when fruit is eaten. Raise it to prioritise fast growth.</small>
-            </div>
-            <div class="param-control">
-              <label>Win Bonus: <span id="rlWinBonusValue">15</span></label>
-              <input type="range" id="rlWinBonus" class="size-slider" min="0" max="40" step="1" value="15">
-              <small>Extra reward for filling the entire board.</small>
-            </div>
-            <div class="param-control">
-              <label>Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
-              <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
-              <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
-            </div>
-            <div class="rl-grid two-col">
+            <fieldset id="rlParamFieldset" class="rl-fieldset inactive" disabled>
+              <legend class="visually-hidden">Fine-tune RL</legend>
+              <p class="manual-hint" style="margin-bottom: 1rem;">Turn on RL to unlock reward tuning and hyperparameters.</p>
               <div class="param-control">
-                <label>Learning rate α: <span id="rlAlphaValue">0.20</span></label>
-                <input type="number" id="rlAlpha" class="number-input" min="0.01" max="1" step="0.01" value="0.2">
-                <small>How fast the Q-table updates. Higher values react quickly but can be unstable.</small>
+                <label>Step Penalty: <span id="rlStepPenaltyValue">-0.05</span></label>
+                <input type="range" id="rlStepPenalty" class="size-slider" min="-0.5" max="0" step="0.01" value="-0.05">
+                <small>Negative reward every move – increasing the penalty forces shorter routes.</small>
               </div>
               <div class="param-control">
-                <label>Discount γ: <span id="rlGammaValue">0.90</span></label>
-                <input type="number" id="rlGamma" class="number-input" min="0" max="0.99" step="0.01" value="0.9">
-                <small>How much future rewards are valued. Higher values favour long-term planning.</small>
+                <label>Fruit Reward: <span id="rlFruitRewardValue">5</span></label>
+                <input type="range" id="rlFruitReward" class="size-slider" min="0" max="20" step="0.5" value="5">
+                <small>Positive reward when fruit is eaten. Raise it to prioritise fast growth.</small>
               </div>
               <div class="param-control">
-                <label>Start ε: <span id="rlEpsilonStartValue">0.30</span></label>
-                <input type="number" id="rlEpsilonStart" class="number-input" min="0" max="1" step="0.01" value="0.3">
-                <small>Exploration at the beginning of training. Higher values = more random moves.</small>
+                <label>Win Bonus: <span id="rlWinBonusValue">15</span></label>
+                <input type="range" id="rlWinBonus" class="size-slider" min="0" max="40" step="1" value="15">
+                <small>Extra reward for filling the entire board.</small>
               </div>
               <div class="param-control">
-                <label>Min ε: <span id="rlEpsilonMinValue">0.05</span></label>
-                <input type="number" id="rlEpsilonMin" class="number-input" min="0" max="0.5" step="0.01" value="0.05">
-                <small>Lowest exploration after long training.</small>
+                <label>Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
+                <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
+                <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
               </div>
-              <div class="param-control">
-                <label>ε decay: <span id="rlEpsilonDecayValue">0.995</span></label>
-                <input type="number" id="rlEpsilonDecay" class="number-input" min="0.8" max="0.999" step="0.001" value="0.995">
-                <small>How quickly exploration shrinks each episode.</small>
+              <div class="rl-grid two-col">
+                <div class="param-control">
+                  <label>Learning rate α: <span id="rlAlphaValue">0.20</span></label>
+                  <input type="number" id="rlAlpha" class="number-input" min="0.01" max="1" step="0.01" value="0.2">
+                  <small>How fast the Q-table updates. Higher values react quickly but can be unstable.</small>
+                </div>
+                <div class="param-control">
+                  <label>Discount γ: <span id="rlGammaValue">0.90</span></label>
+                  <input type="number" id="rlGamma" class="number-input" min="0" max="0.99" step="0.01" value="0.9">
+                  <small>How much future rewards are valued. Higher values favour long-term planning.</small>
+                </div>
+                <div class="param-control">
+                  <label>Start ε: <span id="rlEpsilonStartValue">0.30</span></label>
+                  <input type="number" id="rlEpsilonStart" class="number-input" min="0" max="1" step="0.01" value="0.3">
+                  <small>Exploration at the beginning of training. Higher values = more random moves.</small>
+                </div>
+                <div class="param-control">
+                  <label>Min ε: <span id="rlEpsilonMinValue">0.05</span></label>
+                  <input type="number" id="rlEpsilonMin" class="number-input" min="0" max="0.5" step="0.01" value="0.05">
+                  <small>Lowest exploration after long training.</small>
+                </div>
+                <div class="param-control">
+                  <label>ε decay: <span id="rlEpsilonDecayValue">0.995</span></label>
+                  <input type="number" id="rlEpsilonDecay" class="number-input" min="0.8" max="0.999" step="0.001" value="0.995">
+                  <small>How quickly exploration shrinks each episode.</small>
+                </div>
               </div>
-            </div>
-            <div style="margin-top: 1rem;">
-              <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                <input type="checkbox" id="autoRestartToggle" style="width: 18px; height: 18px;">
-                <span>Auto restart after a perfect game (keeps training on repeat).</span>
-              </label>
-              <p id="rlLiveMetrics" class="manual-hint" style="margin-bottom: 1rem;">Live metrics will appear here once RL starts.</p>
-              <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Reset RL learning</button>
-              <p class="manual-hint">Clears the Q-table, stats, and sets ε back to its starting value.</p>
-            </div>
-          </fieldset>
-        </div>
+              <div style="margin-top: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                  <input type="checkbox" id="autoRestartToggle" style="width: 18px; height: 18px;">
+                  <span>Auto restart after a perfect game (keeps training on repeat).</span>
+                </label>
+                <p id="rlLiveMetrics" class="manual-hint" style="margin-bottom: 1rem;">Live metrics will appear here once RL starts.</p>
+                <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Reset RL learning</button>
+                <p class="manual-hint">Clears the Q-table, stats, and sets ε back to its starting value.</p>
+              </div>
+            </fieldset>
+          </div>
           <div class="controls-section">
             <h3>Grid Size</h3>
             <div class="param-control">
@@ -1316,6 +1383,11 @@
             episodes,
             lastEpisodeReward,
             averageReward: episodes ? totalReward / episodes : 0,
+            alpha,
+            gamma,
+            epsilonMin,
+            epsilonDecay,
+            stateCount: qTable.size,
             outcomes: { ...outcomeCounts },
             totalOutcomes
           };
@@ -1343,6 +1415,28 @@
     const rlResetButton = document.getElementById('rlResetLearning');
     const autoRestartToggle = document.getElementById('autoRestartToggle');
     const rlLiveMetricsEl = document.getElementById('rlLiveMetrics');
+    const rlPanelToggleBtn = document.getElementById('rlPanelToggle');
+    const rlConfigSectionEl = document.querySelector('.rl-config-section');
+    let rlPanelCollapsed = false;
+    function setRlPanelCollapsed(collapsed = false){
+      rlPanelCollapsed = !!collapsed;
+      if(rlConfigSectionEl){
+        rlConfigSectionEl.classList.toggle('collapsed', rlPanelCollapsed);
+      }
+      if(rlPanelToggleBtn){
+        const labelEl = rlPanelToggleBtn.querySelector('.collapse-label');
+        rlPanelToggleBtn.setAttribute('aria-expanded', String(!rlPanelCollapsed));
+        if(labelEl){
+          labelEl.textContent = rlPanelCollapsed ? 'Show settings' : 'Hide settings';
+        }
+      }
+    }
+    if(rlPanelToggleBtn){
+      rlPanelToggleBtn.addEventListener('click', () => {
+        setRlPanelCollapsed(!rlPanelCollapsed);
+      });
+      setRlPanelCollapsed(false);
+    }
     const elapsedTimeEl = document.getElementById('elapsedTime');
     const bestTimeEl = document.getElementById('bestTime');
     function formatTime(ms){
@@ -1569,7 +1663,19 @@
       }
       const stats = rlAgent.getStats();
       const rewardText = Number.isFinite(lastObservedReward) ? lastObservedReward.toFixed(2) : '0.00';
-      rlLiveMetricsEl.textContent = `Live: reward=${rewardText} · last episode=${stats.lastEpisodeReward.toFixed(2)} · avg=${stats.averageReward.toFixed(2)} · ε=${stats.epsilon.toFixed(3)}`;
+      const lastEpisodeText = Number.isFinite(stats.lastEpisodeReward) ? stats.lastEpisodeReward.toFixed(2) : '0.00';
+      const avgText = Number.isFinite(stats.averageReward) ? stats.averageReward.toFixed(2) : '0.00';
+      const episodesText = Number.isFinite(stats.episodes) ? stats.episodes : 0;
+      const stateCountText = Number.isFinite(stats.stateCount) ? stats.stateCount.toLocaleString() : '0';
+      const epsilonText = Number.isFinite(stats.epsilon) ? stats.epsilon.toFixed(3) : '--';
+      const epsilonMinText = Number.isFinite(stats.epsilonMin) ? stats.epsilonMin.toFixed(2) : '--';
+      const epsilonDecayText = Number.isFinite(stats.epsilonDecay) ? stats.epsilonDecay.toFixed(3) : '--';
+      const alphaText = Number.isFinite(stats.alpha) ? stats.alpha.toFixed(2) : '--';
+      const gammaText = Number.isFinite(stats.gamma) ? stats.gamma.toFixed(2) : '--';
+      const lineOne = `Live: reward=${rewardText} · last episode=${lastEpisodeText} · avg=${avgText}`;
+      const lineTwo = `episodes=${episodesText} · states=${stateCountText}`;
+      const lineThree = `ε=${epsilonText} (min=${epsilonMinText}, decay=${epsilonDecayText}) · α=${alphaText} · γ=${gammaText}`;
+      rlLiveMetricsEl.innerHTML = `${lineOne}<br>${lineTwo}<br>${lineThree}`;
     }
     function applyRlUpdate(reward, done){
       if(!rlTrainingEnabled){
