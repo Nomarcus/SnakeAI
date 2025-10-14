@@ -1057,6 +1057,10 @@
                   <span class="status-label">Best time:</span>
                   <span id="bestTime" class="status-value">--</span>
                 </div>
+                <div class="status-item">
+                  <span class="status-label">Completed:</span>
+                  <span id="completedRounds" class="status-value">0</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1366,6 +1370,12 @@
     let lastElapsedMs = 0;
     let bestTimeMs = null;
     let lastObservedReward = 0;
+    const BASE_TIMEOUT_PER_CELL_MS = 150;
+    const MIN_RUN_TIMEOUT_MS = 30000;
+    const MAX_RUN_TIMEOUT_MS = 120000;
+    let runTimeoutMs = 0;
+    let runTimeoutDeadline = null;
+    let completedRounds = 0;
     const rlConfig = {
       stepPenalty: -0.05,
       fruitReward: 5,
@@ -1379,7 +1389,9 @@
       gamma: 0.9,
       epsilonStart: 0.3,
       epsilonMin: 0.05,
-      epsilonDecay: 0.995
+      epsilonDecay: 0.995,
+      rewardScale: 1,
+      trainingEpisodes: 1
     };
     /* ===== DYNAMIC THRESHOLDS ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
@@ -1431,6 +1443,10 @@
     };
     let loopCountAdjust = 0;
     const rlAgent = createReinforcementAgent(rlConfig);
+    let rlBatchActive = false;
+    let rlBatchEpisodesRemaining = 0;
+    let rlBatchPlannedEpisodes = 1;
+    let rlHintOverride = null;
     /* ===== GAME STATE ===== */
     let snake=[], snakeSet=new Set();
     let fruit, prevFruitDist=Infinity, noProgressMoves=0;
@@ -1441,6 +1457,7 @@
     let endgamePlanThisMove = false;
     let persistentLoopCounter = 0;
     let gameRunning = false;
+    let autoRestartTimer = null;
     const STRATEGY_DESCRIPTIONS = {
       "Initializing": "Setting up a safe opening path before committing to a plan.",
       "Forcing Hamilton (Stagnation)": "Switching to the safety cycle because movement became repetitive.",
@@ -1483,6 +1500,7 @@
       let lastEpisodeDeaths = 0;
       let totalEpisodeDeaths = 0;
       let totalOutcomes = 0;
+      let completedEpisodes = 0;
       const outcomeCounts = Object.create(null);
       const stateKey = state => state.join('|');
       const ensureState = key => {
@@ -1588,8 +1606,10 @@
           if(typeof outcome !== 'string') return;
           const key = outcome.trim().toLowerCase();
           if(!key) return;
-          if(key === 'loss'){
+          if(key === 'loss' || key === 'timeout'){
             currentEpisodeDeaths += 1;
+          } else if(key === 'win'){
+            completedEpisodes += 1;
           }
           outcomeCounts[key] = (outcomeCounts[key] || 0) + 1;
           totalOutcomes++;
@@ -1629,7 +1649,8 @@
               currentEpisodeDeaths,
               lastEpisodeDeaths,
               totalEpisodeDeaths,
-              totalOutcomes
+              totalOutcomes,
+              completedEpisodes
             },
             outcomes: { ...outcomeCounts },
             qTable: serializedTable
@@ -1670,6 +1691,7 @@
           if(Number.isFinite(stats.lastEpisodeDeaths)) lastEpisodeDeaths = stats.lastEpisodeDeaths;
           if(Number.isFinite(stats.totalEpisodeDeaths)) totalEpisodeDeaths = stats.totalEpisodeDeaths;
           if(Number.isFinite(stats.totalOutcomes)) totalOutcomes = stats.totalOutcomes;
+          if(Number.isFinite(stats.completedEpisodes)) completedEpisodes = stats.completedEpisodes;
           for(const key in outcomeCounts){
             if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
               delete outcomeCounts[key];
@@ -1699,6 +1721,7 @@
           lastEpisodeDeaths = 0;
           totalEpisodeDeaths = 0;
           totalOutcomes = 0;
+          completedEpisodes = 0;
           for(const key in outcomeCounts){
             if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
               delete outcomeCounts[key];
@@ -1717,6 +1740,7 @@
             averageEpisodeDuration: episodes ? totalEpisodeDuration / episodes : 0,
             lastEpisodeDeaths,
             averageDeaths: episodes ? totalEpisodeDeaths / episodes : 0,
+            completedEpisodes,
             alpha,
             gamma,
             epsilonMin,
@@ -1786,7 +1810,24 @@
       { id: 'rlGamma', valueId: 'rlGammaValue', key: 'gamma', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ gamma: v }) },
       { id: 'rlEpsilonStart', valueId: 'rlEpsilonStartValue', key: 'epsilonStart', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { rlAgent.setHyperparameters({ epsilonStart: v }); rlAgent.resetEpsilon(v); } },
       { id: 'rlEpsilonMin', valueId: 'rlEpsilonMinValue', key: 'epsilonMin', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ epsilonMin: v }) },
-      { id: 'rlEpsilonDecay', valueId: 'rlEpsilonDecayValue', key: 'epsilonDecay', parser: parseFloat, format: v => v.toFixed(3), onChange: v => rlAgent.setHyperparameters({ epsilonDecay: v }) }
+      { id: 'rlEpsilonDecay', valueId: 'rlEpsilonDecayValue', key: 'epsilonDecay', parser: parseFloat, format: v => v.toFixed(3), onChange: v => rlAgent.setHyperparameters({ epsilonDecay: v }) },
+      { id: 'rlEpisodes', valueId: 'rlEpisodesValue', key: 'trainingEpisodes', parser: value => {
+        const parsed = Number(value);
+        if(Number.isNaN(parsed)) return 1;
+        return Math.max(1, Math.round(parsed));
+      }, format: v => Math.round(v), onChange: v => {
+        if(rlTrainingEnabled && !autoRestartEnabled){
+          rlBatchPlannedEpisodes = Math.max(1, Math.round(v));
+          if(rlBatchPlannedEpisodes > 1){
+            rlBatchActive = true;
+            rlBatchEpisodesRemaining = rlBatchPlannedEpisodes - 1;
+          } else {
+            rlBatchActive = false;
+            rlBatchEpisodesRemaining = 0;
+          }
+        }
+      } },
+      { id: 'rlRewardScale', valueId: 'rlRewardScaleValue', key: 'rewardScale', parser: parseFloat, format: v => v.toFixed(1) }
     ];
     const MAX_EPISODE_HISTORY = 10;
     const rlEpisodeLog = [];
@@ -1847,6 +1888,53 @@
       }
       renderRlEpisodeHistory();
     }
+    function sanitizeTrainingEpisodes(value){
+      if(!Number.isFinite(value)) return 1;
+      return Math.max(1, Math.round(value));
+    }
+    function resetRlBatchProgress(){
+      rlBatchPlannedEpisodes = sanitizeTrainingEpisodes(rlConfig.trainingEpisodes);
+      rlBatchActive = false;
+      rlBatchEpisodesRemaining = 0;
+    }
+    function configureRlBatchForSession(){
+      rlBatchPlannedEpisodes = sanitizeTrainingEpisodes(rlConfig.trainingEpisodes);
+      if(!autoRestartEnabled && rlBatchPlannedEpisodes > 1){
+        rlBatchActive = true;
+        rlBatchEpisodesRemaining = rlBatchPlannedEpisodes - 1;
+      } else {
+        rlBatchActive = false;
+        rlBatchEpisodesRemaining = 0;
+      }
+    }
+    function cancelScheduledAutoRestart(){
+      if(autoRestartTimer){
+        clearTimeout(autoRestartTimer);
+        autoRestartTimer = null;
+      }
+    }
+    function handleRlEpisodeCompletion(){
+      if(!rlTrainingEnabled || !rlBatchActive) return null;
+      if(rlBatchEpisodesRemaining > 0){
+        rlBatchEpisodesRemaining--;
+        const completed = rlBatchPlannedEpisodes - (rlBatchEpisodesRemaining + 1);
+        scheduleAutoRestart(450, true);
+        return {
+          trainingDisabled: false,
+          message: `Batch training ${completed}/${rlBatchPlannedEpisodes} complete – restarting…`
+        };
+      }
+      const total = rlBatchPlannedEpisodes;
+      cancelScheduledAutoRestart();
+      rlTrainingEnabled = false;
+      rlEpisodeActive = false;
+      rlPendingChoice = null;
+      resetRlBatchProgress();
+      return {
+        trainingDisabled: true,
+        message: `Completed ${total} RL episodes – training paused.`
+      };
+    }
     function setupCollapsibleSection(sectionEl, buttonEl, contentEl, options = {}){
       if(!sectionEl || !buttonEl || !contentEl) return null;
       const {
@@ -1903,6 +1991,7 @@
     );
     const elapsedTimeEl = document.getElementById('elapsedTime');
     const bestTimeEl = document.getElementById('bestTime');
+    const completedRoundsEl = document.getElementById('completedRounds');
     function formatTime(ms){
       if(!Number.isFinite(ms) || ms < 0) return '00:00.0';
       const totalSeconds = ms / 1000;
@@ -1915,6 +2004,20 @@
       if(elapsedTimeEl){
         elapsedTimeEl.textContent = formatTime(ms);
       }
+    }
+    function updateCompletedRoundsDisplay(){
+      if(completedRoundsEl){
+        completedRoundsEl.textContent = completedRounds;
+      }
+    }
+    function computeRunTimeout(){
+      const area = COLS * ROWS;
+      const estimated = area * BASE_TIMEOUT_PER_CELL_MS;
+      return Math.max(MIN_RUN_TIMEOUT_MS, Math.min(MAX_RUN_TIMEOUT_MS, estimated));
+    }
+    function resetRunTimeoutDeadline(){
+      const now = performance.now();
+      runTimeoutDeadline = now + runTimeoutMs;
     }
     function updateBestTimeDisplay(){
       if(bestTimeEl){
@@ -1955,9 +2058,12 @@
         }
       }
       startTime = null;
+      runTimeoutDeadline = null;
     }
     updateElapsedTimeDisplay(0);
     updateBestTimeDisplay();
+    runTimeoutMs = computeRunTimeout();
+    updateCompletedRoundsDisplay();
     const KEY_TO_DIR = {
       'arrowup': {dx: 0, dy: -1},
       'w': {dx: 0, dy: -1},
@@ -2253,6 +2359,7 @@
       const lastEpisodeText = Number.isFinite(stats.lastEpisodeReward) ? stats.lastEpisodeReward.toFixed(2) : '0.00';
       const avgText = Number.isFinite(stats.averageReward) ? stats.averageReward.toFixed(2) : '0.00';
       const episodesText = Number.isFinite(stats.episodes) ? stats.episodes : 0;
+      const winsText = Number.isFinite(stats.completedEpisodes) ? stats.completedEpisodes : 0;
       const stateCountText = Number.isFinite(stats.stateCount) ? stats.stateCount.toLocaleString() : '0';
       const epsilonText = Number.isFinite(stats.epsilon) ? stats.epsilon.toFixed(3) : '--';
       const epsilonMinText = Number.isFinite(stats.epsilonMin) ? stats.epsilonMin.toFixed(2) : '--';
@@ -2264,19 +2371,22 @@
       const lineOne = `Live: reward=${rewardText} · last episode=${lastEpisodeText} · avg=${avgText}`;
       const lastDeathsText = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
       const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
-      const lineTwo = `episodes=${episodesText} · states=${stateCountText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} · avg=${avgDurationText}`;
+      const lineTwo = `episodes=${episodesText} · wins=${winsText} · states=${stateCountText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} · avg=${avgDurationText}`;
       const lineThree = `ε=${epsilonText} (min=${epsilonMinText}, decay=${epsilonDecayText}) · α=${alphaText} · γ=${gammaText}`;
       rlLiveMetricsEl.innerHTML = `${lineOne}<br>${lineTwo}<br>${lineThree}`;
     }
-    function applyRlUpdate(reward, done){
+    function applyRlUpdate(reward, done, options = {}){
       if(!rlTrainingEnabled){
         rlPendingChoice = null;
         return;
       }
+      const shouldScale = !options.skipScaling && typeof reward === 'number' && Number.isFinite(reward);
+      const scale = Number.isFinite(rlConfig.rewardScale) ? rlConfig.rewardScale : 1;
+      const effectiveReward = shouldScale && scale !== 1 ? reward * scale : reward;
       let episodeJustEnded = false;
       if(rlPendingChoice){
         const nextState = done ? null : buildRlObservation(getSafeMovesForRL());
-        rlAgent.learn(rlPendingChoice.stateKey, rlPendingChoice.actionIdx, reward, nextState, done);
+        rlAgent.learn(rlPendingChoice.stateKey, rlPendingChoice.actionIdx, effectiveReward, nextState, done);
         if(done && rlEpisodeActive){
           rlAgent.endEpisode();
           rlEpisodeActive = false;
@@ -2288,10 +2398,19 @@
         rlEpisodeActive = false;
         episodeJustEnded = true;
       }
-      updateRlStatus();
-      updateRlLiveMetrics(reward);
+      let completionInfo = null;
       if(episodeJustEnded){
         recordRlEpisodeSnapshot();
+        completionInfo = handleRlEpisodeCompletion();
+      }
+      if(completionInfo?.trainingDisabled){
+        rlHintOverride = completionInfo.message ?? rlHintOverride;
+        updateRlToggleUI();
+      }
+      updateRlStatus();
+      updateRlLiveMetrics(effectiveReward);
+      if(!completionInfo?.trainingDisabled && completionInfo?.message && rlHint){
+        rlHint.textContent = completionInfo.message;
       }
     }
     function updateRlStatus(){
@@ -2300,7 +2419,7 @@
       if(!rlTrainingEnabled){
         rlStatusEl.textContent = 'RL disabled – using handcrafted strategies only.';
         if(rlHint){
-          rlHint.textContent = 'Reinforcement learning is currently disabled.';
+          rlHint.textContent = rlHintOverride ?? 'Reinforcement learning is currently disabled.';
         }
         updateRlLiveMetrics();
         return;
@@ -2314,9 +2433,10 @@
       const avgDurationText = formatEpisodeDuration(stats.averageEpisodeDuration);
       const lastDeathsText = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
       const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
-      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · last=${lastRewardText} · avg=${avgRewardText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} (avg=${avgDurationText})`;
+      const winsText = Number.isFinite(stats.completedEpisodes) ? stats.completedEpisodes : 0;
+      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · wins=${winsText} · last=${lastRewardText} · avg=${avgRewardText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} (avg=${avgDurationText})`;
       if(rlHint){
-        rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
+        rlHint.textContent = rlHintOverride ?? `RL is learning live – episodes: ${stats.episodes}`;
       }
       updateRlLiveMetrics();
     }
@@ -2328,6 +2448,9 @@
         const applyValue = raw => {
           if(Number.isNaN(raw)) return;
           rlConfig[binding.key] = raw;
+          if(input){
+            input.value = raw;
+          }
           valueEl.textContent = typeof binding.format === 'function' ? binding.format(raw) : raw;
           if(typeof binding.onChange === 'function'){
             binding.onChange(raw);
@@ -2345,6 +2468,7 @@
         rlAgent.resetLearning();
         lastObservedReward = 0;
         rlEpisodeLog.length = 0;
+        rlHintOverride = null;
         updateRlStatus();
         updateRlLiveMetrics(0);
         renderRlEpisodeHistory();
@@ -2408,15 +2532,25 @@
     });
     autoRestartToggle?.addEventListener('change', (event) => {
       autoRestartEnabled = !!event.target.checked;
+      if(autoRestartEnabled){
+        resetRlBatchProgress();
+      } else if(rlTrainingEnabled){
+        configureRlBatchForSession();
+        if(rlBatchActive && rlHint){
+          rlHint.textContent = `Batch training ${rlBatchPlannedEpisodes} episodes – episode 1 in progress.`;
+        }
+      }
     });
     updateManualUI();
     updateSafetyNetUI();
     rlToggleBtn?.addEventListener('click', () => {
       rlTrainingEnabled = !rlTrainingEnabled;
       if(rlTrainingEnabled){
+        rlHintOverride = null;
         manualMode = false;
         updateManualUI();
         rlPendingChoice = null;
+        configureRlBatchForSession();
         rlAgent.resetEpsilon(rlConfig.epsilonStart);
         rlAgent.startEpisode();
         rlEpisodeActive = true;
@@ -2426,9 +2560,15 @@
         }
         rlEpisodeActive = false;
         rlPendingChoice = null;
+        rlHintOverride = null;
+        cancelScheduledAutoRestart();
+        resetRlBatchProgress();
       }
       updateRlToggleUI();
       updateRlStatus();
+      if(rlTrainingEnabled && rlBatchActive && rlHint){
+        rlHint.textContent = `Batch training ${rlBatchPlannedEpisodes} episodes – episode 1 in progress.`;
+      }
     });
     updateRlToggleUI();
     updateRlStatus();
@@ -2627,6 +2767,7 @@
         if(typeof toggles.rlTrainingEnabled === 'boolean'){
           rlTrainingEnabled = toggles.rlTrainingEnabled;
           rlEpisodeActive = false;
+          rlHintOverride = null;
           updateRlToggleUI();
         }
       }
@@ -2681,6 +2822,7 @@
         rlEpisodeActive = false;
         rlEpisodeLog.length = 0;
         lastObservedReward = 0;
+        rlHintOverride = null;
         renderRlEpisodeHistory();
         updateRlLiveMetrics(0);
         updateRlStatus();
@@ -2769,6 +2911,8 @@
       HAM = buildHamilton();
       if (loopHandle) clearInterval(loopHandle);
       gameRunning = true;
+      runTimeoutMs = computeRunTimeout();
+      resetRunTimeoutDeadline();
       if(rlTrainingEnabled){
         if(rlEpisodeActive){
           rlAgent.endEpisode();
@@ -2783,6 +2927,7 @@
       draw();
       loopHandle = setInterval(update, SPEED);
       startRunTimer();
+      updateCompletedRoundsDisplay();
     }
     document.getElementById('restartBtn').addEventListener('click', restartGame);
     /* ===== HAMILTON-SLINGA ===== */
@@ -3426,17 +3571,19 @@
     function scheduleAutoRestart(delay = 600, force = false){
       if(!rlTrainingEnabled) return;
       if(!force && !autoRestartEnabled) return;
-      setTimeout(() => {
+      cancelScheduledAutoRestart();
+      autoRestartTimer = setTimeout(() => {
+        autoRestartTimer = null;
         if(!gameRunning){
           restartGame();
         }
       }, delay);
     }
-    function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = '#ef4444', penalty = rlConfig.deathPenalty } = {}){
+    function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = '#ef4444', penalty = rlConfig.deathPenalty, outcome = 'loss' } = {}){
       if(rlTrainingEnabled){
-        rlAgent.registerTerminal('loss');
+        rlAgent.registerTerminal(outcome);
       }
-      applyRlUpdate(typeof penalty === 'number' ? penalty : rlConfig.deathPenalty, true);
+      applyRlUpdate(typeof penalty === 'number' ? penalty : rlConfig.deathPenalty, true, { skipScaling: true });
       clearInterval(loopHandle);
       gameRunning = false;
       finishRun(false);
@@ -3447,6 +3594,17 @@
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; finishRun(false); return; }
+      if(runTimeoutDeadline !== null && performance.now() > runTimeoutDeadline){
+        const timeoutPenalty = Number.isFinite(rlConfig.deadEndPenalty) ? rlConfig.deadEndPenalty : rlConfig.deathPenalty;
+        handleSnakeDeath({
+          title: 'Timeout ⏱️',
+          subtitle: `Restart efter ${formatTime(runTimeoutMs)} utan framsteg.`,
+          color: '#38bdf8',
+          penalty: timeoutPenalty,
+          outcome: 'timeout'
+        });
+        return;
+      }
       let stepReward = rlConfig.stepPenalty;
       let stepDone = false;
       const nxt = manualMode ? getManualNext() : getNext();
@@ -3506,7 +3664,9 @@
         loopCountAdjust = 0;
         stepReward = rlConfig.fruitReward;
         if(snake.length === COLS * ROWS){
-          rlAgent.registerTerminal('win');
+          if(rlTrainingEnabled){
+            rlAgent.registerTerminal('win');
+          }
           fruit = {x: -1, y: -1};
           stepReward = rlConfig.winBonus;
           stepDone = true;
@@ -3515,6 +3675,8 @@
           clearInterval(loopHandle);
           gameRunning = false;
           finishRun(true);
+          completedRounds++;
+          updateCompletedRoundsDisplay();
           ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
@@ -3538,6 +3700,7 @@
         if(atePosition){
           spawnEatEffect(atePosition.x, atePosition.y);
         }
+        resetRunTimeoutDeadline();
       }
       if(rlTrainingEnabled && !stepDone){
         const trapPenalty = typeof rlConfig.deadEndPenalty === 'number' ? rlConfig.deadEndPenalty : 0;
