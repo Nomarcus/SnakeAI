@@ -72,7 +72,7 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
     .nav-container {
-      max-width: 1400px;
+      width: 100%;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
@@ -129,9 +129,10 @@
     }
     /* Main container */
     .container {
-      max-width: 1400px;
+      width: 100%;
+      max-width: none;
       margin: 0 auto;
-      padding: 3rem 2rem;
+      padding: 3rem;
     }
     /* Hero section */
     .hero {
@@ -163,9 +164,10 @@
     .game-wrapper {
       display: flex;
       gap: 3rem;
-      align-items: flex-start;
+      align-items: stretch;
       justify-content: center;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      width: 100%;
     }
     .game-container {
       background: var(--glass);
@@ -173,6 +175,8 @@
       border: 1px solid var(--glass-border);
       border-radius: 2rem;
       padding: 2rem;
+      flex: 1 1 auto;
+      min-width: 650px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
       position: relative;
       overflow: hidden;
@@ -208,8 +212,8 @@
       border: 1px solid var(--glass-border);
       border-radius: 1.5rem;
       padding: 2rem;
-      min-width: 380px;
-      max-width: 600px;
+      width: 700px;
+      flex: 0 0 700px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       max-height: 90vh;
       overflow-y: auto;
@@ -884,7 +888,7 @@
       </div>
       <div class="game-wrapper">
         <div class="game-container">
-          <canvas id="game" width="500" height="500"></canvas>
+          <canvas id="game" width="650" height="650"></canvas>
         </div>
         <div class="controls-panel">
           <div class="controls-section">
@@ -1102,7 +1106,7 @@
             <div id="canvasSizeContent" class="collapsible-content">
               <div class="size-controls">
                 <span>Small</span>
-                <input type="range" id="sizeSlider" class="size-slider" min="300" max="800" value="400" step="50">
+                <input type="range" id="sizeSlider" class="size-slider" min="300" max="900" value="650" step="50">
                 <span>Large</span>
               </div>
             </div>
@@ -1553,6 +1557,7 @@
     /* ===== CANVAS ===== */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    CELL = canvas.width / COLS;
     let lastRender = performance.now();
     /* ===== AI PARAMETERS ===== */
     let LOOP_STREAK_THRESHOLD = 1;
