@@ -336,6 +336,86 @@
       opacity: 0.7;
       text-align: center;
     }
+    .episode-history-card {
+      margin-top: 1.25rem;
+      padding: 1.1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(12px);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+    .episode-history-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .episode-history-heading h4 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .episode-history-heading small {
+      color: var(--text);
+      opacity: 0.6;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .episode-history-grid-header,
+    .episode-history-row {
+      display: grid;
+      grid-template-columns: 0.7fr 1fr 1fr 1fr 1fr;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.82rem;
+    }
+    .episode-history-grid-header {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.65;
+      margin-bottom: 0.35rem;
+    }
+    .episode-history-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+    .episode-history-rows::-webkit-scrollbar {
+      width: 6px;
+    }
+    .episode-history-rows::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .episode-history-rows::-webkit-scrollbar-thumb {
+      background: rgba(240, 147, 251, 0.35);
+      border-radius: 999px;
+    }
+    .episode-history-row {
+      background: rgba(255, 255, 255, 0.035);
+      border-radius: 0.8rem;
+      padding: 0.5rem 0.75rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    .episode-history-row span {
+      white-space: nowrap;
+    }
+    .episode-history-empty {
+      font-size: 0.82rem;
+      color: var(--text);
+      opacity: 0.65;
+      text-align: center;
+      padding: 0.75rem 0.25rem;
+    }
     .rl-fieldset {
       margin-top: 1.5rem;
       border: 1px solid var(--glass-border);
@@ -795,6 +875,22 @@
                     <span>Auto restart after a perfect game (keeps training on repeat).</span>
                   </label>
                   <p id="rlLiveMetrics" class="manual-hint" style="margin-bottom: 1rem;">Live metrics will appear here once RL starts.</p>
+                  <div class="episode-history-card">
+                    <div class="episode-history-heading">
+                      <h4>📊 Episode tracker</h4>
+                      <small>Tracks last 10 RL runs</small>
+                    </div>
+                    <div class="episode-history-grid-header">
+                      <span>Episode</span>
+                      <span>Reward</span>
+                      <span>Avg reward</span>
+                      <span>Duration</span>
+                      <span>Avg duration</span>
+                    </div>
+                    <div id="rlEpisodeHistoryRows" class="episode-history-rows">
+                      <p class="episode-history-empty">Enable RL to start logging episodes.</p>
+                    </div>
+                  </div>
                   <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Reset RL learning</button>
                   <p class="manual-hint">Clears the Q-table, stats, and sets ε back to its starting value.</p>
                 </div>
@@ -1315,6 +1411,9 @@
       let episodeReward = 0;
       let totalReward = 0;
       let lastEpisodeReward = 0;
+      let episodeStartTime = null;
+      let lastEpisodeDuration = 0;
+      let totalEpisodeDuration = 0;
       let totalOutcomes = 0;
       const outcomeCounts = Object.create(null);
       const stateKey = state => state.join('|');
@@ -1323,6 +1422,9 @@
           qTable.set(key, Array(DIRS.length).fill(0));
         }
       };
+      const nowMs = () => (typeof performance !== 'undefined' && typeof performance.now === 'function')
+        ? performance.now()
+        : Date.now();
       const applyHyperparameters = values => {
         if(values && typeof values === 'object'){
           if(typeof values.alpha === 'number'){
@@ -1392,8 +1494,18 @@
         },
         startEpisode(){
           episodeReward = 0;
+          episodeStartTime = nowMs();
         },
         endEpisode(){
+          const finishedAt = nowMs();
+          const duration = episodeStartTime ? finishedAt - episodeStartTime : 0;
+          if(duration > 0){
+            lastEpisodeDuration = duration;
+            totalEpisodeDuration += duration;
+          } else {
+            lastEpisodeDuration = 0;
+          }
+          episodeStartTime = null;
           totalReward += episodeReward;
           lastEpisodeReward = episodeReward;
           episodes++;
@@ -1423,6 +1535,9 @@
           episodeReward = 0;
           totalReward = 0;
           lastEpisodeReward = 0;
+          episodeStartTime = null;
+          lastEpisodeDuration = 0;
+          totalEpisodeDuration = 0;
           totalOutcomes = 0;
           for(const key in outcomeCounts){
             if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
@@ -1438,6 +1553,8 @@
             episodes,
             lastEpisodeReward,
             averageReward: episodes ? totalReward / episodes : 0,
+            lastEpisodeDuration,
+            averageEpisodeDuration: episodes ? totalEpisodeDuration / episodes : 0,
             alpha,
             gamma,
             epsilonMin,
@@ -1470,6 +1587,7 @@
     const rlResetButton = document.getElementById('rlResetLearning');
     const autoRestartToggle = document.getElementById('autoRestartToggle');
     const rlLiveMetricsEl = document.getElementById('rlLiveMetrics');
+    const rlEpisodeHistoryRows = document.getElementById('rlEpisodeHistoryRows');
     const rlPanelToggleBtn = document.getElementById('rlPanelToggle');
     const rlConfigSectionEl = document.querySelector('.rl-config-section');
     const rlParamContentEl = document.getElementById('rlParamContent');
@@ -1488,6 +1606,57 @@
     const aiStatusSectionEl = document.getElementById('aiStatusSection');
     const aiStatusToggleBtn = document.getElementById('aiStatusToggle');
     const aiStatusContentEl = document.getElementById('aiStatusContent');
+    const MAX_EPISODE_HISTORY = 10;
+    const rlEpisodeLog = [];
+    function formatRewardValue(value){
+      return Number.isFinite(value) ? value.toFixed(2) : '--';
+    }
+    function formatEpisodeDuration(ms){
+      if(!Number.isFinite(ms) || ms <= 0){
+        return '--';
+      }
+      if(ms >= 60000){
+        const minutes = Math.floor(ms / 60000);
+        const seconds = ((ms % 60000) / 1000).toFixed(minutes >= 10 ? 0 : 1);
+        return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
+      }
+      return `${(ms / 1000).toFixed(2)}s`;
+    }
+    function renderRlEpisodeHistory(){
+      if(!rlEpisodeHistoryRows) return;
+      if(!rlEpisodeLog.length){
+        const message = rlTrainingEnabled
+          ? 'No completed RL episodes yet.'
+          : 'Enable RL to start logging episodes.';
+        rlEpisodeHistoryRows.innerHTML = `<p class="episode-history-empty">${message}</p>`;
+        return;
+      }
+      const rowsHtml = rlEpisodeLog.map(entry => `
+        <div class="episode-history-row">
+          <span>#${entry.episode}</span>
+          <span>${formatRewardValue(entry.reward)}</span>
+          <span>${formatRewardValue(entry.avgReward)}</span>
+          <span>${formatEpisodeDuration(entry.duration)}</span>
+          <span>${formatEpisodeDuration(entry.avgDuration)}</span>
+        </div>
+      `).join('');
+      rlEpisodeHistoryRows.innerHTML = rowsHtml;
+    }
+    function recordRlEpisodeSnapshot(){
+      const stats = rlAgent.getStats();
+      if(!Number.isFinite(stats.episodes) || stats.episodes <= 0) return;
+      rlEpisodeLog.unshift({
+        episode: stats.episodes,
+        reward: stats.lastEpisodeReward,
+        avgReward: stats.averageReward,
+        duration: stats.lastEpisodeDuration,
+        avgDuration: stats.averageEpisodeDuration
+      });
+      if(rlEpisodeLog.length > MAX_EPISODE_HISTORY){
+        rlEpisodeLog.length = MAX_EPISODE_HISTORY;
+      }
+      renderRlEpisodeHistory();
+    }
     function setupCollapsibleSection(sectionEl, buttonEl, contentEl, options = {}){
       if(!sectionEl || !buttonEl || !contentEl) return null;
       const {
@@ -1668,6 +1837,7 @@
         autoRestartToggle.disabled = !rlTrainingEnabled;
       }
       updateRlLiveMetrics();
+      renderRlEpisodeHistory();
     }
     function getManualNext(){
       const direction = pendingManualDirection || manualDirection;
@@ -1777,8 +1947,10 @@
       const epsilonDecayText = Number.isFinite(stats.epsilonDecay) ? stats.epsilonDecay.toFixed(3) : '--';
       const alphaText = Number.isFinite(stats.alpha) ? stats.alpha.toFixed(2) : '--';
       const gammaText = Number.isFinite(stats.gamma) ? stats.gamma.toFixed(2) : '--';
+      const lastDurationText = formatEpisodeDuration(stats.lastEpisodeDuration);
+      const avgDurationText = formatEpisodeDuration(stats.averageEpisodeDuration);
       const lineOne = `Live: reward=${rewardText} · last episode=${lastEpisodeText} · avg=${avgText}`;
-      const lineTwo = `episodes=${episodesText} · states=${stateCountText}`;
+      const lineTwo = `episodes=${episodesText} · states=${stateCountText} · time last=${lastDurationText} · avg=${avgDurationText}`;
       const lineThree = `ε=${epsilonText} (min=${epsilonMinText}, decay=${epsilonDecayText}) · α=${alphaText} · γ=${gammaText}`;
       rlLiveMetricsEl.innerHTML = `${lineOne}<br>${lineTwo}<br>${lineThree}`;
     }
@@ -1787,20 +1959,26 @@
         rlPendingChoice = null;
         return;
       }
+      let episodeJustEnded = false;
       if(rlPendingChoice){
         const nextState = done ? null : buildRlObservation(getSafeMovesForRL());
         rlAgent.learn(rlPendingChoice.stateKey, rlPendingChoice.actionIdx, reward, nextState, done);
         if(done && rlEpisodeActive){
           rlAgent.endEpisode();
           rlEpisodeActive = false;
+          episodeJustEnded = true;
         }
         rlPendingChoice = null;
       } else if(done && rlTrainingEnabled && rlEpisodeActive){
         rlAgent.endEpisode();
         rlEpisodeActive = false;
+        episodeJustEnded = true;
       }
       updateRlStatus();
       updateRlLiveMetrics(reward);
+      if(episodeJustEnded){
+        recordRlEpisodeSnapshot();
+      }
     }
     function updateRlStatus(){
       const rlStatusEl = document.getElementById('rlStatus');
@@ -1814,7 +1992,13 @@
         return;
       }
       const stats = rlAgent.getStats();
-      rlStatusEl.textContent = `RL training active · ε=${stats.epsilon.toFixed(3)} · episodes=${stats.episodes} · last episode=${stats.lastEpisodeReward.toFixed(2)} · average=${stats.averageReward.toFixed(2)}`;
+      const epsilonText = Number.isFinite(stats.epsilon) ? stats.epsilon.toFixed(3) : '--';
+      const episodesText = Number.isFinite(stats.episodes) ? stats.episodes : 0;
+      const lastRewardText = formatRewardValue(stats.lastEpisodeReward);
+      const avgRewardText = formatRewardValue(stats.averageReward);
+      const lastDurationText = formatEpisodeDuration(stats.lastEpisodeDuration);
+      const avgDurationText = formatEpisodeDuration(stats.averageEpisodeDuration);
+      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · last=${lastRewardText} · avg=${avgRewardText} · time last=${lastDurationText} (avg=${avgDurationText})`;
       if(rlHint){
         rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
       }
@@ -1855,8 +2039,10 @@
       rlResetButton?.addEventListener('click', () => {
         rlAgent.resetLearning();
         lastObservedReward = 0;
+        rlEpisodeLog.length = 0;
         updateRlStatus();
         updateRlLiveMetrics(0);
+        renderRlEpisodeHistory();
         if(rlHint){
           rlHint.textContent = 'RL reset – start a new training run to collect data.';
         }
