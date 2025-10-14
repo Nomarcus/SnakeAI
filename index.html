@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -161,15 +162,12 @@
     }
     /* Game section */
     .game-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2.5rem;
-  flex-wrap: nowrap;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-}
+      display: flex;
+      gap: 3rem;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
     .game-container {
       background: var(--glass);
       backdrop-filter: blur(20px);
@@ -212,7 +210,7 @@
       border-radius: 1.5rem;
       padding: 2rem;
       min-width: 380px;
-      max-width: 650px;
+      max-width: 550px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       max-height: 90vh;
       overflow-y: auto;
@@ -1759,7 +1757,7 @@
           if(typeof outcome !== 'string') return;
           const key = outcome.trim().toLowerCase();
           if(!key) return;
-          if(key === 'loss' || key === 'timeout' || key === 'self_crash' || key === 'wall_crash' || key === 'dead_end_crash'){
+          if(key === 'loss' || key === 'timeout'){
             currentEpisodeDeaths += 1;
           } else if(key === 'win'){
             completedEpisodes += 1;
@@ -2550,21 +2548,6 @@
         safeMoves.push({x: nx, y: ny, dirIndex: i, ate});
       }
       return safeMoves;
-    }
-    function countImmediateSafeMoves(){
-      const head = snake[0];
-      if(!head) return 0;
-      const tail = snake.length > 1 ? snake[snake.length - 1] : null;
-      let count = 0;
-      for(const dir of DIRS){
-        const nx = head.x + dir.dx;
-        const ny = head.y + dir.dy;
-        if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
-        const isTailStep = tail && nx === tail.x && ny === tail.y;
-        if(snakeSet.has(`${nx},${ny}`) && !isTailStep) continue;
-        count++;
-      }
-      return count;
     }
     function isMoveLethal(move){
       return move?.outOfBounds || move?.hitsBody;
@@ -3959,24 +3942,13 @@
       let stepReward = rlConfig.stepPenalty;
       let rewardBreakdown = rlTrainingEnabled ? [{ id: 'stepPenalty', amount: rlConfig.stepPenalty }] : null;
       let stepDone = false;
-      const immediateSafeMoveCount = countImmediateSafeMoves();
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
-        const deadEndCrash = immediateSafeMoveCount === 0;
-        const penalty = deadEndCrash && Number.isFinite(rlConfig.deadEndPenalty)
-          ? rlConfig.deadEndPenalty
-          : rlConfig.deathPenalty;
-        handleSnakeDeath({
-          title: deadEndCrash ? 'Dead-end crash! 🚫' : 'Crash! 💥',
-          subtitle: `Final length: ${snake.length}`,
-          color: deadEndCrash ? '#f97316' : '#ef4444',
-          penalty,
-          outcome: deadEndCrash ? 'dead_end_crash' : 'self_crash'
-        });
+        handleSnakeDeath({ title: 'Trapped! ❌', subtitle: `Final length: ${snake.length}`, color: '#f97316' });
         return;
       }
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
-        handleSnakeDeath({ title: 'Wall crash! 🧱', subtitle: `Final length: ${snake.length}`, outcome: 'wall_crash' });
+        handleSnakeDeath({ title: 'Wall crash! 🧱', subtitle: `Final length: ${snake.length}` });
         return;
       }
       if(loopDetected){
@@ -4018,17 +3990,7 @@
       const tail = snake[snake.length - 1];
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
-        const deadEndCrash = immediateSafeMoveCount === 0;
-        const penalty = deadEndCrash && Number.isFinite(rlConfig.deadEndPenalty)
-          ? rlConfig.deadEndPenalty
-          : rlConfig.deathPenalty;
-        handleSnakeDeath({
-          title: deadEndCrash ? 'Dead-end crash! 🚫' : 'Self crash! 💥',
-          subtitle: `Final length: ${snake.length}`,
-          color: deadEndCrash ? '#f97316' : '#ef4444',
-          penalty,
-          outcome: deadEndCrash ? 'dead_end_crash' : 'self_crash'
-        });
+        handleSnakeDeath({ title: 'Crash! 💥', subtitle: `Final length: ${snake.length}` });
         return;
       }
       const atePosition = ate ? {x: fruit.x, y: fruit.y} : null;
