@@ -1057,6 +1057,10 @@
                   <span class="status-label">Best time:</span>
                   <span id="bestTime" class="status-value">--</span>
                 </div>
+                <div class="status-item">
+                  <span class="status-label">Completed:</span>
+                  <span id="completedRounds" class="status-value">0</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1366,6 +1370,12 @@
     let lastElapsedMs = 0;
     let bestTimeMs = null;
     let lastObservedReward = 0;
+    const BASE_TIMEOUT_PER_CELL_MS = 150;
+    const MIN_RUN_TIMEOUT_MS = 30000;
+    const MAX_RUN_TIMEOUT_MS = 120000;
+    let runTimeoutMs = 0;
+    let runTimeoutDeadline = null;
+    let completedRounds = 0;
     const rlConfig = {
       stepPenalty: -0.05,
       fruitReward: 5,
@@ -1483,6 +1493,7 @@
       let lastEpisodeDeaths = 0;
       let totalEpisodeDeaths = 0;
       let totalOutcomes = 0;
+      let completedEpisodes = 0;
       const outcomeCounts = Object.create(null);
       const stateKey = state => state.join('|');
       const ensureState = key => {
@@ -1588,8 +1599,10 @@
           if(typeof outcome !== 'string') return;
           const key = outcome.trim().toLowerCase();
           if(!key) return;
-          if(key === 'loss'){
+          if(key === 'loss' || key === 'timeout'){
             currentEpisodeDeaths += 1;
+          } else if(key === 'win'){
+            completedEpisodes += 1;
           }
           outcomeCounts[key] = (outcomeCounts[key] || 0) + 1;
           totalOutcomes++;
@@ -1629,7 +1642,8 @@
               currentEpisodeDeaths,
               lastEpisodeDeaths,
               totalEpisodeDeaths,
-              totalOutcomes
+              totalOutcomes,
+              completedEpisodes
             },
             outcomes: { ...outcomeCounts },
             qTable: serializedTable
@@ -1670,6 +1684,7 @@
           if(Number.isFinite(stats.lastEpisodeDeaths)) lastEpisodeDeaths = stats.lastEpisodeDeaths;
           if(Number.isFinite(stats.totalEpisodeDeaths)) totalEpisodeDeaths = stats.totalEpisodeDeaths;
           if(Number.isFinite(stats.totalOutcomes)) totalOutcomes = stats.totalOutcomes;
+          if(Number.isFinite(stats.completedEpisodes)) completedEpisodes = stats.completedEpisodes;
           for(const key in outcomeCounts){
             if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
               delete outcomeCounts[key];
@@ -1699,6 +1714,7 @@
           lastEpisodeDeaths = 0;
           totalEpisodeDeaths = 0;
           totalOutcomes = 0;
+          completedEpisodes = 0;
           for(const key in outcomeCounts){
             if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
               delete outcomeCounts[key];
@@ -1717,6 +1733,7 @@
             averageEpisodeDuration: episodes ? totalEpisodeDuration / episodes : 0,
             lastEpisodeDeaths,
             averageDeaths: episodes ? totalEpisodeDeaths / episodes : 0,
+            completedEpisodes,
             alpha,
             gamma,
             epsilonMin,
@@ -1903,6 +1920,7 @@
     );
     const elapsedTimeEl = document.getElementById('elapsedTime');
     const bestTimeEl = document.getElementById('bestTime');
+    const completedRoundsEl = document.getElementById('completedRounds');
     function formatTime(ms){
       if(!Number.isFinite(ms) || ms < 0) return '00:00.0';
       const totalSeconds = ms / 1000;
@@ -1915,6 +1933,20 @@
       if(elapsedTimeEl){
         elapsedTimeEl.textContent = formatTime(ms);
       }
+    }
+    function updateCompletedRoundsDisplay(){
+      if(completedRoundsEl){
+        completedRoundsEl.textContent = completedRounds;
+      }
+    }
+    function computeRunTimeout(){
+      const area = COLS * ROWS;
+      const estimated = area * BASE_TIMEOUT_PER_CELL_MS;
+      return Math.max(MIN_RUN_TIMEOUT_MS, Math.min(MAX_RUN_TIMEOUT_MS, estimated));
+    }
+    function resetRunTimeoutDeadline(){
+      const now = performance.now();
+      runTimeoutDeadline = now + runTimeoutMs;
     }
     function updateBestTimeDisplay(){
       if(bestTimeEl){
@@ -1955,9 +1987,12 @@
         }
       }
       startTime = null;
+      runTimeoutDeadline = null;
     }
     updateElapsedTimeDisplay(0);
     updateBestTimeDisplay();
+    runTimeoutMs = computeRunTimeout();
+    updateCompletedRoundsDisplay();
     const KEY_TO_DIR = {
       'arrowup': {dx: 0, dy: -1},
       'w': {dx: 0, dy: -1},
@@ -2253,6 +2288,7 @@
       const lastEpisodeText = Number.isFinite(stats.lastEpisodeReward) ? stats.lastEpisodeReward.toFixed(2) : '0.00';
       const avgText = Number.isFinite(stats.averageReward) ? stats.averageReward.toFixed(2) : '0.00';
       const episodesText = Number.isFinite(stats.episodes) ? stats.episodes : 0;
+      const winsText = Number.isFinite(stats.completedEpisodes) ? stats.completedEpisodes : 0;
       const stateCountText = Number.isFinite(stats.stateCount) ? stats.stateCount.toLocaleString() : '0';
       const epsilonText = Number.isFinite(stats.epsilon) ? stats.epsilon.toFixed(3) : '--';
       const epsilonMinText = Number.isFinite(stats.epsilonMin) ? stats.epsilonMin.toFixed(2) : '--';
@@ -2264,7 +2300,7 @@
       const lineOne = `Live: reward=${rewardText} · last episode=${lastEpisodeText} · avg=${avgText}`;
       const lastDeathsText = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
       const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
-      const lineTwo = `episodes=${episodesText} · states=${stateCountText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} · avg=${avgDurationText}`;
+      const lineTwo = `episodes=${episodesText} · wins=${winsText} · states=${stateCountText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} · avg=${avgDurationText}`;
       const lineThree = `ε=${epsilonText} (min=${epsilonMinText}, decay=${epsilonDecayText}) · α=${alphaText} · γ=${gammaText}`;
       rlLiveMetricsEl.innerHTML = `${lineOne}<br>${lineTwo}<br>${lineThree}`;
     }
@@ -2314,7 +2350,8 @@
       const avgDurationText = formatEpisodeDuration(stats.averageEpisodeDuration);
       const lastDeathsText = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
       const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
-      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · last=${lastRewardText} · avg=${avgRewardText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} (avg=${avgDurationText})`;
+      const winsText = Number.isFinite(stats.completedEpisodes) ? stats.completedEpisodes : 0;
+      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · wins=${winsText} · last=${lastRewardText} · avg=${avgRewardText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} (avg=${avgDurationText})`;
       if(rlHint){
         rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
       }
@@ -2769,6 +2806,8 @@
       HAM = buildHamilton();
       if (loopHandle) clearInterval(loopHandle);
       gameRunning = true;
+      runTimeoutMs = computeRunTimeout();
+      resetRunTimeoutDeadline();
       if(rlTrainingEnabled){
         if(rlEpisodeActive){
           rlAgent.endEpisode();
@@ -2783,6 +2822,7 @@
       draw();
       loopHandle = setInterval(update, SPEED);
       startRunTimer();
+      updateCompletedRoundsDisplay();
     }
     document.getElementById('restartBtn').addEventListener('click', restartGame);
     /* ===== HAMILTON-SLINGA ===== */
@@ -3432,9 +3472,9 @@
         }
       }, delay);
     }
-    function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = '#ef4444', penalty = rlConfig.deathPenalty } = {}){
+    function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = '#ef4444', penalty = rlConfig.deathPenalty, outcome = 'loss' } = {}){
       if(rlTrainingEnabled){
-        rlAgent.registerTerminal('loss');
+        rlAgent.registerTerminal(outcome);
       }
       applyRlUpdate(typeof penalty === 'number' ? penalty : rlConfig.deathPenalty, true);
       clearInterval(loopHandle);
@@ -3447,6 +3487,17 @@
     /* ===== UPDATE ===== */
     function update(){
       if(!snake.length){ clearInterval(loopHandle); gameRunning = false; finishRun(false); return; }
+      if(runTimeoutDeadline !== null && performance.now() > runTimeoutDeadline){
+        const timeoutPenalty = Number.isFinite(rlConfig.deadEndPenalty) ? rlConfig.deadEndPenalty : rlConfig.deathPenalty;
+        handleSnakeDeath({
+          title: 'Timeout ⏱️',
+          subtitle: `Restart efter ${formatTime(runTimeoutMs)} utan framsteg.`,
+          color: '#38bdf8',
+          penalty: timeoutPenalty,
+          outcome: 'timeout'
+        });
+        return;
+      }
       let stepReward = rlConfig.stepPenalty;
       let stepDone = false;
       const nxt = manualMode ? getManualNext() : getNext();
@@ -3506,7 +3557,9 @@
         loopCountAdjust = 0;
         stepReward = rlConfig.fruitReward;
         if(snake.length === COLS * ROWS){
-          rlAgent.registerTerminal('win');
+          if(rlTrainingEnabled){
+            rlAgent.registerTerminal('win');
+          }
           fruit = {x: -1, y: -1};
           stepReward = rlConfig.winBonus;
           stepDone = true;
@@ -3515,6 +3568,8 @@
           clearInterval(loopHandle);
           gameRunning = false;
           finishRun(true);
+          completedRounds++;
+          updateCompletedRoundsDisplay();
           ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
@@ -3538,6 +3593,7 @@
         if(atePosition){
           spawnEatEffect(atePosition.x, atePosition.y);
         }
+        resetRunTimeoutDeadline();
       }
       if(rlTrainingEnabled && !stepDone){
         const trapPenalty = typeof rlConfig.deadEndPenalty === 'number' ? rlConfig.deadEndPenalty : 0;
