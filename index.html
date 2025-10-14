@@ -1,5 +1,206 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Snake Simulation - Intelligent Snake Experience</title> <style> * { margin: 0; padding: 0; box-sizing: border-box; } :root { --primary: #667eea; --secondary: #764ba2; --accent: #f093fb; --success: #4ade80; --danger: #ef4444; --warning: #fbbf24; --dark: #1a1a2e; --darker: #0f0f23; --light: #eef2ff; --text: #e2e8f0; --glass: rgba(255, 255, 255, 0.1); --glass-border: rgba(255, 255, 255, 0.2); } body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%); min-height: 100vh; color: var(--text); overflow-x: hidden; position: relative; } body::before { content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, var(--primary) 0%, transparent 70%); opacity: 0.03; animation: rotate 60s linear infinite; z-index: -1; } @keyframes rotate { to { transform: rotate(360deg); } } nav { background: var(--glass); backdrop-filter: blur(10px); border-bottom: 1px solid var(--glass-border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); } .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; } .logo { font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 0.5rem; } .logo::before { content: '🐍'; font-size: 2rem; -webkit-text-fill-color: initial; } .nav-links { display: flex; gap: 2rem; list-style: none; } .nav-links a { color: var(--text); text-decoration: none; font-weight: 500; transition: all 0.3s; position: relative; padding: 0.5rem 1rem; border-radius: 0.5rem; } .nav-links a:hover, .nav-links a.active { color: var(--accent); background: var(--glass); } .page { display: none; animation: fadeIn 0.5s ease-in-out; } .page.active { display: block; } @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem 4rem; } .hero { text-align: center; margin-bottom: 3rem; } .hero h1 { font-size: 3.5rem; font-weight: 900; margin-bottom: 1rem; background: linear-gradient(135deg, var(--light) 0%, var(--accent) 50%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradient 3s ease-in-out infinite; background-size: 200%; } @keyframes gradient { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } } .hero p { font-size: 1.2rem; color: var(--text); opacity: 0.8; max-width: 600px; margin: 0 auto; } /* --- GAME SECTION --- */ .game-wrapper { display: flex; justify-content: center; align-items: flex-start; flex-wrap: wrap; gap: 2rem; max-width: 1200px; margin: 0 auto; } .game-container { display: inline-flex; align-items: center; justify-content: center; flex-direction: column; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 1.2rem; padding: 1rem; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); position: relative; overflow: hidden; flex: 1 1 45%; } .game-container::before { content: ''; position: absolute; inset: -2px; background: linear-gradient(45deg, var(--accent), var(--primary), var(--secondary)); border-radius: inherit; z-index: -1; opacity: 0; transition: opacity 0.3s; } .game-container:hover::before { opacity: 0.5; } .canvas-wrapper { display: inline-block; position: relative; } #game { display: block; width: auto; height: auto; border-radius: 0.75rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transition: transform 0.3s; } #game:hover { transform: scale(1.02); } </style>
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake Simulation - Intelligent Snake Experience</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    :root {
+      --primary: #667eea;
+      --secondary: #764ba2;
+      --accent: #f093fb;
+      --success: #4ade80;
+      --danger: #ef4444;
+      --warning: #fbbf24;
+      --dark: #1a1a2e;
+      --darker: #0f0f23;
+      --light: #eef2ff;
+      --text: #e2e8f0;
+      --glass: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+      min-height: 100vh;
+      color: var(--text);
+      overflow-x: hidden;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+      opacity: 0.03;
+      animation: rotate 60s linear infinite;
+      z-index: -1;
+    }
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    /* Navigation */
+    nav {
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .logo::before {
+      content: '🐍';
+      font-size: 2rem;
+      -webkit-text-fill-color: initial;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s;
+      position: relative;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+    }
+    .nav-links a:hover {
+      color: var(--accent);
+      background: var(--glass);
+    }
+    .nav-links a.active {
+      color: var(--accent);
+      background: var(--glass);
+    }
+    /* Page transitions */
+    .page {
+      display: none;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .page.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Main container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+    /* Hero section */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 900;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--light) 0%, var(--accent) 50%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradient 3s ease-in-out infinite;
+      background-size: 200%;
+    }
+    @keyframes gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text);
+      opacity: 0.8;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    /* Game section */
+    .game-wrapper {
+      display: flex;
+      gap: 3rem;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .game-container {
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 2rem;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .game-container::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, var(--accent), var(--primary), var(--secondary));
+      border-radius: 2rem;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .game-container:hover::before {
+      opacity: 0.5;
+    }
+    #game {
+      border-radius: 1rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transition: transform 0.3s;
+    }
+    #game:hover {
+      transform: scale(1.02);
+    }
     /* Controls panel */
     .controls-panel {
       background: var(--glass);
@@ -7,26 +208,11 @@
       border: 1px solid var(--glass-border);
       border-radius: 1.5rem;
       padding: 2rem;
-      width: 100%;
-      flex: 1 1 420px;
-      max-width: 520px;
+      min-width: 380px;
+      max-width: 550px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       max-height: 90vh;
       overflow-y: auto;
-    }
-    @media (max-width: 1200px) {
-      .game-wrapper {
-        flex-direction: column;
-        align-items: center;
-      }
-      .controls-panel {
-        flex: 1 1 100%;
-        width: 100%;
-        max-width: 700px;
-      }
-      .game-container {
-        max-width: 700px;
-      }
     }
     .controls-panel::-webkit-scrollbar {
       width: 8px;
@@ -698,9 +884,7 @@
       </div>
       <div class="game-wrapper">
         <div class="game-container">
-          <div class="canvas-wrapper">
-            <canvas id="game" width="650" height="650"></canvas>
-          </div>
+          <canvas id="game" width="600" height="600"></canvas>
         </div>
         <div class="controls-panel">
           <div class="controls-section">
@@ -772,7 +956,7 @@
                 </div>
                 <div class="param-control">
                   <label>Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
-                  <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-200">
+                  <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
                   <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
                 </div>
                 <div class="param-control">
@@ -918,7 +1102,7 @@
             <div id="canvasSizeContent" class="collapsible-content">
               <div class="size-controls">
                 <span>Small</span>
-                <input type="range" id="sizeSlider" class="size-slider" min="300" max="900" value="650" step="50">
+                <input type="range" id="sizeSlider" class="size-slider" min="300" max="800" value="400" step="50">
                 <span>Large</span>
               </div>
             </div>
@@ -1286,9 +1470,6 @@
     let COLS = 20, ROWS = 20;
     let CELL = 30;
     let SPEED = 100;
-    const MIN_CANVAS_SIZE = 100;
-    const MAX_CANVAS_SIZE = 900;
-    let preferredCanvasSize = 650;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
     const DIR_TO_INDEX = DIRS.reduce((acc, dir, idx) => {
       acc[`${dir.dx},${dir.dy}`] = idx;
@@ -1304,7 +1485,6 @@
     let rlPendingChoice = null;
     let rlEpisodeActive = false;
     let autoRestartEnabled = false;
-    let gameRunning = false;
     let startTime = null;
     let elapsedTimerHandle = null;
     let lastElapsedMs = 0;
@@ -1372,37 +1552,7 @@
     let LOOP_ESCAPE_LIMIT = Math.max(40, Math.floor((COLS * ROWS) / 2));
     /* ===== CANVAS ===== */
     const canvas = document.getElementById('game');
-    const canvasWrapper = canvas?.closest('.canvas-wrapper') || null;
     const ctx = canvas.getContext('2d');
-    function syncCanvasDimensions() {
-      if (!canvasWrapper) return;
-      const displaySize = Math.floor(canvasWrapper.getBoundingClientRect().width);
-      if (!displaySize) return;
-      if (canvas.width !== displaySize || canvas.height !== displaySize) {
-        canvas.width = displaySize;
-        canvas.height = displaySize;
-        CELL = canvas.width / COLS;
-        if (gameRunning) {
-          draw();
-        }
-      }
-    }
-    function clampCanvasSize(value) {
-      if (!Number.isFinite(value)) return null;
-      return Math.max(MIN_CANVAS_SIZE, Math.min(MAX_CANVAS_SIZE, Math.round(value)));
-    }
-    function setPreferredCanvasSize(size) {
-      const clamped = clampCanvasSize(size);
-      if (!clamped || !canvasWrapper) return;
-      preferredCanvasSize = clamped;
-      canvasWrapper.style.setProperty('--canvas-size', `${clamped}px`);
-      syncCanvasDimensions();
-    }
-    const canvasResizeObserver = canvasWrapper ? new ResizeObserver(() => {
-      syncCanvasDimensions();
-    }) : null;
-    canvasResizeObserver?.observe(canvasWrapper);
-    CELL = canvas.width / COLS;
     let lastRender = performance.now();
     /* ===== AI PARAMETERS ===== */
     let LOOP_STREAK_THRESHOLD = 1;
@@ -1456,6 +1606,7 @@
     let compactModeJustActivated = false;
     let endgamePlanThisMove = false;
     let persistentLoopCounter = 0;
+    let gameRunning = false;
     let autoRestartTimer = null;
     const STRATEGY_DESCRIPTIONS = {
       "Initializing": "Setting up a safe opening path before committing to a plan.",
@@ -2754,22 +2905,13 @@
     rlImportFileInput?.addEventListener('change', handleTrainingImport);
     /* ===== SIZE CONTROL ===== */
     const sizeSlider = document.getElementById('sizeSlider');
-    if(sizeSlider){
-      sizeSlider.addEventListener('input', (e) => {
-        const size = parseInt(e.target.value);
-        if(Number.isNaN(size)) return;
-        setPreferredCanvasSize(size);
-      });
-      const initialPreferredSize = clampCanvasSize(parseInt(sizeSlider.value, 10));
-      if(initialPreferredSize){
-        preferredCanvasSize = initialPreferredSize;
-        setPreferredCanvasSize(initialPreferredSize);
-      } else {
-        syncCanvasDimensions();
-      }
-    } else {
-      syncCanvasDimensions();
-    }
+    sizeSlider.addEventListener('input', (e) => {
+      const size = parseInt(e.target.value);
+      canvas.width = size;
+      canvas.height = size;
+      CELL = size / COLS;
+      if (gameRunning) draw();
+    });
     /* ===== GRID CONTROLS ===== */
     const colsSlider = document.getElementById('colsSlider');
     const rowsSlider = document.getElementById('rowsSlider');
@@ -2859,7 +3001,7 @@
         grid: {
           cols: COLS,
           rows: ROWS,
-          canvasSize: preferredCanvasSize
+          canvasSize: canvas.width
         },
         thresholds: {
           loopStreak: LOOP_STREAK_THRESHOLD,
@@ -2893,10 +3035,10 @@
           window.loadingPreset = false;
         }
         if(canvasSize){
-          if(sizeSlider){
-            sizeSlider.value = canvasSize;
-          }
-          setPreferredCanvasSize(canvasSize);
+          sizeSlider.value = canvasSize;
+          canvas.width = canvasSize;
+          canvas.height = canvasSize;
+          CELL = canvas.width / COLS;
         }
       }
       if(thresholds && typeof thresholds === 'object'){
