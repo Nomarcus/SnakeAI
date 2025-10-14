@@ -72,7 +72,7 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
     .nav-container {
-      max-width: 1400px;
+      width: 100%;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
@@ -129,9 +129,10 @@
     }
     /* Main container */
     .container {
-      max-width: 1400px;
+      width: 100%;
+      max-width: none;
       margin: 0 auto;
-      padding: 3rem 2rem;
+      padding: 3rem;
     }
     /* Hero section */
     .hero {
@@ -164,8 +165,9 @@
       display: flex;
       gap: 3rem;
       align-items: stretch;
-      justify-content: space-between;
-      flex-wrap: wrap;
+      justify-content: center;
+      flex-wrap: nowrap;
+      width: 100%;
     }
     .game-container {
       background: var(--glass);
@@ -173,7 +175,8 @@
       border: 1px solid var(--glass-border);
       border-radius: 2rem;
       padding: 2rem;
-      flex: 0 0 auto;
+      flex: 1 1 auto;
+      min-width: 650px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
       position: relative;
       overflow: hidden;
@@ -209,9 +212,8 @@
       border: 1px solid var(--glass-border);
       border-radius: 1.5rem;
       padding: 2rem;
-      width: min(700px, 100%);
-      max-width: 650px;
-      flex: 1 1 700px;
+      width: 700px;
+      flex: 0 0 700px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       max-height: 90vh;
       overflow-y: auto;
