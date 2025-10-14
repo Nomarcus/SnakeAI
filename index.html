@@ -329,6 +329,14 @@
       background: linear-gradient(135deg, var(--success) 0%, var(--accent) 100%);
       box-shadow: 0 8px 25px rgba(74, 222, 128, 0.45);
     }
+    .button.warning {
+      background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%);
+      color: #1f2937;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.45);
+    }
+    .button.warning:hover {
+      box-shadow: 0 6px 20px rgba(251, 191, 36, 0.6);
+    }
     .manual-hint {
       font-size: 0.85rem;
       margin-top: 0.5rem;
@@ -793,6 +801,10 @@
             <div style="margin-top: 0.8rem;">
               <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
               <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
+            </div>
+            <div style="margin-top: 0.8rem;">
+              <button id="safetyNetToggle" class="button toggle-active" style="width: 100%;">🛡️ Safety Net: ON</button>
+              <p id="safetyNetHint" class="manual-hint">Safety net algorithms are active.</p>
             </div>
           </div>
           <div class="controls-section" style="margin-top: 1.5rem;">
@@ -1318,6 +1330,7 @@
     let manualDirection = {dx: 1, dy: 0};
     let pendingManualDirection = null;
     let eatParticles = [];
+    let safetyNetEnabled = true;
     let rlTrainingEnabled = false;
     let rlPendingChoice = null;
     let rlEpisodeActive = false;
@@ -1417,7 +1430,10 @@
       "BFS to fruit": "Calculating the safest shortest path to the fruit.",
       "BFS to tail": "Using breadth-first search to reconnect with the tail safely.",
       "Heuristic": "Balancing fruit hunting with safety heuristics.",
-      "No safe move!": "No safe moves remain – preparing for impact."
+      "No safe move!": "No safe moves remain – preparing for impact.",
+      "Unsafe chase": "Chasing the fruit without the usual safety checks.",
+      "Unsafe roam": "Moving freely – expect risky behaviour.",
+      "Unsafe random": "Taking a random step with no safety guarantees."
     };
     function getStrategyExplanation(strategy) {
       return STRATEGY_DESCRIPTIONS[strategy] || "Assessing the board and adapting to the current situation.";
@@ -1603,6 +1619,8 @@
     });
     const manualToggleBtn = document.getElementById('manualToggle');
     const manualHint = document.getElementById('manualHint');
+    const safetyNetToggleBtn = document.getElementById('safetyNetToggle');
+    const safetyNetHint = document.getElementById('safetyNetHint');
     const rlToggleBtn = document.getElementById('rlToggle');
     const rlHint = document.getElementById('rlHint');
     const rlParamFieldset = document.getElementById('rlParamFieldset');
@@ -1812,6 +1830,51 @@
         manualHint.textContent = 'Manual mode off – AI is playing automatically.';
       }
     }
+    function updateSafetyNetUI(){
+      if(!safetyNetToggleBtn) return;
+      if(safetyNetEnabled){
+        safetyNetToggleBtn.classList.add('toggle-active');
+        safetyNetToggleBtn.classList.remove('warning');
+        safetyNetToggleBtn.textContent = '🛡️ Safety Net: ON';
+        safetyNetToggleBtn.setAttribute('aria-pressed', 'true');
+        if(safetyNetHint){
+          safetyNetHint.textContent = 'Safety net algorithms are active.';
+        }
+      } else {
+        safetyNetToggleBtn.classList.remove('toggle-active');
+        safetyNetToggleBtn.classList.add('warning');
+        safetyNetToggleBtn.textContent = '⚠️ Safety Net: OFF';
+        safetyNetToggleBtn.setAttribute('aria-pressed', 'false');
+        if(safetyNetHint){
+          safetyNetHint.textContent = 'Safety net disabled – the snake is on its own.';
+        }
+      }
+    }
+    function setSafetyNet(enabled){
+      const next = !!enabled;
+      const changed = next !== safetyNetEnabled;
+      safetyNetEnabled = next;
+      if(!safetyNetEnabled){
+        hamMode = false;
+        compactMode = false;
+        compactModeSteps = 0;
+        loopDetected = false;
+        loopStreak = 0;
+        loopCountAdjust = 0;
+        noProgressMoves = 0;
+        prevFruitDist = Infinity;
+        persistentLoopCounter = 0;
+        windowMoves = [];
+        lastMoves = [];
+        endgamePlanThisMove = false;
+        currentStrategy = 'Unsafe roam';
+      } else if(changed){
+        currentStrategy = 'Initializing';
+      }
+      updateSafetyNetUI();
+      updateRlStatus();
+      draw();
+    }
     function setInitialManualDirection(){
       if(snake.length > 1){
         manualDirection = {
@@ -1914,13 +1977,67 @@
         const ate = fruit && fruit.x === nx && fruit.y === ny;
         const isTailStep = tail && nx === tail.x && ny === tail.y;
         if(snakeSet.has(key) && !(isTailStep && !ate)) continue;
-        const simulated = ate
-          ? [{x: nx, y: ny}, ...snake]
-          : [{x: nx, y: ny}, ...snake.slice(0, -1)];
-        if(!canReachTailFrom({x: nx, y: ny}, simulated)) continue;
+        if(safetyNetEnabled){
+          const simulated = ate
+            ? [{x: nx, y: ny}, ...snake]
+            : [{x: nx, y: ny}, ...snake.slice(0, -1)];
+          if(!canReachTailFrom({x: nx, y: ny}, simulated)) continue;
+        }
         safeMoves.push({x: nx, y: ny, dirIndex: i, ate});
       }
       return safeMoves;
+    }
+    function getAllMovesForRL(){
+      const head = snake[0];
+      if(!head) return [];
+      const moves = [];
+      const tail = snake.length > 1 ? snake[snake.length - 1] : null;
+      for(let i = 0; i < DIRS.length; i++){
+        const d = DIRS[i];
+        const nx = head.x + d.dx;
+        const ny = head.y + d.dy;
+        const ate = fruit && fruit.x === nx && fruit.y === ny;
+        const isTailStep = tail && nx === tail.x && ny === tail.y;
+        const hitsBody = snakeSet.has(`${nx},${ny}`) && !(isTailStep && !ate);
+        moves.push({
+          x: nx,
+          y: ny,
+          dirIndex: i,
+          ate,
+          outOfBounds: nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS,
+          hitsBody
+        });
+      }
+      return moves;
+    }
+    function pickUnsafeMove(){
+      const head = snake[0];
+      if(!head) return null;
+      const moves = getAllMovesForRL();
+      if(!moves.length) return null;
+      const currentDist = fruit && fruit.x >= 0
+        ? Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y)
+        : Infinity;
+      let best = null;
+      for(const move of moves){
+        let score = 0;
+        if(move.ate) score += 50;
+        if(!move.outOfBounds) score += 20; else score -= 15;
+        if(!move.hitsBody) score += 15; else score -= 10;
+        if(fruit && fruit.x >= 0){
+          const dist = Math.abs(move.x - fruit.x) + Math.abs(move.y - fruit.y);
+          score += (currentDist - dist) * 5;
+        }
+        score += Math.random();
+        move.score = score;
+        if(!best || score > best.score){
+          best = move;
+        }
+      }
+      if(best){
+        return {x: best.x, y: best.y};
+      }
+      return null;
     }
     function buildRlObservation(safeMoves){
       const head = snake[0];
@@ -2106,6 +2223,7 @@
       });
     }
     manualToggleBtn?.addEventListener('click', toggleManualMode);
+    safetyNetToggleBtn?.addEventListener('click', () => setSafetyNet(!safetyNetEnabled));
     document.addEventListener('keydown', (event) => {
       if(!manualMode) return;
       const dir = KEY_TO_DIR[event.key.toLowerCase()];
@@ -2117,6 +2235,7 @@
       autoRestartEnabled = !!event.target.checked;
     });
     updateManualUI();
+    updateSafetyNetUI();
     rlToggleBtn?.addEventListener('click', () => {
       rlTrainingEnabled = !rlTrainingEnabled;
       if(rlTrainingEnabled){
@@ -2573,79 +2692,158 @@
       if(lastMoves.length>MAX_LOOP_DETECTION) lastMoves.shift();
       const freeCells=COLS*ROWS - snake.length;
       const isEndgame = freeCells <= (ENDGAME_THRESHOLD + loopCountAdjust);
-      if(!hamMode && freeCells > (ENDGAME_THRESHOLD + loopCountAdjust)){
-        const uniq=new Set(windowMoves).size;
-        if(uniq < WINDOW_SIZE/2){
+      if(safetyNetEnabled){
+        if(!hamMode && freeCells > (ENDGAME_THRESHOLD + loopCountAdjust)){
+          const uniq=new Set(windowMoves).size;
+          if(uniq < WINDOW_SIZE/2){
+            hamMode = true; loopStreak = 0; noProgressMoves = 0;
+            currentStrategy = "Forcing Hamilton (Stagnation)";
+            loopCountAdjust++;
+          }
+        }
+        if(freeCells <= 1){
+          const nxt = hamNext(head);
+          if(nxt){
+            const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
+            if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
+              currentStrategy = "Final Hamilton";
+              endgamePlanThisMove = true;
+              return nxt;
+            }
+          }
+        }
+        if(isEndgame){
+          const back=getBackToHamilton(head);
+          if(back){ currentStrategy="Returning to Hamilton"; endgamePlanThisMove = true; return back; }
+          const nxt=hamNext(head);
+          if(nxt){
+            const key=`${nxt.x},${nxt.y}`;
+            const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
+            const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+            if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
+              currentStrategy="Endgame Hamilton"; endgamePlanThisMove = true; return nxt;
+            }
+          }
+        }
+        if(fruit && fruit.x >= 0){
+          const d = Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y);
+          if(d < prevFruitDist){ prevFruitDist = d; noProgressMoves = 0; }
+          else noProgressMoves++;
+        } else {
+          prevFruitDist = Infinity; noProgressMoves = 0;
+        }
+        if(!hamMode && noProgressMoves >= NO_PROGRESS_THRESHOLD){
           hamMode = true; loopStreak = 0; noProgressMoves = 0;
-          currentStrategy = "Forcing Hamilton (Stagnation)";
+          currentStrategy = "Forcing Hamilton (No progress)";
           loopCountAdjust++;
         }
-      }
-      if(freeCells <= 1){
-        const nxt = hamNext(head);
-        if(nxt){
-          const isTail=snake.length>1 && nxt.x===snake[snake.length-1].x && nxt.y===snake[snake.length-1].y;
-          if(!snakeSet.has(`${nxt.x},${nxt.y}`) || isTail){
-            currentStrategy = "Final Hamilton";
-            endgamePlanThisMove = true;
-            return nxt;
+        if(hamMode){
+          const nxt = hamNext(head);
+          if(nxt){
+            const key=`${nxt.x},${nxt.y}`;
+            const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
+            const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+            if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
+              currentStrategy = "Hamilton cycle";
+              if(isEndgame) endgamePlanThisMove = true;
+              return nxt;
+            }
+          }
+          hamMode = false;
+        }
+        loopDetected = detectLoop();
+        loopStreak = loopDetected ? loopStreak + 1 : 0;
+        if(loopDetected && !hamMode){
+          hamMode = true;
+          loopStreak = 0;
+          currentStrategy = "Forcing Hamilton (Immediate Loop)";
+          loopCountAdjust++;
+        }
+        if(loopDetected && snake.length >= 2){
+          if(freeCells <= FILL_POCKET_LIMIT){
+            const fillMove = fillSmallestPocket();
+            if(fillMove){ currentStrategy="Filling smallest pocket"; return fillMove; }
+          }
+          const dmap = getDistancesFromTail();
+          let best=null,bestDist=-1;
+          for(const d of DIRS){
+            const nx=head.x+d.dx, ny=head.y+d.dy;
+            if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
+            const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
+            if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
+            const sim=(nx===fruit?.x&&ny===fruit?.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
+            if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
+            const dist=dmap[ny][nx];
+            if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
+          }
+          if(best){ currentStrategy="Loop break (Longest)"; return best; }
+        }
+        if(rlTrainingEnabled && !hamMode){
+          if(!rlEpisodeActive){
+            rlAgent.startEpisode();
+            rlEpisodeActive = true;
+          }
+          if(rlSafeMoves && rlSafeMoves.length){
+            const rlState = buildRlObservation(rlSafeMoves);
+            const decision = rlAgent.decide(rlState, rlSafeMoves);
+            if(decision){
+              const selected = rlSafeMoves.find(move => move.dirIndex === decision.actionIdx);
+              if(selected){
+                rlPendingChoice = { stateKey: decision.stateKey, actionIdx: decision.actionIdx };
+                currentStrategy = 'RL policy';
+                return {x: selected.x, y: selected.y};
+              }
+            }
           }
         }
-      }
-      if(isEndgame){
-        const back=getBackToHamilton(head);
-        if(back){ currentStrategy="Returning to Hamilton"; endgamePlanThisMove = true; return back; }
-        const nxt=hamNext(head);
-        if(nxt){
-          const key=`${nxt.x},${nxt.y}`;
-          const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
-          const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
-            currentStrategy="Endgame Hamilton"; endgamePlanThisMove = true; return nxt;
+        const fruitAcc = isFruitAccessible(head);
+        if(fruitAcc && freeCells>15){
+          let choices=[],minD=Infinity;
+          for(const d of DIRS){
+            const nx=head.x+d.dx, ny=head.y+d.dy;
+            if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
+            const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
+            if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
+            const nd=Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y);
+            if(nd>minD) continue;
+            const sim=(nx===fruit.x&&ny===fruit.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
+            if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
+            if(nd<minD){minD=nd; choices=[{x:nx,y:ny}];}
+            else if(nd===minD){choices.push({x:nx,y:ny});}
+          }
+          if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
+        }
+        const inPocket = isFruitInPocket();
+        if(!compactMode && shouldEnterCompactMode({
+          inPocket,
+          loopDetected,
+          loopStreak,
+          fruitAcc,
+          freeCells
+        })){
+          compactMode = true; compactModeSteps = 0; compactModeJustActivated = true;
+        }
+        if(compactMode){
+          if(compactModeSteps >= COMPACT_MODE_MAX_STEPS){
+            compactMode = false; compactModeSteps = 0;
+          } else {
+            const zig = calculateZigZagPath();
+            if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return zig; }
+            else{ compactMode = false; }
           }
         }
-      }
-      if(fruit && fruit.x >= 0){
-        const d = Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y);
-        if(d < prevFruitDist){ prevFruitDist = d; noProgressMoves = 0; }
-        else noProgressMoves++;
-      } else {
-        prevFruitDist = Infinity; noProgressMoves = 0;
-      }
-      if(!hamMode && noProgressMoves >= NO_PROGRESS_THRESHOLD){
-        hamMode = true; loopStreak = 0; noProgressMoves = 0;
-        currentStrategy = "Forcing Hamilton (No progress)";
-        loopCountAdjust++;
-      }
-      if(hamMode){
-        const nxt = hamNext(head);
-        if(nxt){
-          const key=`${nxt.x},${nxt.y}`;
-          const isTailStep=snake.length>1&&nxt.x===snake[snake.length-1].x&&nxt.y===snake[snake.length-1].y;
-          const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if((!snakeSet.has(key)||isTailStep) && canReachTailFrom(nxt,sim)){
-            currentStrategy = "Hamilton cycle";
-            if(isEndgame) endgamePlanThisMove = true;
-            return nxt;
+        if(fruitAcc && freeCells>1){
+          const path=bfsWithAlternatives(head.x,head.y,fruit.x,fruit.y,false,loopDetected);
+          if(path && path.length){
+            const nxt=path[0];
+            const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+            if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return nxt; }
           }
         }
-        hamMode = false;
-      }
-      loopDetected = detectLoop();
-      loopStreak = loopDetected ? loopStreak + 1 : 0;
-      if(loopDetected && !hamMode){
-        hamMode = true;
-        loopStreak = 0;
-        currentStrategy = "Forcing Hamilton (Immediate Loop)";
-        loopCountAdjust++;
-      }
-      if(loopDetected && snake.length >= 2){
-        if(freeCells <= FILL_POCKET_LIMIT){
-          const fillMove = fillSmallestPocket();
-          if(fillMove){ currentStrategy="Filling smallest pocket"; return fillMove; }
-        }
-        const dmap = getDistancesFromTail();
-        let best=null,bestDist=-1;
+        let bestScore=-Infinity,bestMoves=[];
+        const tailPos=snake.length>1?snake[snake.length-1]:null;
+        const randomFactor=loopDetected?Math.random()*5:0;
+        const avoidFactor=loopDetected?0.5:1;
         for(const d of DIRS){
           const nx=head.x+d.dx, ny=head.y+d.dy;
           if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
@@ -2653,21 +2851,59 @@
           if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
           const sim=(nx===fruit?.x&&ny===fruit?.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
           if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
-          const dist=dmap[ny][nx];
-          if(dist>bestDist){bestDist=dist; best={x:nx,y:ny};}
+          const freeAfter=floodSize(nx,ny,sim);
+          if(freeAfter<COLS*ROWS-sim.length) continue;
+          let score=0;
+          if(fruit&&fruit.x>=0&&freeCells>Math.max(6, COLS-2)){
+            score+=(COLS+ROWS-(Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y)))*2*avoidFactor;
+          }
+          if(isEndgame && tailPos && nx===tailPos.x && ny===tailPos.y) score+=10000;
+          score+=Math.min(nx,ny,COLS-1-nx,ROWS-1-ny);
+          score+=randomFactor;
+          score+=freeAfter*2;
+          const moveData = {
+            x: nx,
+            y: ny,
+            dx: d.dx,
+            dy: d.dy,
+            baseScore: score,
+            willEat: fruit && fruit.x === nx && fruit.y === ny,
+            freeAfter
+          };
+          if(score>bestScore){ bestScore=score; bestMoves=[moveData]; }
+          else if(score===bestScore){ bestMoves.push(moveData); }
         }
-        if(best){ currentStrategy="Loop break (Longest)"; return best; }
+        if(bestMoves.length){
+          currentStrategy="Heuristic";
+          const rlChoice = rlAgent.chooseMove(head, bestMoves, {isEndgame});
+          return rlChoice || bestMoves[(Math.random()*bestMoves.length)|0];
+        }
+        const tail=snake.length>1?snake[snake.length-1]:head;
+        const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
+        if(path && path.length){
+          const nxt=path[0];
+          const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
+          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return nxt; }
+        }
+        currentStrategy="No safe move!";
+        return null;
       }
-      if(rlTrainingEnabled && !hamMode){
+      loopDetected = false;
+      loopStreak = 0;
+      compactMode = false;
+      compactModeSteps = 0;
+      hamMode = false;
+      const rlMoves = rlTrainingEnabled ? getAllMovesForRL() : [];
+      if(rlTrainingEnabled){
         if(!rlEpisodeActive){
           rlAgent.startEpisode();
           rlEpisodeActive = true;
         }
-        if(rlSafeMoves && rlSafeMoves.length){
-          const rlState = buildRlObservation(rlSafeMoves);
-          const decision = rlAgent.decide(rlState, rlSafeMoves);
+        if(rlMoves && rlMoves.length){
+          const rlState = buildRlObservation(rlSafeMoves || []);
+          const decision = rlAgent.decide(rlState, rlMoves);
           if(decision){
-            const selected = rlSafeMoves.find(move => move.dirIndex === decision.actionIdx);
+            const selected = rlMoves.find(move => move.dirIndex === decision.actionIdx);
             if(selected){
               rlPendingChoice = { stateKey: decision.stateKey, actionIdx: decision.actionIdx };
               currentStrategy = 'RL policy';
@@ -2676,96 +2912,17 @@
           }
         }
       }
-      const fruitAcc = isFruitAccessible(head);
-      if(fruitAcc && freeCells>15){
-        let choices=[],minD=Infinity;
-        for(const d of DIRS){
-          const nx=head.x+d.dx, ny=head.y+d.dy;
-          if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
-          const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
-          if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
-          const nd=Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y);
-          if(nd>minD) continue;
-          const sim=(nx===fruit.x&&ny===fruit.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
-          if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
-          if(nd<minD){minD=nd; choices=[{x:nx,y:ny}];}
-          else if(nd===minD){choices.push({x:nx,y:ny});}
-        }
-        if(choices.length){ currentStrategy="Greedy to fruit"; return choices[(Math.random()*choices.length)|0]; }
+      const unsafeMove = pickUnsafeMove();
+      if(unsafeMove){
+        currentStrategy = fruit && fruit.x >= 0 ? 'Unsafe chase' : 'Unsafe roam';
+        return unsafeMove;
       }
-      const inPocket = isFruitInPocket();
-      if(!compactMode && shouldEnterCompactMode({
-        inPocket,
-        loopDetected,
-        loopStreak,
-        fruitAcc,
-        freeCells
-      })){
-        compactMode = true; compactModeSteps = 0; compactModeJustActivated = true;
+      if(rlMoves && rlMoves.length){
+        const randomPick = rlMoves[(Math.random() * rlMoves.length)|0];
+        currentStrategy = 'Unsafe random';
+        return {x: randomPick.x, y: randomPick.y};
       }
-      if(compactMode){
-        if(compactModeSteps >= COMPACT_MODE_MAX_STEPS){
-          compactMode = false; compactModeSteps = 0;
-        } else {
-          const zig = calculateZigZagPath();
-          if(zig){ compactModeSteps++; currentStrategy="Compact zig-zag"; return zig; }
-          else{ compactMode = false; }
-        }
-      }
-      if(fruitAcc && freeCells>1){
-        const path=bfsWithAlternatives(head.x,head.y,fruit.x,fruit.y,false,loopDetected);
-        if(path && path.length){
-          const nxt=path[0];
-          const sim=(nxt.x===fruit.x&&nxt.y===fruit.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-          if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to fruit"; return nxt; }
-        }
-      }
-      let bestScore=-Infinity,bestMoves=[];
-      const tailPos=snake.length>1?snake[snake.length-1]:null;
-      const randomFactor=loopDetected?Math.random()*5:0;
-      const avoidFactor=loopDetected?0.5:1;
-      for(const d of DIRS){
-        const nx=head.x+d.dx, ny=head.y+d.dy;
-        if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
-        const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
-        if(snakeSet.has(`${nx},${ny}`)&&!isTailStep) continue;
-        const sim=(nx===fruit?.x&&ny===fruit?.y)?[{x:nx,y:ny},...snake]:[{x:nx,y:ny},...snake.slice(0,-1)];
-        if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
-        const freeAfter=floodSize(nx,ny,sim);
-        if(freeAfter<COLS*ROWS-sim.length) continue;
-        let score=0;
-        if(fruit&&fruit.x>=0&&freeCells>Math.max(6, COLS-2)){
-          score+=(COLS+ROWS-(Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y)))*2*avoidFactor;
-        }
-        if(isEndgame && tailPos && nx===tailPos.x && ny===tailPos.y) score+=10000;
-        score+=Math.min(nx,ny,COLS-1-nx,ROWS-1-ny);
-        score+=randomFactor;
-        score+=freeAfter*2;
-        const moveData = {
-          x: nx,
-          y: ny,
-          dx: d.dx,
-          dy: d.dy,
-          baseScore: score,
-          willEat: fruit && fruit.x === nx && fruit.y === ny,
-          freeAfter
-        };
-        if(score>bestScore){ bestScore=score; bestMoves=[moveData]; }
-        else if(score===bestScore){ bestMoves.push(moveData); }
-      }
-      if(bestMoves.length){
-        currentStrategy="Heuristic";
-        const rlChoice = rlAgent.chooseMove(head, bestMoves, {isEndgame});
-        return rlChoice || bestMoves[(Math.random()*bestMoves.length)|0];
-      }
-      const tail=snake.length>1?snake[snake.length-1]:head;
-      const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
-      if(path && path.length){
-        const nxt=path[0];
-        const sim=(nxt.x===fruit?.x&&nxt.y===fruit?.y)?[{x:nxt.x,y:nxt.y},...snake]:[{x:nxt.x,y:nxt.y},...snake.slice(0,-1)];
-        if(canReachTailFrom(nxt,sim)){ currentStrategy="BFS to tail"; return nxt; }
-      }
-      currentStrategy="No safe move!";
+      currentStrategy = 'No safe move!';
       return null;
     }
     /* ===== RENDER ===== */
