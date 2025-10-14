@@ -956,9 +956,19 @@
                   <small>Encourages entering and sustaining compact manoeuvres when space is tight.</small>
                 </div>
                 <div class="param-control">
-                  <label>Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
+                  <label>Wall Crash Penalty: <span id="rlWallCrashPenaltyValue">-5</span></label>
+                  <input type="range" id="rlWallCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
+                  <small>Penalty when the snake runs into the wall.</small>
+                </div>
+                <div class="param-control">
+                  <label>Self Crash Penalty: <span id="rlSelfCrashPenaltyValue">-6</span></label>
+                  <input type="range" id="rlSelfCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-6">
+                  <small>Penalty when the snake collides with itself even though free squares were available.</small>
+                </div>
+                <div class="param-control">
+                  <label>Fallback Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
                   <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
-                  <small>Negative reward on collision. Lower values make the agent more risk-aware.</small>
+                  <small>Default collision penalty if no specific crash category matches.</small>
                 </div>
                 <div class="param-control">
                   <label>Dead-end Penalty: <span id="rlDeadEndPenaltyValue">-4.0</span></label>
@@ -1355,8 +1365,10 @@
             <li><strong>Step penalty:</strong> A small negative value per move so the agent does not stall.</li>
             <li><strong>Fruit reward:</strong> Positive reward when fruit is eaten – controls how aggressively the agent hunts fruit.</li>
             <li><strong>Win bonus:</strong> Extra reward for filling the whole board, rewarding long-term survival.</li>
-            <li><strong>Crash penalty:</strong> A large negative value on collision to avoid self-destructing plays.</li>
+            <li><strong>Wall crash penalty:</strong> Discourages slamming into the border when there was room to turn.</li>
+            <li><strong>Self crash penalty:</strong> Punishes colliding with the body while an escape square was open.</li>
             <li><strong>Dead-end penalty:</strong> Punishes moves that leave no safe escape so the agent learns to avoid cul-de-sacs.</li>
+            <li><strong>Fallback crash penalty:</strong> Safety net value used if a crash does not fit any specific category.</li>
           </ul>
           <p>Press <strong>"Reset RL learning"</strong> to start over with the current reward values.</p>
         </div>
@@ -1497,8 +1509,10 @@
       { id: 'winBonus', label: 'Win bonus' },
       { id: 'endgamePlanReward', label: 'Endgame plan bonus' },
       { id: 'compactModeReward', label: 'Compact mode bonus' },
+      { id: 'wallCrashPenalty', label: 'Wall crash penalty' },
+      { id: 'selfCrashPenalty', label: 'Self crash penalty' },
       { id: 'deadEndPenalty', label: 'Dead-end penalty' },
-      { id: 'deathPenalty', label: 'Crash penalty' },
+      { id: 'deathPenalty', label: 'Generic crash penalty' },
       { id: 'loopPenalty', label: 'Loop stall penalty' }
     ];
     const RL_REWARD_COMPONENT_MAP = RL_REWARD_COMPONENTS.reduce((acc, entry) => {
@@ -1531,6 +1545,8 @@
       stepPenalty: -0.05,
       fruitReward: 5,
       winBonus: 15,
+      wallCrashPenalty: -5,
+      selfCrashPenalty: -6,
       deathPenalty: -5,
       deadEndPenalty: -4,
       endgamePlanReward: 1.5,
@@ -1757,7 +1773,8 @@
           if(typeof outcome !== 'string') return;
           const key = outcome.trim().toLowerCase();
           if(!key) return;
-          if(key === 'loss' || key === 'timeout'){
+          const deathOutcomes = new Set(['loss', 'timeout', 'wall-crash', 'self-crash', 'dead-end-crash']);
+          if(deathOutcomes.has(key)){
             currentEpisodeDeaths += 1;
           } else if(key === 'win'){
             completedEpisodes += 1;
@@ -1957,6 +1974,8 @@
       { id: 'rlWinBonus', valueId: 'rlWinBonusValue', key: 'winBonus', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlEndgameReward', valueId: 'rlEndgameRewardValue', key: 'endgamePlanReward', parser: parseFloat, format: v => v.toFixed(1) },
       { id: 'rlCompactReward', valueId: 'rlCompactRewardValue', key: 'compactModeReward', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlWallCrashPenalty', valueId: 'rlWallCrashPenaltyValue', key: 'wallCrashPenalty', parser: parseFloat, format: v => v.toFixed(0) },
+      { id: 'rlSelfCrashPenalty', valueId: 'rlSelfCrashPenaltyValue', key: 'selfCrashPenalty', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlDeathPenalty', valueId: 'rlDeathPenaltyValue', key: 'deathPenalty', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlDeadEndPenalty', valueId: 'rlDeadEndPenaltyValue', key: 'deadEndPenalty', parser: parseFloat, format: v => v.toFixed(1) },
       { id: 'rlLoopPenalty', valueId: 'rlLoopPenaltyValue', key: 'loopPenalty', parser: parseFloat, format: v => v.toFixed(1) },
@@ -2549,6 +2568,24 @@
       }
       return safeMoves;
     }
+    function countImmediateFreeNeighbors(){
+      const head = snake[0];
+      if(!head) return 0;
+      const tail = snake.length > 1 ? snake[snake.length - 1] : null;
+      let free = 0;
+      for(const d of DIRS){
+        const nx = head.x + d.dx;
+        const ny = head.y + d.dy;
+        if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        const key = `${nx},${ny}`;
+        const ate = fruit && fruit.x === nx && fruit.y === ny;
+        const isTailStep = tail && nx === tail.x && ny === tail.y;
+        if(!snakeSet.has(key) || (isTailStep && !ate)){
+          free++;
+        }
+      }
+      return free;
+    }
     function isMoveLethal(move){
       return move?.outOfBounds || move?.hitsBody;
     }
@@ -2679,7 +2716,13 @@
       const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
       const lineTwo = `episodes=${episodesText} · wins=${winsText} · states=${stateCountText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} · avg=${avgDurationText}`;
       const lineThree = `ε=${epsilonText} (min=${epsilonMinText}, decay=${epsilonDecayText}) · α=${alphaText} · γ=${gammaText}`;
-      rlLiveMetricsEl.innerHTML = `${lineOne}<br>${lineTwo}<br>${lineThree}`;
+      const outcomes = stats.outcomes || {};
+      const wallCrashCount = Number.isFinite(outcomes['wall-crash']) ? outcomes['wall-crash'] : 0;
+      const selfCrashCount = Number.isFinite(outcomes['self-crash']) ? outcomes['self-crash'] : 0;
+      const deadEndCrashCount = Number.isFinite(outcomes['dead-end-crash']) ? outcomes['dead-end-crash'] : 0;
+      const timeoutCount = Number.isFinite(outcomes.timeout) ? outcomes.timeout : 0;
+      const lineFour = `crashes wall=${wallCrashCount} · self=${selfCrashCount} · dead-end=${deadEndCrashCount} · timeouts=${timeoutCount}`;
+      rlLiveMetricsEl.innerHTML = `${lineOne}<br>${lineTwo}<br>${lineThree}<br>${lineFour}`;
     }
     function applyRlUpdate(reward, done, options = {}){
       if(!rlTrainingEnabled){
@@ -2751,7 +2794,11 @@
       const lastDeathsText = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
       const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
       const winsText = Number.isFinite(stats.completedEpisodes) ? stats.completedEpisodes : 0;
-      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · wins=${winsText} · last=${lastRewardText} · avg=${avgRewardText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} (avg=${avgDurationText})`;
+      const outcomes = stats.outcomes || {};
+      const wallCrashCount = Number.isFinite(outcomes['wall-crash']) ? outcomes['wall-crash'] : 0;
+      const selfCrashCount = Number.isFinite(outcomes['self-crash']) ? outcomes['self-crash'] : 0;
+      const deadEndCrashCount = Number.isFinite(outcomes['dead-end-crash']) ? outcomes['dead-end-crash'] : 0;
+      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · wins=${winsText} · last=${lastRewardText} · avg=${avgRewardText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} (avg=${avgDurationText}) · crashes wall=${wallCrashCount} · self=${selfCrashCount} · dead-end=${deadEndCrashCount}`;
       if(rlHint){
         rlHint.textContent = rlHintOverride ?? `RL is learning live – episodes: ${stats.episodes}`;
       }
@@ -3906,14 +3953,25 @@
         }
       }, delay);
     }
-    function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = '#ef4444', penalty = rlConfig.deathPenalty, outcome = 'loss' } = {}){
+    function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = '#ef4444', penalty = rlConfig.deathPenalty, outcome = 'loss', componentId } = {}){
       if(rlTrainingEnabled){
         rlAgent.registerTerminal(outcome);
       }
       const penaltyValue = Number.isFinite(penalty) ? penalty : rlConfig.deathPenalty;
-      const penaltyComponent = (penaltyValue === rlConfig.deadEndPenalty || outcome === 'timeout')
-        ? 'deadEndPenalty'
-        : 'deathPenalty';
+      let penaltyComponent = componentId && RL_REWARD_COMPONENT_MAP[componentId]
+        ? componentId
+        : null;
+      if(!penaltyComponent){
+        if(penaltyValue === rlConfig.deadEndPenalty || outcome === 'timeout'){
+          penaltyComponent = 'deadEndPenalty';
+        } else if(penaltyValue === rlConfig.wallCrashPenalty){
+          penaltyComponent = 'wallCrashPenalty';
+        } else if(penaltyValue === rlConfig.selfCrashPenalty){
+          penaltyComponent = 'selfCrashPenalty';
+        } else {
+          penaltyComponent = 'deathPenalty';
+        }
+      }
       const penaltyBreakdown = rlTrainingEnabled
         ? [{ id: penaltyComponent, amount: penaltyValue }]
         : null;
@@ -3935,20 +3993,35 @@
           subtitle: `Restart efter ${formatTime(runTimeoutMs)} utan framsteg.`,
           color: '#38bdf8',
           penalty: timeoutPenalty,
-          outcome: 'timeout'
+          outcome: 'timeout',
+          componentId: 'deadEndPenalty'
         });
         return;
       }
       let stepReward = rlConfig.stepPenalty;
       let rewardBreakdown = rlTrainingEnabled ? [{ id: 'stepPenalty', amount: rlConfig.stepPenalty }] : null;
       let stepDone = false;
+      const freeNeighborsBeforeMove = countImmediateFreeNeighbors();
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
-        handleSnakeDeath({ title: 'Trapped! ❌', subtitle: `Final length: ${snake.length}`, color: '#f97316' });
+        handleSnakeDeath({
+          title: 'Dead end! 🔒',
+          subtitle: `Final length: ${snake.length}`,
+          color: '#f97316',
+          penalty: Number.isFinite(rlConfig.deadEndPenalty) ? rlConfig.deadEndPenalty : rlConfig.deathPenalty,
+          outcome: 'dead-end-crash',
+          componentId: 'deadEndPenalty'
+        });
         return;
       }
       if(nxt.x < 0 || nxt.x >= COLS || nxt.y < 0 || nxt.y >= ROWS){
-        handleSnakeDeath({ title: 'Wall crash! 🧱', subtitle: `Final length: ${snake.length}` });
+        handleSnakeDeath({
+          title: 'Wall crash! 🧱',
+          subtitle: `Final length: ${snake.length}`,
+          penalty: Number.isFinite(rlConfig.wallCrashPenalty) ? rlConfig.wallCrashPenalty : rlConfig.deathPenalty,
+          outcome: 'wall-crash',
+          componentId: 'wallCrashPenalty'
+        });
         return;
       }
       if(loopDetected){
@@ -3990,7 +4063,17 @@
       const tail = snake[snake.length - 1];
       const isTailStep = snake.length > 1 && nxt.x === tail.x && nxt.y === tail.y;
       if(snakeSet.has(nextKey) && !(isTailStep && !ate)){
-        handleSnakeDeath({ title: 'Crash! 💥', subtitle: `Final length: ${snake.length}` });
+        const forcedCrash = freeNeighborsBeforeMove === 0;
+        handleSnakeDeath({
+          title: forcedCrash ? 'Dead end! 🔒' : 'Self crash! ♻️',
+          subtitle: `Final length: ${snake.length}`,
+          color: forcedCrash ? '#f97316' : '#ef4444',
+          penalty: forcedCrash
+            ? (Number.isFinite(rlConfig.deadEndPenalty) ? rlConfig.deadEndPenalty : rlConfig.deathPenalty)
+            : (Number.isFinite(rlConfig.selfCrashPenalty) ? rlConfig.selfCrashPenalty : rlConfig.deathPenalty),
+          outcome: forcedCrash ? 'dead-end-crash' : 'self-crash',
+          componentId: forcedCrash ? 'deadEndPenalty' : 'selfCrashPenalty'
+        });
         return;
       }
       const atePosition = ate ? {x: fruit.x, y: fruit.y} : null;
