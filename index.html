@@ -163,8 +163,8 @@
     .game-wrapper {
       display: flex;
       gap: 3rem;
-      align-items: flex-start;
-      justify-content: center;
+      align-items: stretch;
+      justify-content: space-between;
       flex-wrap: wrap;
     }
     .game-container {
@@ -173,6 +173,7 @@
       border: 1px solid var(--glass-border);
       border-radius: 2rem;
       padding: 2rem;
+      flex: 0 0 auto;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
       position: relative;
       overflow: hidden;
@@ -208,11 +209,23 @@
       border: 1px solid var(--glass-border);
       border-radius: 1.5rem;
       padding: 2rem;
-      min-width: 380px;
-      max-width: 600px;
+      width: min(700px, 100%);
+      max-width: 700px;
+      flex: 1 1 700px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       max-height: 90vh;
       overflow-y: auto;
+    }
+    @media (max-width: 1200px) {
+      .game-wrapper {
+        flex-direction: column;
+        align-items: center;
+      }
+      .controls-panel {
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+      }
     }
     .controls-panel::-webkit-scrollbar {
       width: 8px;
@@ -884,7 +897,7 @@
       </div>
       <div class="game-wrapper">
         <div class="game-container">
-          <canvas id="game" width="500" height="500"></canvas>
+          <canvas id="game" width="650" height="650"></canvas>
         </div>
         <div class="controls-panel">
           <div class="controls-section">
@@ -1102,7 +1115,7 @@
             <div id="canvasSizeContent" class="collapsible-content">
               <div class="size-controls">
                 <span>Small</span>
-                <input type="range" id="sizeSlider" class="size-slider" min="300" max="800" value="400" step="50">
+                <input type="range" id="sizeSlider" class="size-slider" min="300" max="900" value="650" step="50">
                 <span>Large</span>
               </div>
             </div>
@@ -1553,6 +1566,7 @@
     /* ===== CANVAS ===== */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    CELL = canvas.width / COLS;
     let lastRender = performance.now();
     /* ===== AI PARAMETERS ===== */
     let LOOP_STREAK_THRESHOLD = 1;
