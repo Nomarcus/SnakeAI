@@ -2011,6 +2011,23 @@
       }
       return safeMoves;
     }
+    function isMoveLethal(move){
+      return move?.outOfBounds || move?.hitsBody;
+    }
+    function pickViableMove(preferred, moves){
+      if(!moves || !moves.length) return null;
+      const preferredMatch = preferred
+        ? moves.find(move => move.dirIndex === preferred.dirIndex)
+        : null;
+      if(preferredMatch && !isMoveLethal(preferredMatch)){
+        return preferredMatch;
+      }
+      const safeOptions = moves.filter(move => !isMoveLethal(move));
+      if(safeOptions.length){
+        return safeOptions[(Math.random() * safeOptions.length) | 0];
+      }
+      return preferredMatch || moves[(Math.random() * moves.length) | 0];
+    }
     function getAllMovesForRL(){
       const head = snake[0];
       if(!head) return [];
@@ -2039,11 +2056,13 @@
       if(!head) return null;
       const moves = getAllMovesForRL();
       if(!moves.length) return null;
+      const safeMoves = moves.filter(move => !isMoveLethal(move));
       const currentDist = fruit && fruit.x >= 0
         ? Math.abs(head.x - fruit.x) + Math.abs(head.y - fruit.y)
         : Infinity;
       let best = null;
-      for(const move of moves){
+      const candidates = safeMoves.length ? safeMoves : moves;
+      for(const move of candidates){
         let score = 0;
         if(move.ate) score += 50;
         if(!move.outOfBounds) score += 20; else score -= 15;
@@ -2060,6 +2079,10 @@
       }
       if(best){
         return {x: best.x, y: best.y};
+      }
+      const fallback = pickViableMove(null, moves);
+      if(fallback){
+        return {x: fallback.x, y: fallback.y};
       }
       return null;
     }
@@ -2931,9 +2954,9 @@
           const rlState = buildRlObservation(rlSafeMoves || []);
           const decision = rlAgent.decide(rlState, rlMoves);
           if(decision){
-            const selected = rlMoves.find(move => move.dirIndex === decision.actionIdx);
+            const selected = pickViableMove({ dirIndex: decision.actionIdx }, rlMoves);
             if(selected){
-              rlPendingChoice = { stateKey: decision.stateKey, actionIdx: decision.actionIdx };
+              rlPendingChoice = { stateKey: decision.stateKey, actionIdx: selected.dirIndex };
               currentStrategy = 'RL policy';
               return {x: selected.x, y: selected.y};
             }
@@ -2946,9 +2969,11 @@
         return unsafeMove;
       }
       if(rlMoves && rlMoves.length){
-        const randomPick = rlMoves[(Math.random() * rlMoves.length)|0];
+        const randomPick = pickViableMove(null, rlMoves);
         currentStrategy = 'Unsafe random';
-        return {x: randomPick.x, y: randomPick.y};
+        if(randomPick){
+          return {x: randomPick.x, y: randomPick.y};
+        }
       }
       currentStrategy = 'No safe move!';
       return null;
