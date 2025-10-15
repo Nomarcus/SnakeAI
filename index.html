@@ -161,14 +161,15 @@
       max-width: 600px;
       margin: 0 auto;
     }
-    /* Game section */
-    .game-wrapper {
-       display: flex;
+.game-wrapper {
+  display: flex;
   justify-content: center;
   align-items: flex-start;
-  width: 100%;
-  max-width: 780px;                 /* ökar från ~650–700px */
-  aspect-ratio: 1 / 1;              /* håller spelet kvadratiskt */
+  flex-wrap: nowrap;
+  gap: 1.5rem;         /* 👈 lägger till avstånd mellan rutorna */
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
 }
    /* Game container – anpassad för större spelruta */
 .game-container {
