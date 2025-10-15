@@ -1335,6 +1335,14 @@
                   <span id="snakeLength" class="status-value">3</span>
                 </div>
                 <div class="status-item">
+                  <span class="status-label">Apples eaten:</span>
+                  <span id="applesEaten" class="status-value">0</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">Apple high score:</span>
+                  <span id="appleHighScore" class="status-value">0</span>
+                </div>
+                <div class="status-item">
                   <span class="status-label">Free cells:</span>
                   <span id="freeCells" class="status-value">222</span>
                 </div>
@@ -1705,6 +1713,8 @@
     let runTimeoutMs = 0;
     let runTimeoutDeadline = null;
     let completedRounds = 0;
+    let applesEaten = 0;
+    let appleHighScore = 0;
     const rlConfig = {
       stepPenalty: -0.05,
       fruitReward: 5,
@@ -3015,6 +3025,8 @@
     const elapsedTimeEl = document.getElementById('elapsedTime');
     const bestTimeEl = document.getElementById('bestTime');
     const completedRoundsEl = document.getElementById('completedRounds');
+    const applesEatenEl = document.getElementById('applesEaten');
+    const appleHighScoreEl = document.getElementById('appleHighScore');
     function formatTime(ms){
       if(!Number.isFinite(ms) || ms < 0) return '00:00.0';
       const totalSeconds = ms / 1000;
@@ -3031,6 +3043,14 @@
     function updateCompletedRoundsDisplay(){
       if(completedRoundsEl){
         completedRoundsEl.textContent = completedRounds;
+      }
+    }
+    function updateAppleStats(){
+      if(applesEatenEl){
+        applesEatenEl.textContent = applesEaten;
+      }
+      if(appleHighScoreEl){
+        appleHighScoreEl.textContent = appleHighScore;
       }
     }
     function computeRunTimeout(){
@@ -4176,6 +4196,8 @@
       compactModeJustActivated = false;
       endgamePlanThisMove = false;
       persistentLoopCounter = 0;
+      applesEaten = 0;
+      updateAppleStats();
       if(manualMode){
         setInitialManualDirection();
         currentStrategy = 'Manual control';
@@ -4856,6 +4878,7 @@
       document.getElementById('snakeLength').textContent = snake.length;
       document.getElementById('freeCells').textContent = freeCellsCount;
       document.getElementById('progress').textContent = ((snake.length / (COLS * ROWS)) * 100).toFixed(1) + '%';
+      updateAppleStats();
       updateRlStatus();
     }
     function showOverlay(title, subtitle, color = '#ef4444'){
@@ -5021,6 +5044,11 @@
         loopCountAdjust = 0;
         stepReward = rlConfig.fruitReward;
         rewardBreakdown = rlTrainingEnabled ? [{ id: 'fruitReward', amount: rlConfig.fruitReward }] : rewardBreakdown;
+        applesEaten++;
+        if(applesEaten > appleHighScore){
+          appleHighScore = applesEaten;
+        }
+        updateAppleStats();
         if(snake.length === COLS * ROWS){
           if(rlTrainingEnabled){
             rlAgent.registerTerminal('win');
