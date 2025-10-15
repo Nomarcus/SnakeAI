@@ -732,6 +732,101 @@
       font-size: 0.9rem;
       opacity: 0.9;
     }
+    .rl-status-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem 1.2rem;
+      background: rgba(15, 15, 35, 0.75);
+      border: 1px solid var(--glass-border);
+      border-radius: 1rem;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .rl-status-card.rl-inactive {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.35);
+      box-shadow: inset 0 2px 12px rgba(239, 68, 68, 0.15);
+    }
+    .rl-status-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .rl-status-indicator {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(240, 147, 251, 0.75);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .rl-status-indicator.active {
+      transform: scale(1.05);
+    }
+    .rl-status-indicator.paused {
+      background: var(--warning);
+      box-shadow: 0 0 6px rgba(251, 191, 36, 0.45);
+    }
+    .rl-status-card.rl-inactive .rl-status-indicator {
+      background: var(--danger);
+      box-shadow: 0 0 0;
+    }
+    .rl-status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.6rem;
+    }
+    .rl-status-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: 0.55rem 0.7rem;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .rl-status-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(226, 232, 240, 0.65);
+    }
+    .rl-status-value {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .rl-outcome-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.5rem;
+    }
+    .rl-outcome-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.7rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+    }
+    .rl-outcome-label {
+      color: rgba(226, 232, 240, 0.85);
+    }
+    .rl-outcome-value {
+      color: var(--accent);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .rl-status-note {
+      margin: 0;
+      color: rgba(226, 232, 240, 0.7);
+      font-size: 0.9rem;
+    }
     #strategyStatus {
       color: var(--accent);
       font-weight: 600;
@@ -1261,7 +1356,7 @@
                 <p id="loopStatus"></p>
                 <p id="compactStatus"></p>
                 <p id="compactStepStatus"></p>
-                <p id="rlStatus"></p>
+                <div id="rlStatus" class="rl-status-card rl-inactive" role="status" aria-live="polite"></div>
               </div>
             </div>
           </div>
@@ -1668,6 +1763,15 @@
     };
     let loopCountAdjust = 0;
     const RL_METHODS = { TABULAR: 'tabular', PPO: 'ppo' };
+    const RL_OUTCOME_LABELS = {
+      win: 'Wins',
+      loss: 'Losses',
+      'wall-crash': 'Wall crashes',
+      'self-crash': 'Self crashes',
+      'dead-end-crash': 'Dead-end crashes',
+      timeout: 'Timeouts',
+      stalled: 'Stalled loops'
+    };
     const rlAgents = {
       tabular: createReinforcementAgent(rlConfig),
       ppo: createPpoAgent(rlConfig)
@@ -2565,6 +2669,15 @@
     function formatRewardValue(value){
       return Number.isFinite(value) ? value.toFixed(2) : '--';
     }
+    function formatPercentage(value){
+      if(!Number.isFinite(value) || value <= 0){
+        return '0%';
+      }
+      if(value >= 10){
+        return `${Math.round(value)}%`;
+      }
+      return `${value.toFixed(1)}%`;
+    }
     function formatRewardChange(value){
       if(!Number.isFinite(value)) return '--';
       const rounded = value.toFixed(2);
@@ -3374,31 +3487,118 @@
     function updateRlStatus(){
       const rlStatusEl = document.getElementById('rlStatus');
       if(!rlStatusEl) return;
+      rlStatusEl.classList.add('rl-status-card');
+      const methodLabel = rlMethod === RL_METHODS.PPO ? 'PPO policy gradient' : 'Tabular Q-learning';
       if(!rlTrainingEnabled){
-        rlStatusEl.textContent = 'RL disabled – using handcrafted strategies only.';
+        rlStatusEl.classList.add('rl-inactive');
+        rlStatusEl.innerHTML = `
+          <div class="rl-status-header">
+            <span class="rl-status-indicator paused" aria-hidden="true"></span>
+            <span>${methodLabel} paused</span>
+          </div>
+          <p class="rl-status-note">RL disabled – using handcrafted strategies only.</p>
+        `;
         if(rlHint){
           rlHint.textContent = rlHintOverride ?? 'Reinforcement learning is currently disabled.';
         }
         updateRlLiveMetrics();
         return;
       }
+      rlStatusEl.classList.remove('rl-inactive');
       const stats = rlAgent.getStats();
-      const epsilonText = Number.isFinite(stats.epsilon) ? stats.epsilon.toFixed(3) : '--';
-      const episodesText = Number.isFinite(stats.episodes) ? stats.episodes : 0;
+      const episodes = Number.isFinite(stats.episodes) ? stats.episodes : 0;
+      const wins = Number.isFinite(stats.completedEpisodes) ? stats.completedEpisodes : 0;
       const lastRewardText = formatRewardValue(stats.lastEpisodeReward);
       const avgRewardText = formatRewardValue(stats.averageReward);
       const lastDurationText = formatEpisodeDuration(stats.lastEpisodeDuration);
       const avgDurationText = formatEpisodeDuration(stats.averageEpisodeDuration);
-      const lastDeathsText = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
-      const avgDeathsText = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
-      const winsText = Number.isFinite(stats.completedEpisodes) ? stats.completedEpisodes : 0;
+      const lastDeaths = Number.isFinite(stats.lastEpisodeDeaths) ? stats.lastEpisodeDeaths : 0;
+      const avgDeaths = Number.isFinite(stats.averageDeaths) ? stats.averageDeaths.toFixed(2) : '0.00';
+      const totalOutcomes = Number.isFinite(stats.totalOutcomes) ? stats.totalOutcomes : 0;
+      const epsilonText = Number.isFinite(stats.epsilon) ? stats.epsilon.toFixed(3) : '--';
+      const epsilonMinText = Number.isFinite(stats.epsilonMin) ? stats.epsilonMin.toFixed(2) : '--';
+      const epsilonDecayText = Number.isFinite(stats.epsilonDecay) ? stats.epsilonDecay.toFixed(3) : '--';
+      const alphaText = Number.isFinite(stats.alpha) ? stats.alpha.toFixed(2) : '--';
+      const gammaText = Number.isFinite(stats.gamma) ? stats.gamma.toFixed(2) : '--';
+      const lrText = Number.isFinite(stats.ppoLearningRate) ? stats.ppoLearningRate.toFixed(5) : '--';
+      const clipText = Number.isFinite(stats.ppoClip) ? stats.ppoClip.toFixed(2) : '--';
+      const lambdaText = Number.isFinite(stats.ppoLambda) ? stats.ppoLambda.toFixed(2) : '--';
+      const entropyText = Number.isFinite(stats.ppoEntropyCoeff) ? stats.ppoEntropyCoeff.toFixed(3) : '--';
+      const valueCoeffText = Number.isFinite(stats.ppoValueCoeff) ? stats.ppoValueCoeff.toFixed(2) : '--';
+      const epochsText = Number.isFinite(stats.ppoEpochs) ? stats.ppoEpochs : '--';
+      const batchText = Number.isFinite(stats.ppoBatchSize) ? stats.ppoBatchSize : '--';
+      const baseItems = [
+        { label: 'Episodes', value: episodes.toLocaleString() },
+        { label: 'Wins', value: wins.toLocaleString() },
+        { label: 'Last reward', value: lastRewardText },
+        { label: 'Avg reward', value: avgRewardText },
+        { label: 'Deaths (avg)', value: `${lastDeaths} (${avgDeaths})` },
+        { label: 'Episode time', value: `${lastDurationText} · avg ${avgDurationText}` },
+        { label: 'Outcome samples', value: totalOutcomes.toLocaleString() }
+      ];
+      if(rlMethod === RL_METHODS.PPO){
+        baseItems.push(
+          { label: 'Learning rate', value: lrText },
+          { label: 'Clip range', value: clipText },
+          { label: 'GAE λ', value: lambdaText },
+          { label: 'Entropy coeff', value: entropyText },
+          { label: 'Value coeff', value: valueCoeffText },
+          { label: 'Epochs', value: epochsText },
+          { label: 'Batch size', value: batchText },
+          { label: 'γ', value: gammaText }
+        );
+      } else {
+        baseItems.push(
+          { label: 'ε', value: `${epsilonText} → ${epsilonMinText}` },
+          { label: 'ε decay', value: epsilonDecayText },
+          { label: 'α', value: alphaText },
+          { label: 'γ', value: gammaText }
+        );
+      }
+      const gridHtml = baseItems.map(item => `
+        <div class="rl-status-item">
+          <span class="rl-status-label">${item.label}</span>
+          <span class="rl-status-value">${item.value}</span>
+        </div>
+      `).join('');
       const outcomes = stats.outcomes || {};
-      const wallCrashCount = Number.isFinite(outcomes['wall-crash']) ? outcomes['wall-crash'] : 0;
-      const selfCrashCount = Number.isFinite(outcomes['self-crash']) ? outcomes['self-crash'] : 0;
-      const deadEndCrashCount = Number.isFinite(outcomes['dead-end-crash']) ? outcomes['dead-end-crash'] : 0;
-      rlStatusEl.textContent = `RL training active · ε=${epsilonText} · episodes=${episodesText} · wins=${winsText} · last=${lastRewardText} · avg=${avgRewardText} · deaths last=${lastDeathsText} (avg=${avgDeathsText}) · time last=${lastDurationText} (avg=${avgDurationText}) · crashes wall=${wallCrashCount} · self=${selfCrashCount} · dead-end=${deadEndCrashCount}`;
+      const outcomeEntries = Object.entries(outcomes)
+        .filter(([, value]) => Number.isFinite(value) && value > 0)
+        .map(([key, value]) => ({
+          key,
+          value,
+          label: RL_OUTCOME_LABELS[key] || key.replace(/-/g, ' ')
+        }))
+        .sort((a, b) => b.value - a.value);
+      let outcomeHtml = '';
+      if(outcomeEntries.length && totalOutcomes > 0){
+        const rows = outcomeEntries.map(entry => {
+          const percent = totalOutcomes > 0 ? (entry.value / totalOutcomes) * 100 : 0;
+          return `
+            <div class="rl-outcome-item">
+              <span class="rl-outcome-label">${entry.label}</span>
+              <span class="rl-outcome-value">${entry.value.toLocaleString()} (${formatPercentage(percent)})</span>
+            </div>
+          `;
+        }).join('');
+        outcomeHtml = `<div class="rl-outcome-grid">${rows}</div>`;
+      } else {
+        outcomeHtml = '<p class="rl-status-note">No completed RL episodes yet – finish a run to collect outcome stats.</p>';
+      }
+      const indicatorState = rlEpisodeActive ? 'active' : 'paused';
+      const runStateText = rlEpisodeActive ? 'Episode in progress' : 'Awaiting restart';
+      rlStatusEl.innerHTML = `
+        <div class="rl-status-header">
+          <span class="rl-status-indicator ${indicatorState}" aria-hidden="true"></span>
+          <span>${methodLabel} · ${runStateText}</span>
+        </div>
+        <div class="rl-status-grid">
+          ${gridHtml}
+        </div>
+        ${outcomeHtml}
+      `;
       if(rlHint){
-        rlHint.textContent = rlHintOverride ?? `RL is learning live – episodes: ${stats.episodes}`;
+        rlHint.textContent = rlHintOverride ?? `RL is learning live – episodes: ${episodes}`;
       }
       updateRlLiveMetrics();
     }
