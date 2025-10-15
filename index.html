@@ -203,32 +203,34 @@
     #game:hover {
       transform: scale(1.02);
     }
-    /* Controls panel */
-    .controls-panel {
-      background: var(--glass);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: 1.5rem;
-      padding: 2rem;
-      min-width: 520px;
-      width: clamp(520px, 28vw + 120px, 640px);
-      max-width: 600px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      max-height: 90vh;
-      overflow-y: auto;
-      flex: 0 1 auto;
-    }
-    .controls-panel::-webkit-scrollbar {
-      width: 8px;
-    }
-    .controls-panel::-webkit-scrollbar-track {
-      background: var(--darker);
-      border-radius: 4px;
-    }
-    .controls-panel::-webkit-scrollbar-thumb {
-      background: var(--primary);
-      border-radius: 4px;
-    }
+/* Controls panel */
+.controls-panel {
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  min-width: 580px;
+  width: clamp(580px, 32vw + 120px, 640px);
+  max-width: 680px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+  max-height: 90vh;
+  overflow-y: auto;
+  flex: 0 1 auto;
+}
+
+/* Scroll styling */
+.controls-panel::-webkit-scrollbar {
+  width: 8px;
+}
+.controls-panel::-webkit-scrollbar-track {
+  background: var(--darker);
+  border-radius: 4px;
+}
+.controls-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent), var(--primary));
+  border-radius: 4px;
+}
     .controls-section {
       margin-bottom: 2rem;
     }
