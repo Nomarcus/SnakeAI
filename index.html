@@ -2149,7 +2149,9 @@
         : Date.now();
       if(typeof tf === 'undefined' || !tf?.train){
         console.warn('TensorFlow.js not detected – PPO agent disabled.');
-        return {
+        const unavailableAgent = {
+          available: false,
+          unavailableReason: 'TensorFlow.js was not detected, so PPO training is unavailable.',
           decide(){ return null; },
           learn(){},
           startEpisode(){},
@@ -2183,6 +2185,7 @@
           },
           async startTraining(){ return { warning: 'PPO unavailable without TensorFlow.js' }; }
         };
+        return unavailableAgent;
       }
       let { actor, critic, observationSize, actionSize } = createNeuralRlModule(config);
       let optimizer = tf.train.adam(typeof config.ppoLearningRate === 'number' && config.ppoLearningRate > 0 ? config.ppoLearningRate : 0.0005);
@@ -2345,7 +2348,8 @@
         advantagesTensor.dispose();
         episodeTransitions = [];
       }
-      return {
+      const agent = {
+        available: true,
         decide(observation, moves){
           if(!Array.isArray(observation)) return null;
           const decision = samplePolicy(observation, moves);
@@ -2572,6 +2576,7 @@
           return { warning: 'Batch auto-training for PPO is not implemented.' };
         }
       };
+      return agent;
     }
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
@@ -3154,23 +3159,33 @@
     }
     function updateRlToggleUI(){
       if(!rlToggleBtn || !rlHint) return;
+      const agentUnavailable = rlMethod === RL_METHODS.PPO && rlAgent && rlAgent.available === false;
       if(rlTrainingEnabled){
         rlToggleBtn.classList.add('toggle-active');
         rlToggleBtn.textContent = '🤖 RL Training On';
+        rlToggleBtn.disabled = false;
         const stats = rlAgent.getStats();
         rlHint.textContent = `RL is learning live – episodes: ${stats.episodes}`;
       } else {
         rlToggleBtn.classList.remove('toggle-active');
-        rlToggleBtn.textContent = '🤖 Enable Reinforcement Learning';
-        rlHint.textContent = 'Reinforcement learning is currently disabled.';
+        rlToggleBtn.disabled = agentUnavailable;
+        rlToggleBtn.textContent = agentUnavailable
+          ? '🤖 PPO unavailable'
+          : '🤖 Enable Reinforcement Learning';
+        if(agentUnavailable){
+          rlHint.textContent = rlHintOverride || rlAgent?.unavailableReason || 'PPO training is unavailable because TensorFlow.js did not load.';
+        } else {
+          rlHint.textContent = rlHintOverride || 'Reinforcement learning is currently disabled.';
+        }
       }
       if(rlParamFieldset){
-        rlParamFieldset.disabled = !rlTrainingEnabled;
-        rlParamFieldset.classList.toggle('inactive', !rlTrainingEnabled);
+        const disableParams = !rlTrainingEnabled || agentUnavailable;
+        rlParamFieldset.disabled = disableParams;
+        rlParamFieldset.classList.toggle('inactive', disableParams);
       }
       if(autoRestartToggle){
         autoRestartToggle.checked = autoRestartEnabled;
-        autoRestartToggle.disabled = !rlTrainingEnabled;
+        autoRestartToggle.disabled = !rlTrainingEnabled || agentUnavailable;
       }
       updateRlLiveMetrics();
       updateRlMethodUI();
@@ -3200,7 +3215,14 @@
       rlMethod = normalized;
       rlConfig.method = normalized;
       rlAgent = rlAgents[normalized];
-      if(rlTrainingEnabled){
+      const agentUnavailable = rlMethod === RL_METHODS.PPO && rlAgent && rlAgent.available === false;
+      if(agentUnavailable){
+        rlTrainingEnabled = false;
+        rlEpisodeActive = false;
+        rlHintOverride = rlAgent.unavailableReason || 'PPO training is unavailable because TensorFlow.js did not load.';
+        cancelScheduledAutoRestart();
+        resetRlBatchProgress();
+      } else if(rlTrainingEnabled){
         rlAgent.resetEpsilon?.(rlConfig.epsilonStart);
         rlAgent.startEpisode?.();
         rlEpisodeActive = true;
@@ -3209,6 +3231,9 @@
       }
       updateRlMethodUI();
       updateRlStatus();
+      if(agentUnavailable && rlHint){
+        rlHint.textContent = rlHintOverride;
+      }
       window.rlAgent = rlAgent;
     }
     function getManualNext(){
@@ -3489,17 +3514,31 @@
       if(!rlStatusEl) return;
       rlStatusEl.classList.add('rl-status-card');
       const methodLabel = rlMethod === RL_METHODS.PPO ? 'PPO policy gradient' : 'Tabular Q-learning';
+      const agentUnavailable = rlMethod === RL_METHODS.PPO && rlAgent && rlAgent.available === false;
       if(!rlTrainingEnabled){
         rlStatusEl.classList.add('rl-inactive');
-        rlStatusEl.innerHTML = `
-          <div class="rl-status-header">
-            <span class="rl-status-indicator paused" aria-hidden="true"></span>
-            <span>${methodLabel} paused</span>
-          </div>
-          <p class="rl-status-note">RL disabled – using handcrafted strategies only.</p>
-        `;
-        if(rlHint){
-          rlHint.textContent = rlHintOverride ?? 'Reinforcement learning is currently disabled.';
+        if(agentUnavailable){
+          rlStatusEl.innerHTML = `
+            <div class="rl-status-header">
+              <span class="rl-status-indicator paused" aria-hidden="true"></span>
+              <span>${methodLabel} unavailable</span>
+            </div>
+            <p class="rl-status-note">TensorFlow.js could not be loaded, so PPO training is disabled. Check your internet connection or switch to the tabular agent.</p>
+          `;
+          if(rlHint){
+            rlHint.textContent = rlHintOverride ?? rlAgent?.unavailableReason ?? 'PPO training is unavailable because TensorFlow.js did not load.';
+          }
+        } else {
+          rlStatusEl.innerHTML = `
+            <div class="rl-status-header">
+              <span class="rl-status-indicator paused" aria-hidden="true"></span>
+              <span>${methodLabel} paused</span>
+            </div>
+            <p class="rl-status-note">RL disabled – using handcrafted strategies only.</p>
+          `;
+          if(rlHint){
+            rlHint.textContent = rlHintOverride ?? 'Reinforcement learning is currently disabled.';
+          }
         }
         updateRlLiveMetrics();
         return;
@@ -3715,28 +3754,44 @@
     updateManualUI();
     updateSafetyNetUI();
     rlToggleBtn?.addEventListener('click', () => {
-      rlTrainingEnabled = !rlTrainingEnabled;
       if(rlTrainingEnabled){
-        rlHintOverride = null;
-        manualMode = false;
-        updateManualUI();
-        rlPendingChoice = null;
-        configureRlBatchForSession();
-        rlAgent.resetEpsilon(rlConfig.epsilonStart);
-        rlAgent.startEpisode();
-        rlEpisodeActive = true;
-        resetRewardImpactEpisode();
-      } else {
         if(rlEpisodeActive){
           rlAgent.endEpisode();
         }
+        rlTrainingEnabled = false;
         rlEpisodeActive = false;
         rlPendingChoice = null;
         rlHintOverride = null;
         cancelScheduledAutoRestart();
         resetRlBatchProgress();
         resetRewardImpactEpisode();
+        updateRlToggleUI();
+        updateRlStatus();
+        updateRewardImpactUI();
+        return;
       }
+      if(rlMethod === RL_METHODS.PPO && rlAgent && rlAgent.available === false){
+        rlTrainingEnabled = false;
+        rlEpisodeActive = false;
+        rlPendingChoice = null;
+        rlHintOverride = rlAgent.unavailableReason || 'PPO training is unavailable because TensorFlow.js did not load.';
+        if(rlHint){
+          rlHint.textContent = rlHintOverride;
+        }
+        updateRlToggleUI();
+        updateRlStatus();
+        return;
+      }
+      rlTrainingEnabled = true;
+      rlHintOverride = null;
+      manualMode = false;
+      updateManualUI();
+      rlPendingChoice = null;
+      configureRlBatchForSession();
+      rlAgent.resetEpsilon(rlConfig.epsilonStart);
+      rlAgent.startEpisode();
+      rlEpisodeActive = true;
+      resetRewardImpactEpisode();
       updateRlToggleUI();
       updateRlStatus();
       if(rlTrainingEnabled && rlBatchActive && rlHint){
