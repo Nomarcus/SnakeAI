@@ -1051,6 +1051,11 @@
                   <small>Positive reward when fruit is eaten. Raise it to prioritise fast growth.</small>
                 </div>
                 <div class="param-control">
+                  <label>Fruit Distance Reward ×Δ: <span id="rlFruitApproachValue">0.50</span></label>
+                  <input type="range" id="rlFruitApproach" class="size-slider" min="-2" max="2" step="0.05" value="0.5">
+                  <small>Reward applied for each tile closer to the fruit. Negative values penalise moving away.</small>
+                </div>
+                <div class="param-control">
                   <label>Win Bonus: <span id="rlWinBonusValue">15</span></label>
                   <input type="range" id="rlWinBonus" class="size-slider" min="0" max="40" step="1" value="15">
                   <small>Extra reward for filling the entire board.</small>
@@ -1064,6 +1069,11 @@
                   <label>Compact Mode Reward: <span id="rlCompactRewardValue">1.0</span></label>
                   <input type="range" id="rlCompactReward" class="size-slider" min="0" max="5" step="0.1" value="1">
                   <small>Encourages entering and sustaining compact manoeuvres when space is tight.</small>
+                </div>
+                <div class="param-control">
+                  <label>Wall Distance Reward ×Δ: <span id="rlWallDistanceValue">0.30</span></label>
+                  <input type="range" id="rlWallDistance" class="size-slider" min="-2" max="2" step="0.05" value="0.3">
+                  <small>Bonus for increasing the gap to the nearest wall. Negative values encourage hugging edges.</small>
                 </div>
                 <div class="param-control">
                   <label>Wall Crash Penalty: <span id="rlWallCrashPenaltyValue">-5</span></label>
@@ -1650,9 +1660,11 @@
     const RL_REWARD_COMPONENTS = [
       { id: 'stepPenalty', label: 'Step penalty' },
       { id: 'fruitReward', label: 'Fruit reward' },
+      { id: 'fruitApproachReward', label: 'Fruit approach bonus' },
       { id: 'winBonus', label: 'Win bonus' },
       { id: 'endgamePlanReward', label: 'Endgame plan bonus' },
       { id: 'compactModeReward', label: 'Compact mode bonus' },
+      { id: 'wallDistanceReward', label: 'Wall spacing bonus' },
       { id: 'wallCrashPenalty', label: 'Wall crash penalty' },
       { id: 'selfCrashPenalty', label: 'Self crash penalty' },
       { id: 'deadEndPenalty', label: 'Dead-end penalty' },
@@ -1688,11 +1700,13 @@
     const rlConfig = {
       stepPenalty: -0.05,
       fruitReward: 5,
+      fruitApproachReward: 0.5,
       winBonus: 15,
       wallCrashPenalty: -5,
       selfCrashPenalty: -6,
       deathPenalty: -5,
       deadEndPenalty: -4,
+      wallDistanceReward: 0.3,
       endgamePlanReward: 1.5,
       compactModeReward: 1,
       loopPenalty: -2,
@@ -2630,9 +2644,11 @@
     const RL_CONTROL_BINDINGS = [
       { id: 'rlStepPenalty', valueId: 'rlStepPenaltyValue', key: 'stepPenalty', parser: parseFloat, format: v => v.toFixed(2) },
       { id: 'rlFruitReward', valueId: 'rlFruitRewardValue', key: 'fruitReward', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlFruitApproach', valueId: 'rlFruitApproachValue', key: 'fruitApproachReward', parser: parseFloat, format: v => v.toFixed(2) },
       { id: 'rlWinBonus', valueId: 'rlWinBonusValue', key: 'winBonus', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlEndgameReward', valueId: 'rlEndgameRewardValue', key: 'endgamePlanReward', parser: parseFloat, format: v => v.toFixed(1) },
       { id: 'rlCompactReward', valueId: 'rlCompactRewardValue', key: 'compactModeReward', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlWallDistance', valueId: 'rlWallDistanceValue', key: 'wallDistanceReward', parser: parseFloat, format: v => v.toFixed(2) },
       { id: 'rlWallCrashPenalty', valueId: 'rlWallCrashPenaltyValue', key: 'wallCrashPenalty', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlSelfCrashPenalty', valueId: 'rlSelfCrashPenaltyValue', key: 'selfCrashPenalty', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlDeathPenalty', valueId: 'rlDeathPenaltyValue', key: 'deathPenalty', parser: parseFloat, format: v => v.toFixed(0) },
@@ -3574,6 +3590,16 @@
         { label: 'Episode time', value: `${lastDurationText} · avg ${avgDurationText}` },
         { label: 'Outcome samples', value: totalOutcomes.toLocaleString() }
       ];
+      const approachWeightText = Number.isFinite(rlConfig.fruitApproachReward)
+        ? rlConfig.fruitApproachReward.toFixed(2)
+        : '--';
+      const wallWeightText = Number.isFinite(rlConfig.wallDistanceReward)
+        ? rlConfig.wallDistanceReward.toFixed(2)
+        : '--';
+      baseItems.push(
+        { label: 'Fruit distance ×Δ', value: approachWeightText },
+        { label: 'Wall distance ×Δ', value: wallWeightText }
+      );
       if(rlMethod === RL_METHODS.PPO){
         baseItems.push(
           { label: 'Learning rate', value: lrText },
@@ -4193,6 +4219,14 @@
       const free=[]; for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)
         if(!snakeSet.has(`${x},${y}`)) free.push({x,y});
       return free.length ? free[(Math.random()*free.length)|0] : {x:-1,y:-1};
+    }
+    function distanceFromNearestWall(point){
+      if(!point) return 0;
+      const dxLeft = point.x;
+      const dxRight = COLS - 1 - point.x;
+      const dyTop = point.y;
+      const dyBottom = ROWS - 1 - point.y;
+      return Math.min(dxLeft, dxRight, dyTop, dyBottom);
     }
     function isFruitAccessible(head){
       if(!fruit || fruit.x<0) return false;
@@ -4888,6 +4922,11 @@
       let stepReward = rlConfig.stepPenalty;
       let rewardBreakdown = rlTrainingEnabled ? [{ id: 'stepPenalty', amount: rlConfig.stepPenalty }] : null;
       let stepDone = false;
+      const headBeforeMove = snake[0];
+      const fruitDistanceBefore = (fruit && fruit.x >= 0 && headBeforeMove)
+        ? Math.abs(headBeforeMove.x - fruit.x) + Math.abs(headBeforeMove.y - fruit.y)
+        : Infinity;
+      const wallDistanceBefore = headBeforeMove ? distanceFromNearestWall(headBeforeMove) : 0;
       const freeNeighborsBeforeMove = countImmediateFreeNeighbors();
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
@@ -5015,6 +5054,28 @@
         resetRunTimeoutDeadline();
       }
       if(rlTrainingEnabled && !stepDone){
+        if(!ate){
+          if(fruit && fruit.x >= 0 && Number.isFinite(fruitDistanceBefore)){
+            const currentFruitDistance = Math.abs(snake[0].x - fruit.x) + Math.abs(snake[0].y - fruit.y);
+            const distanceDelta = fruitDistanceBefore - currentFruitDistance;
+            if(distanceDelta !== 0){
+              const approachReward = distanceDelta * rlConfig.fruitApproachReward;
+              if(approachReward !== 0){
+                stepReward += approachReward;
+                rewardBreakdown?.push({ id: 'fruitApproachReward', amount: approachReward });
+              }
+            }
+          }
+          const currentWallDistance = distanceFromNearestWall(snake[0]);
+          const wallDelta = currentWallDistance - wallDistanceBefore;
+          if(wallDelta !== 0){
+            const wallReward = wallDelta * rlConfig.wallDistanceReward;
+            if(wallReward !== 0){
+              stepReward += wallReward;
+              rewardBreakdown?.push({ id: 'wallDistanceReward', amount: wallReward });
+            }
+          }
+        }
         const trapPenalty = typeof rlConfig.deadEndPenalty === 'number' ? rlConfig.deadEndPenalty : 0;
         if(trapPenalty){
           const upcomingSafeMoves = getSafeMovesForRL();
