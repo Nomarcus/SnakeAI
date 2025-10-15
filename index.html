@@ -6,7 +6,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Snake Simulation - Intelligent Snake Experience</title>
-  
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js" integrity="sha384-HHpl5CpWSr2fDBF2I5A3iAA9VRUEc2ufCByg9BCgX9pHClYTc0HMTfQjv2DhkBBi" crossorigin="anonymous"></script>
+
   <style>
     * {
       margin: 0;
@@ -538,6 +539,12 @@
       background: rgba(15, 15, 35, 0.7);
       transition: opacity 0.3s ease;
     }
+    .rl-fieldset[data-active-method="ppo"] [data-rl-method="tabular"] {
+      display: none;
+    }
+    .rl-fieldset[data-active-method="tabular"] [data-rl-method="ppo"] {
+      display: none;
+    }
     .rl-fieldset legend {
       padding: 0 0.6rem;
       font-weight: 700;
@@ -927,6 +934,14 @@
               </button>
             </div>
             <div id="rlParamContent" class="collapsible-content">
+              <div class="param-control">
+                <label for="rlMethodSelect">RL Method</label>
+                <select id="rlMethodSelect" class="number-input">
+                  <option value="tabular">Q-learning (tabular)</option>
+                  <option value="ppo">Proximal Policy Optimization (PPO)</option>
+                </select>
+                <small>Switch between the classic Q-table agent and the neural PPO agent.</small>
+              </div>
               <fieldset id="rlParamFieldset" class="rl-fieldset inactive" disabled>
                 <legend class="visually-hidden">Fine-tune RL</legend>
                 <p class="manual-hint" style="margin-bottom: 1rem;">Turn on RL to unlock reward tuning and hyperparameters.</p>
@@ -981,7 +996,7 @@
                   <small>Penalty applied when an episode is terminated for a persistent loop.</small>
                 </div>
                 <div class="rl-grid two-col">
-                  <div class="param-control">
+                  <div class="param-control" data-rl-method="tabular">
                     <label>Learning rate α: <span id="rlAlphaValue">0.20</span></label>
                     <input type="number" id="rlAlpha" class="number-input" min="0.01" max="1" step="0.01" value="0.2">
                     <small>How fast the Q-table updates. Higher values react quickly but can be unstable.</small>
@@ -991,20 +1006,55 @@
                     <input type="number" id="rlGamma" class="number-input" min="0" max="0.99" step="0.01" value="0.9">
                     <small>How much future rewards are valued. Higher values favour long-term planning.</small>
                   </div>
-                  <div class="param-control">
+                  <div class="param-control" data-rl-method="tabular">
                     <label>Start ε: <span id="rlEpsilonStartValue">0.30</span></label>
                     <input type="number" id="rlEpsilonStart" class="number-input" min="0" max="1" step="0.01" value="0.3">
                     <small>Exploration at the beginning of training. Higher values = more random moves.</small>
                   </div>
-                  <div class="param-control">
+                  <div class="param-control" data-rl-method="tabular">
                     <label>Min ε: <span id="rlEpsilonMinValue">0.05</span></label>
                     <input type="number" id="rlEpsilonMin" class="number-input" min="0" max="0.5" step="0.01" value="0.05">
                     <small>Lowest exploration after long training.</small>
                   </div>
-                  <div class="param-control">
+                  <div class="param-control" data-rl-method="tabular">
                     <label>ε decay: <span id="rlEpsilonDecayValue">0.995</span></label>
                     <input type="number" id="rlEpsilonDecay" class="number-input" min="0.8" max="0.999" step="0.001" value="0.995">
                     <small>How quickly exploration shrinks each episode.</small>
+                  </div>
+                </div>
+                <div class="rl-grid two-col" data-rl-method="ppo">
+                  <div class="param-control">
+                    <label>Learning rate η: <span id="rlPpoLrValue">0.00050</span></label>
+                    <input type="number" id="rlPpoLr" class="number-input" min="0.00001" max="0.01" step="0.00001" value="0.0005">
+                    <small>Optimizer step size for updating the neural policy and value networks.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>Clip range ε<sub>clip</sub>: <span id="rlPpoClipValue">0.20</span></label>
+                    <input type="number" id="rlPpoClip" class="number-input" min="0.05" max="0.4" step="0.01" value="0.2">
+                    <small>Bounds the policy update ratio to keep training stable.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>GAE λ: <span id="rlPpoLambdaValue">0.95</span></label>
+                    <input type="number" id="rlPpoLambda" class="number-input" min="0.5" max="0.99" step="0.01" value="0.95">
+                    <small>Mix between Monte Carlo returns and bootstrapping when estimating advantages.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>Entropy bonus β: <span id="rlPpoEntropyValue">0.01</span></label>
+                    <input type="number" id="rlPpoEntropy" class="number-input" min="0" max="0.1" step="0.001" value="0.01">
+                    <small>Encourages exploration by rewarding uncertain policies.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>Value loss coeff c<sub>v</sub>: <span id="rlPpoValueCoeffValue">0.50</span></label>
+                    <input type="number" id="rlPpoValueCoeff" class="number-input" min="0" max="2" step="0.05" value="0.5">
+                    <small>Scales the critic loss when updating the networks.</small>
+                  </div>
+                  <div class="param-control">
+                    <label>Epochs × batches: <span id="rlPpoEpochsValue">4</span> × <span id="rlPpoBatchSizeValue">64</span></label>
+                    <div style="display: flex; gap: 0.75rem;">
+                      <input type="number" id="rlPpoEpochs" class="number-input" min="1" max="10" step="1" value="4" style="flex: 1;">
+                      <input type="number" id="rlPpoBatchSize" class="number-input" min="8" max="512" step="8" value="64" style="flex: 1;">
+                    </div>
+                    <small>Number of passes over collected trajectories and mini-batch size per update.</small>
                   </div>
                 </div>
                 <div class="param-control">
@@ -1558,7 +1608,15 @@
       epsilonMin: 0.05,
       epsilonDecay: 0.995,
       rewardScale: 1,
-      trainingEpisodes: 1
+      trainingEpisodes: 1,
+      method: 'tabular',
+      ppoLearningRate: 0.0005,
+      ppoClip: 0.2,
+      ppoLambda: 0.95,
+      ppoEntropyCoeff: 0.01,
+      ppoValueCoeff: 0.5,
+      ppoEpochs: 4,
+      ppoBatchSize: 64
     };
     /* ===== DYNAMIC THRESHOLDS ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
@@ -1609,7 +1667,14 @@
       }
     };
     let loopCountAdjust = 0;
-    const rlAgent = createReinforcementAgent(rlConfig);
+    const RL_METHODS = { TABULAR: 'tabular', PPO: 'ppo' };
+    const rlAgents = {
+      tabular: createReinforcementAgent(rlConfig),
+      ppo: createPpoAgent(rlConfig)
+    };
+    let rlMethod = rlConfig.method === RL_METHODS.PPO ? RL_METHODS.PPO : RL_METHODS.TABULAR;
+    rlConfig.method = rlMethod;
+    let rlAgent = rlAgents[rlMethod];
     let rlBatchActive = false;
     let rlBatchEpisodesRemaining = 0;
     let rlBatchPlannedEpisodes = 1;
@@ -1799,6 +1864,7 @@
           });
           return {
             version: 1,
+            method: 'tabular',
             hyperparameters: {
               alpha,
               gamma,
@@ -1898,6 +1964,9 @@
           applyHyperparameters(config);
           this.resetEpsilon(config.epsilonStart);
         },
+        chooseMove(){
+          return null;
+        },
         getStats(){
           return {
             epsilon,
@@ -1917,6 +1986,486 @@
             outcomes: { ...outcomeCounts },
             totalOutcomes
           };
+        }
+      };
+    }
+    function createNeuralRlModule(config = {}){
+      if(typeof tf === 'undefined' || !tf?.sequential){
+        throw new Error('TensorFlow.js is required for neural RL modules.');
+      }
+      const observationSize = 9;
+      const actionSize = DIRS.length;
+      const hiddenUnits = Math.max(16, Math.floor(config.ppoHiddenUnits || 128));
+      const initializer = config.ppoInitializer || 'glorotUniform';
+      const actor = tf.sequential();
+      actor.add(tf.layers.dense({
+        units: hiddenUnits,
+        activation: 'relu',
+        inputShape: [observationSize],
+        kernelInitializer: initializer,
+        biasInitializer: 'zeros'
+      }));
+      actor.add(tf.layers.dense({
+        units: hiddenUnits,
+        activation: 'relu',
+        kernelInitializer: initializer,
+        biasInitializer: 'zeros'
+      }));
+      actor.add(tf.layers.dense({
+        units: actionSize,
+        activation: 'linear',
+        kernelInitializer: initializer,
+        biasInitializer: 'zeros'
+      }));
+      const critic = tf.sequential();
+      critic.add(tf.layers.dense({
+        units: hiddenUnits,
+        activation: 'relu',
+        inputShape: [observationSize],
+        kernelInitializer: initializer,
+        biasInitializer: 'zeros'
+      }));
+      critic.add(tf.layers.dense({
+        units: hiddenUnits,
+        activation: 'relu',
+        kernelInitializer: initializer,
+        biasInitializer: 'zeros'
+      }));
+      critic.add(tf.layers.dense({
+        units: 1,
+        activation: 'linear',
+        kernelInitializer: initializer,
+        biasInitializer: 'zeros'
+      }));
+      return { actor, critic, observationSize, actionSize };
+    }
+    function createPpoAgent(config = {}){
+      const nowMs = () => (typeof performance !== 'undefined' && typeof performance.now === 'function')
+        ? performance.now()
+        : Date.now();
+      if(typeof tf === 'undefined' || !tf?.train){
+        console.warn('TensorFlow.js not detected – PPO agent disabled.');
+        return {
+          decide(){ return null; },
+          learn(){},
+          startEpisode(){},
+          endEpisode(){},
+          registerTerminal(){},
+          setHyperparameters(){},
+          resetEpsilon(){},
+          async exportData(){ return { method: 'ppo', warning: 'TensorFlow.js unavailable' }; },
+          async importData(){ return false; },
+          resetLearning(){},
+          chooseMove(){ return null; },
+          getStats(){
+            return {
+              epsilon: 0,
+              episodes: 0,
+              lastEpisodeReward: 0,
+              averageReward: 0,
+              lastEpisodeDuration: 0,
+              averageEpisodeDuration: 0,
+              lastEpisodeDeaths: 0,
+              averageDeaths: 0,
+              completedEpisodes: 0,
+              alpha: 0,
+              gamma: typeof config.gamma === 'number' ? config.gamma : 0.99,
+              epsilonMin: 0,
+              epsilonDecay: 0,
+              stateCount: 0,
+              outcomes: {},
+              totalOutcomes: 0
+            };
+          },
+          async startTraining(){ return { warning: 'PPO unavailable without TensorFlow.js' }; }
+        };
+      }
+      let { actor, critic, observationSize, actionSize } = createNeuralRlModule(config);
+      let optimizer = tf.train.adam(typeof config.ppoLearningRate === 'number' && config.ppoLearningRate > 0 ? config.ppoLearningRate : 0.0005);
+      const outcomeCounts = Object.create(null);
+      let totalOutcomes = 0;
+      let episodes = 0;
+      let episodeReward = 0;
+      let totalReward = 0;
+      let lastEpisodeReward = 0;
+      let episodeStartTime = null;
+      let lastEpisodeDuration = 0;
+      let totalEpisodeDuration = 0;
+      let currentEpisodeDeaths = 0;
+      let lastEpisodeDeaths = 0;
+      let totalEpisodeDeaths = 0;
+      let completedEpisodes = 0;
+      let episodeTransitions = [];
+      function rebuildNetworks(){
+        if(actor){ actor.dispose(); }
+        if(critic){ critic.dispose(); }
+        const rebuilt = createNeuralRlModule(config);
+        actor = rebuilt.actor;
+        critic = rebuilt.critic;
+        observationSize = rebuilt.observationSize;
+        actionSize = rebuilt.actionSize;
+      }
+      function rebuildOptimizer(){
+        const lr = typeof config.ppoLearningRate === 'number' && config.ppoLearningRate > 0 ? config.ppoLearningRate : 0.0005;
+        if(typeof optimizer?.dispose === 'function'){
+          optimizer.dispose();
+        }
+        optimizer = tf.train.adam(lr);
+      }
+      function computeValue(observation){
+        if(!Array.isArray(observation)) return 0;
+        return tf.tidy(() => {
+          const input = tf.tensor2d([observation], [1, observationSize]);
+          const result = critic.apply(input);
+          const value = result.dataSync()[0];
+          return Number.isFinite(value) ? value : 0;
+        });
+      }
+      function samplePolicy(observation, moves){
+        return tf.tidy(() => {
+          const state = tf.tensor2d([observation], [1, observationSize]);
+          let logits = actor.apply(state);
+          const allowed = new Set(Array.isArray(moves) && moves.length ? moves.map(m => m.dirIndex) : DIRS.map((_, idx) => idx));
+          if(allowed.size && allowed.size < actionSize){
+            const maskValues = new Float32Array(actionSize).fill(-1e9);
+            allowed.forEach(idx => { maskValues[idx] = 0; });
+            const mask = tf.tensor2d([maskValues], [1, actionSize]);
+            logits = logits.add(mask);
+          }
+          const probsTensor = tf.softmax(logits);
+          const probs = Array.from(probsTensor.dataSync());
+          const valueTensor = critic.apply(state);
+          const value = valueTensor.dataSync()[0];
+          const allowedIndices = probs.map((_, idx) => idx).filter(idx => !allowed.size || allowed.has(idx));
+          let choice = null;
+          let cumulative = 0;
+          const r = Math.random();
+          for(const idx of allowedIndices){
+            cumulative += probs[idx];
+            if(r <= cumulative){
+              choice = idx;
+              break;
+            }
+          }
+          if(choice === null){
+            let best = allowedIndices[0] ?? 0;
+            let bestProb = -Infinity;
+            for(const idx of allowedIndices){
+              if(probs[idx] > bestProb){
+                bestProb = probs[idx];
+                best = idx;
+              }
+            }
+            choice = best;
+          }
+          return {
+            actionIdx: choice,
+            logProb: Math.log(Math.max(probs[choice], 1e-8)),
+            value: Number.isFinite(value) ? value : 0,
+            policy: probs
+          };
+        });
+      }
+      function normalizeAdvantages(values){
+        return tf.tidy(() => {
+          const tensor = tf.tensor1d(values, 'float32');
+          const moments = tf.moments(tensor);
+          const normalized = tensor.sub(moments.mean).div(moments.variance.add(1e-8).sqrt());
+          return normalized;
+        });
+      }
+      function performPpoUpdate(){
+        if(!episodeTransitions.length) return;
+        const gamma = typeof config.gamma === 'number' ? config.gamma : 0.99;
+        const lambda = typeof config.ppoLambda === 'number' ? config.ppoLambda : 0.95;
+        const clipRange = typeof config.ppoClip === 'number' ? config.ppoClip : 0.2;
+        const entropyCoeff = typeof config.ppoEntropyCoeff === 'number' ? config.ppoEntropyCoeff : 0.01;
+        const valueCoeff = typeof config.ppoValueCoeff === 'number' ? config.ppoValueCoeff : 0.5;
+        const epochs = Math.max(1, Math.round(config.ppoEpochs || 4));
+        const batchSize = Math.max(8, Math.round(config.ppoBatchSize || 64));
+        const returns = new Array(episodeTransitions.length);
+        const advantages = new Array(episodeTransitions.length);
+        let gae = 0;
+        for(let i = episodeTransitions.length - 1; i >= 0; i--){
+          const transition = episodeTransitions[i];
+          const reward = Number(transition.reward) || 0;
+          const nextValue = transition.done ? 0 : (Number(transition.nextValue) || 0);
+          const delta = reward + gamma * nextValue - transition.value;
+          gae = delta + gamma * lambda * (transition.done ? 0 : gae);
+          advantages[i] = gae;
+          returns[i] = gae + transition.value;
+        }
+        const statesTensor = tf.tensor2d(episodeTransitions.map(t => t.state), [episodeTransitions.length, observationSize]);
+        const actionsTensor = tf.tensor1d(episodeTransitions.map(t => t.action), 'int32');
+        const oldLogProbsTensor = tf.tensor1d(episodeTransitions.map(t => t.logProb), 'float32');
+        const returnsTensor = tf.tensor1d(returns, 'float32');
+        const advantagesTensor = normalizeAdvantages(advantages);
+        const indices = [...episodeTransitions.keys()];
+        for(let epoch = 0; epoch < epochs; epoch++){
+          tf.util.shuffle(indices);
+          for(let start = 0; start < indices.length; start += batchSize){
+            const batchIdx = indices.slice(start, Math.min(start + batchSize, indices.length));
+            const result = optimizer.minimize(() => {
+              return tf.tidy(() => {
+                const idxTensor = tf.tensor1d(batchIdx, 'int32');
+                const batchStates = tf.gather(statesTensor, idxTensor);
+                const batchActions = tf.gather(actionsTensor, idxTensor);
+                const batchOldLogProbs = tf.gather(oldLogProbsTensor, idxTensor);
+                const batchAdvantages = tf.gather(advantagesTensor, idxTensor);
+                const batchReturns = tf.gather(returnsTensor, idxTensor);
+                const logits = actor.apply(batchStates, { training: true });
+                const logProbs = tf.logSoftmax(logits);
+                const actionMask = tf.oneHot(batchActions, actionSize);
+                const selectedLogProbs = tf.sum(actionMask.mul(logProbs), 1);
+                const ratios = tf.exp(selectedLogProbs.sub(batchOldLogProbs));
+                const clipped = tf.clipByValue(ratios, 1 - clipRange, 1 + clipRange);
+                const surrogate1 = ratios.mul(batchAdvantages);
+                const surrogate2 = clipped.mul(batchAdvantages);
+                const policyLoss = tf.neg(tf.minimum(surrogate1, surrogate2).mean());
+                const values = critic.apply(batchStates, { training: true }).reshape([-1]);
+                const valueLoss = tf.mean(tf.square(batchReturns.sub(values))).mul(valueCoeff);
+                const probs = tf.exp(logProbs);
+                const entropy = tf.neg(probs.mul(logProbs).sum(1).mean());
+                const loss = policyLoss.add(valueLoss).sub(entropy.mul(entropyCoeff));
+                idxTensor.dispose();
+                return loss;
+              });
+            }, false);
+            result?.dispose?.();
+          }
+        }
+        statesTensor.dispose();
+        actionsTensor.dispose();
+        oldLogProbsTensor.dispose();
+        returnsTensor.dispose();
+        advantagesTensor.dispose();
+        episodeTransitions = [];
+      }
+      return {
+        decide(observation, moves){
+          if(!Array.isArray(observation)) return null;
+          const decision = samplePolicy(observation, moves);
+          if(!decision) return null;
+          return {
+            actionIdx: decision.actionIdx,
+            logProb: decision.logProb,
+            value: decision.value,
+            state: observation.slice(),
+            policy: decision.policy
+          };
+        },
+        learn(decision, reward, nextObservation, done){
+          if(!decision) return;
+          const normalizedReward = Number.isFinite(reward) ? reward : 0;
+          const nextValue = done ? 0 : computeValue(nextObservation);
+          episodeTransitions.push({
+            state: decision.state.slice(),
+            action: decision.actionIdx,
+            logProb: decision.logProb,
+            value: decision.value,
+            reward: normalizedReward,
+            nextValue,
+            done: !!done
+          });
+          episodeReward += normalizedReward;
+        },
+        startEpisode(){
+          episodeTransitions = [];
+          episodeReward = 0;
+          episodeStartTime = nowMs();
+          currentEpisodeDeaths = 0;
+        },
+        endEpisode(){
+          const finishedAt = nowMs();
+          const duration = episodeStartTime ? finishedAt - episodeStartTime : 0;
+          if(duration > 0){
+            lastEpisodeDuration = duration;
+            totalEpisodeDuration += duration;
+          } else {
+            lastEpisodeDuration = 0;
+          }
+          episodeStartTime = null;
+          performPpoUpdate();
+          totalReward += episodeReward;
+          lastEpisodeReward = episodeReward;
+          lastEpisodeDeaths = currentEpisodeDeaths;
+          totalEpisodeDeaths += currentEpisodeDeaths;
+          episodes++;
+          episodeReward = 0;
+          currentEpisodeDeaths = 0;
+        },
+        registerTerminal(outcome){
+          if(typeof outcome !== 'string') return;
+          const key = outcome.trim().toLowerCase();
+          if(!key) return;
+          const fatal = new Set(['loss', 'timeout', 'wall-crash', 'self-crash', 'dead-end-crash']);
+          if(fatal.has(key)){
+            currentEpisodeDeaths += 1;
+          } else if(key === 'win'){
+            completedEpisodes += 1;
+          }
+          outcomeCounts[key] = (outcomeCounts[key] || 0) + 1;
+          totalOutcomes++;
+        },
+        setHyperparameters(values){
+          if(!values || typeof values !== 'object') return;
+          let optimizerChanged = false;
+          if(typeof values.gamma === 'number') config.gamma = values.gamma;
+          if(typeof values.ppoLearningRate === 'number'){ config.ppoLearningRate = values.ppoLearningRate; optimizerChanged = true; }
+          if(typeof values.ppoClip === 'number') config.ppoClip = values.ppoClip;
+          if(typeof values.ppoLambda === 'number') config.ppoLambda = values.ppoLambda;
+          if(typeof values.ppoEntropyCoeff === 'number') config.ppoEntropyCoeff = values.ppoEntropyCoeff;
+          if(typeof values.ppoValueCoeff === 'number') config.ppoValueCoeff = values.ppoValueCoeff;
+          if(typeof values.ppoEpochs === 'number') config.ppoEpochs = values.ppoEpochs;
+          if(typeof values.ppoBatchSize === 'number') config.ppoBatchSize = values.ppoBatchSize;
+          if(optimizerChanged){
+            rebuildOptimizer();
+          }
+        },
+        resetEpsilon(){},
+        async exportData(){
+          const serialize = async (model) => {
+            const weights = model.getWeights();
+            const payload = [];
+            for(const tensor of weights){
+              const data = await tensor.data();
+              payload.push({ shape: tensor.shape, data: Array.from(data) });
+            }
+            return payload;
+          };
+          return {
+            version: 1,
+            method: 'ppo',
+            hyperparameters: {
+              gamma: config.gamma,
+              ppoLearningRate: config.ppoLearningRate,
+              ppoClip: config.ppoClip,
+              ppoLambda: config.ppoLambda,
+              ppoEntropyCoeff: config.ppoEntropyCoeff,
+              ppoValueCoeff: config.ppoValueCoeff,
+              ppoEpochs: config.ppoEpochs,
+              ppoBatchSize: config.ppoBatchSize
+            },
+            stats: {
+              episodes,
+              episodeReward,
+              totalReward,
+              lastEpisodeReward,
+              lastEpisodeDuration,
+              totalEpisodeDuration,
+              currentEpisodeDeaths,
+              lastEpisodeDeaths,
+              totalEpisodeDeaths,
+              totalOutcomes,
+              completedEpisodes
+            },
+            outcomes: { ...outcomeCounts },
+            actor: await serialize(actor),
+            critic: await serialize(critic)
+          };
+        },
+        async importData(snapshot = {}){
+          if(!snapshot || typeof snapshot !== 'object') return false;
+          if(snapshot.method && snapshot.method !== 'ppo') return false;
+          const assign = async (model, payload) => {
+            if(!Array.isArray(payload)) return;
+            const tensors = payload.map(entry => {
+              if(!entry || !Array.isArray(entry.shape) || !Array.isArray(entry.data)) return null;
+              return tf.tensor(entry.data, entry.shape, 'float32');
+            }).filter(Boolean);
+            if(!tensors.length) return;
+            await model.setWeights(tensors);
+            tensors.forEach(t => t.dispose());
+          };
+          await assign(actor, snapshot.actor || []);
+          await assign(critic, snapshot.critic || []);
+          this.setHyperparameters(snapshot.hyperparameters || {});
+          const stats = snapshot.stats || {};
+          if(Number.isFinite(stats.episodes)) episodes = stats.episodes;
+          if(Number.isFinite(stats.episodeReward)) episodeReward = stats.episodeReward;
+          if(Number.isFinite(stats.totalReward)) totalReward = stats.totalReward;
+          if(Number.isFinite(stats.lastEpisodeReward)) lastEpisodeReward = stats.lastEpisodeReward;
+          if(Number.isFinite(stats.lastEpisodeDuration)) lastEpisodeDuration = stats.lastEpisodeDuration;
+          if(Number.isFinite(stats.totalEpisodeDuration)) totalEpisodeDuration = stats.totalEpisodeDuration;
+          if(Number.isFinite(stats.currentEpisodeDeaths)) currentEpisodeDeaths = stats.currentEpisodeDeaths;
+          if(Number.isFinite(stats.lastEpisodeDeaths)) lastEpisodeDeaths = stats.lastEpisodeDeaths;
+          if(Number.isFinite(stats.totalEpisodeDeaths)) totalEpisodeDeaths = stats.totalEpisodeDeaths;
+          if(Number.isFinite(stats.totalOutcomes)) totalOutcomes = stats.totalOutcomes;
+          if(Number.isFinite(stats.completedEpisodes)) completedEpisodes = stats.completedEpisodes;
+          for(const key in outcomeCounts){
+            if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
+              delete outcomeCounts[key];
+            }
+          }
+          if(snapshot.outcomes && typeof snapshot.outcomes === 'object'){
+            for(const key of Object.keys(snapshot.outcomes)){
+              const value = snapshot.outcomes[key];
+              if(Number.isFinite(value)){
+                outcomeCounts[key] = value;
+              }
+            }
+          }
+          episodeTransitions = [];
+          return true;
+        },
+        resetLearning(){
+          episodeTransitions = [];
+          episodes = 0;
+          episodeReward = 0;
+          totalReward = 0;
+          lastEpisodeReward = 0;
+          episodeStartTime = null;
+          lastEpisodeDuration = 0;
+          totalEpisodeDuration = 0;
+          currentEpisodeDeaths = 0;
+          lastEpisodeDeaths = 0;
+          totalEpisodeDeaths = 0;
+          totalOutcomes = 0;
+          completedEpisodes = 0;
+          for(const key in outcomeCounts){
+            if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
+              delete outcomeCounts[key];
+            }
+          }
+          rebuildNetworks();
+          rebuildOptimizer();
+        },
+        chooseMove(head, moves, options = {}){
+          const observation = Array.isArray(options.observation) ? options.observation : buildRlObservation(moves);
+          const decision = this.decide(observation, moves);
+          if(!decision) return null;
+          const match = Array.isArray(moves) ? moves.find(move => move.dirIndex === decision.actionIdx) : null;
+          return match ? { x: match.x, y: match.y } : null;
+        },
+        getStats(){
+          return {
+            epsilon: 0,
+            episodes,
+            lastEpisodeReward,
+            averageReward: episodes ? totalReward / episodes : 0,
+            lastEpisodeDuration,
+            averageEpisodeDuration: episodes ? totalEpisodeDuration / episodes : 0,
+            lastEpisodeDeaths,
+            averageDeaths: episodes ? totalEpisodeDeaths / Math.max(episodes, 1) : 0,
+            completedEpisodes,
+            alpha: 0,
+            gamma: typeof config.gamma === 'number' ? config.gamma : 0.99,
+            epsilonMin: 0,
+            epsilonDecay: 0,
+            stateCount: 0,
+            outcomes: { ...outcomeCounts },
+            totalOutcomes,
+            ppoLearningRate: config.ppoLearningRate,
+            ppoClip: config.ppoClip,
+            ppoLambda: config.ppoLambda,
+            ppoEntropyCoeff: config.ppoEntropyCoeff,
+            ppoValueCoeff: config.ppoValueCoeff,
+            ppoEpochs: config.ppoEpochs,
+            ppoBatchSize: config.ppoBatchSize
+          };
+        },
+        async startTraining(){
+          return { warning: 'Batch auto-training for PPO is not implemented.' };
         }
       };
     }
@@ -1940,6 +2489,8 @@
     const rlToggleBtn = document.getElementById('rlToggle');
     const rlHint = document.getElementById('rlHint');
     const rlParamFieldset = document.getElementById('rlParamFieldset');
+    const rlMethodSelect = document.getElementById('rlMethodSelect');
+    updateRlMethodUI();
     const rlResetButton = document.getElementById('rlResetLearning');
     const autoRestartToggle = document.getElementById('autoRestartToggle');
     const rlLiveMetricsEl = document.getElementById('rlLiveMetrics');
@@ -1979,11 +2530,18 @@
       { id: 'rlDeathPenalty', valueId: 'rlDeathPenaltyValue', key: 'deathPenalty', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlDeadEndPenalty', valueId: 'rlDeadEndPenaltyValue', key: 'deadEndPenalty', parser: parseFloat, format: v => v.toFixed(1) },
       { id: 'rlLoopPenalty', valueId: 'rlLoopPenaltyValue', key: 'loopPenalty', parser: parseFloat, format: v => v.toFixed(1) },
-      { id: 'rlAlpha', valueId: 'rlAlphaValue', key: 'alpha', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ alpha: v }) },
+      { id: 'rlAlpha', valueId: 'rlAlphaValue', key: 'alpha', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { if(rlMethod === 'tabular'){ rlAgent.setHyperparameters({ alpha: v }); } } },
       { id: 'rlGamma', valueId: 'rlGammaValue', key: 'gamma', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ gamma: v }) },
-      { id: 'rlEpsilonStart', valueId: 'rlEpsilonStartValue', key: 'epsilonStart', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { rlAgent.setHyperparameters({ epsilonStart: v }); rlAgent.resetEpsilon(v); } },
-      { id: 'rlEpsilonMin', valueId: 'rlEpsilonMinValue', key: 'epsilonMin', parser: parseFloat, format: v => v.toFixed(2), onChange: v => rlAgent.setHyperparameters({ epsilonMin: v }) },
-      { id: 'rlEpsilonDecay', valueId: 'rlEpsilonDecayValue', key: 'epsilonDecay', parser: parseFloat, format: v => v.toFixed(3), onChange: v => rlAgent.setHyperparameters({ epsilonDecay: v }) },
+      { id: 'rlEpsilonStart', valueId: 'rlEpsilonStartValue', key: 'epsilonStart', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { if(rlMethod === 'tabular'){ rlAgent.setHyperparameters({ epsilonStart: v }); rlAgent.resetEpsilon(v); } } },
+      { id: 'rlEpsilonMin', valueId: 'rlEpsilonMinValue', key: 'epsilonMin', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { if(rlMethod === 'tabular'){ rlAgent.setHyperparameters({ epsilonMin: v }); } } },
+      { id: 'rlEpsilonDecay', valueId: 'rlEpsilonDecayValue', key: 'epsilonDecay', parser: parseFloat, format: v => v.toFixed(3), onChange: v => { if(rlMethod === 'tabular'){ rlAgent.setHyperparameters({ epsilonDecay: v }); } } },
+      { id: 'rlPpoLr', valueId: 'rlPpoLrValue', key: 'ppoLearningRate', parser: parseFloat, format: v => v.toFixed(5), onChange: v => { if(rlMethod === 'ppo'){ rlAgent.setHyperparameters({ ppoLearningRate: v }); } } },
+      { id: 'rlPpoClip', valueId: 'rlPpoClipValue', key: 'ppoClip', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { if(rlMethod === 'ppo'){ rlAgent.setHyperparameters({ ppoClip: v }); } } },
+      { id: 'rlPpoLambda', valueId: 'rlPpoLambdaValue', key: 'ppoLambda', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { if(rlMethod === 'ppo'){ rlAgent.setHyperparameters({ ppoLambda: v }); } } },
+      { id: 'rlPpoEntropy', valueId: 'rlPpoEntropyValue', key: 'ppoEntropyCoeff', parser: parseFloat, format: v => v.toFixed(3), onChange: v => { if(rlMethod === 'ppo'){ rlAgent.setHyperparameters({ ppoEntropyCoeff: v }); } } },
+      { id: 'rlPpoValueCoeff', valueId: 'rlPpoValueCoeffValue', key: 'ppoValueCoeff', parser: parseFloat, format: v => v.toFixed(2), onChange: v => { if(rlMethod === 'ppo'){ rlAgent.setHyperparameters({ ppoValueCoeff: v }); } } },
+      { id: 'rlPpoEpochs', valueId: 'rlPpoEpochsValue', key: 'ppoEpochs', parser: value => Math.max(1, Math.round(Number(value) || 1)), format: v => Math.round(v), onChange: v => { if(rlMethod === 'ppo'){ rlAgent.setHyperparameters({ ppoEpochs: v }); } } },
+      { id: 'rlPpoBatchSize', valueId: 'rlPpoBatchSizeValue', key: 'ppoBatchSize', parser: value => Math.max(8, Math.round(Number(value) || 8)), format: v => Math.round(v), onChange: v => { if(rlMethod === 'ppo'){ rlAgent.setHyperparameters({ ppoBatchSize: v }); } } },
       { id: 'rlEpisodes', valueId: 'rlEpisodesValue', key: 'trainingEpisodes', parser: value => {
         const parsed = Number(value);
         if(Number.isNaN(parsed)) return 1;
@@ -2502,8 +3060,43 @@
         autoRestartToggle.disabled = !rlTrainingEnabled;
       }
       updateRlLiveMetrics();
+      updateRlMethodUI();
       renderRlEpisodeHistory();
       updateRewardImpactUI();
+    }
+    function updateRlMethodUI(){
+      if(rlParamFieldset){
+        rlParamFieldset.setAttribute('data-active-method', rlMethod);
+      }
+      if(rlMethodSelect){
+        rlMethodSelect.value = rlMethod;
+      }
+    }
+    function setRlMethod(method){
+      const normalized = method === RL_METHODS.PPO ? RL_METHODS.PPO : RL_METHODS.TABULAR;
+      if(normalized === rlMethod && rlAgent === rlAgents[normalized]){
+        rlConfig.method = normalized;
+        updateRlMethodUI();
+        return;
+      }
+      if(rlEpisodeActive){
+        rlAgent.endEpisode?.();
+        rlEpisodeActive = false;
+      }
+      rlPendingChoice = null;
+      rlMethod = normalized;
+      rlConfig.method = normalized;
+      rlAgent = rlAgents[normalized];
+      if(rlTrainingEnabled){
+        rlAgent.resetEpsilon?.(rlConfig.epsilonStart);
+        rlAgent.startEpisode?.();
+        rlEpisodeActive = true;
+        resetRewardImpactEpisode();
+        updateRewardImpactUI();
+      }
+      updateRlMethodUI();
+      updateRlStatus();
+      window.rlAgent = rlAgent;
     }
     function getManualNext(){
       const direction = pendingManualDirection || manualDirection;
@@ -2744,8 +3337,13 @@
       }
       let episodeJustEnded = false;
       if(rlPendingChoice){
-        const nextState = done ? null : buildRlObservation(getSafeMovesForRL());
-        rlAgent.learn(rlPendingChoice.stateKey, rlPendingChoice.actionIdx, effectiveReward, nextState, done);
+        const nextObservation = done ? null : buildRlObservation(getSafeMovesForRL());
+        if(rlPendingChoice.method === RL_METHODS.PPO){
+          rlAgent.learn(rlPendingChoice.decision, effectiveReward, nextObservation, done);
+        } else {
+          const decision = rlPendingChoice.decision || rlPendingChoice;
+          rlAgent.learn(decision.stateKey, decision.actionIdx, effectiveReward, nextObservation, done);
+        }
         if(done && rlEpisodeActive){
           rlAgent.endEpisode();
           rlEpisodeActive = false;
@@ -2828,6 +3426,14 @@
           applyValue(parsed);
         });
       });
+      if(rlMethodSelect){
+        rlMethodSelect.value = rlMethod;
+        rlMethodSelect.addEventListener('change', event => {
+          setRlMethod(event.target.value);
+          applyRlConfigValues(rlConfig);
+        });
+      }
+      updateRlMethodUI();
       rlResetButton?.addEventListener('click', () => {
         rlAgent.resetLearning();
         lastObservedReward = 0;
@@ -2941,10 +3547,16 @@
     updateRlToggleUI();
     updateRlStatus();
     setupRlControls();
-    rlExportButton?.addEventListener('click', () => {
-      downloadTrainingSnapshot(createTrainingSnapshot());
-      if(rlHint){
-        rlHint.textContent = 'Training snapshot downloaded to your device.';
+    rlExportButton?.addEventListener('click', async () => {
+      try {
+        const snapshot = await createTrainingSnapshot();
+        downloadTrainingSnapshot(snapshot);
+        if(rlHint){
+          rlHint.textContent = 'Training snapshot downloaded to your device.';
+        }
+      } catch (error){
+        console.error('Failed to create training snapshot', error);
+        alert('Export failed – please try again.');
       }
     });
     rlImportButton?.addEventListener('click', () => {
@@ -3125,6 +3737,9 @@
         autoRestartToggle.checked = autoFlag;
       }
       if(rlValues && typeof rlValues === 'object'){
+        if(typeof rlValues.method === 'string'){
+          setRlMethod(rlValues.method);
+        }
         applyRlConfigValues(rlValues);
       }
       if(toggles && typeof toggles === 'object'){
@@ -3142,8 +3757,8 @@
       updateSafetyNetUI();
       updateRlStatus();
     }
-    function createTrainingSnapshot(){
-      const rlSnapshot = rlAgent.exportData();
+    async function createTrainingSnapshot(){
+      const rlSnapshot = await rlAgent.exportData();
       return {
         version: 1,
         timestamp: new Date().toISOString(),
@@ -3177,7 +3792,10 @@
         const text = await file.text();
         const parsed = JSON.parse(text);
         const rlPayload = parsed.rl || parsed.training || parsed;
-        const imported = rlAgent.importData(rlPayload);
+        if(rlPayload && typeof rlPayload.method === 'string'){
+          setRlMethod(rlPayload.method);
+        }
+        const imported = await rlAgent.importData(rlPayload);
         if(!imported){
           throw new Error('Invalid RL payload');
         }
@@ -3657,7 +4275,7 @@
             if(decision){
               const selected = rlSafeMoves.find(move => move.dirIndex === decision.actionIdx);
               if(selected){
-                rlPendingChoice = { stateKey: decision.stateKey, actionIdx: decision.actionIdx };
+                rlPendingChoice = { method: rlMethod, decision };
                 currentStrategy = 'RL policy';
                 return {x: selected.x, y: selected.y};
               }
@@ -3712,7 +4330,8 @@
         const tailPos=snake.length>1?snake[snake.length-1]:null;
         const randomFactor=loopDetected?Math.random()*5:0;
         const avoidFactor=loopDetected?0.5:1;
-        for(const d of DIRS){
+        for(let dirIndex = 0; dirIndex < DIRS.length; dirIndex++){
+          const d = DIRS[dirIndex];
           const nx=head.x+d.dx, ny=head.y+d.dy;
           if(nx<0||nx>=COLS||ny<0||ny>=ROWS) continue;
           const isTailStep=nx===snake[snake.length-1].x&&ny===snake[snake.length-1].y;
@@ -3732,6 +4351,7 @@
           const moveData = {
             x: nx,
             y: ny,
+            dirIndex,
             dx: d.dx,
             dy: d.dy,
             baseScore: score,
@@ -3743,8 +4363,12 @@
         }
         if(bestMoves.length){
           currentStrategy="Heuristic";
-          const rlChoice = rlAgent.chooseMove(head, bestMoves, {isEndgame});
-          return rlChoice || bestMoves[(Math.random()*bestMoves.length)|0];
+          const observation = buildRlObservation(rlSafeMoves && rlSafeMoves.length ? rlSafeMoves : bestMoves);
+          const rlChoice = rlAgent.chooseMove(head, bestMoves, { isEndgame, observation });
+          if(rlChoice){
+            return rlChoice;
+          }
+          return bestMoves[(Math.random()*bestMoves.length)|0];
         }
         const tail=snake.length>1?snake[snake.length-1]:head;
         const path=bfsWithAlternatives(head.x,head.y,tail.x,tail.y,true,loopDetected);
@@ -3770,12 +4394,21 @@
           updateRewardImpactUI();
         }
         if(rlMoves && rlMoves.length){
-          const rlState = buildRlObservation(rlSafeMoves || []);
-          const decision = rlAgent.decide(rlState, rlMoves);
+          let candidateMoves = rlMoves.filter(move => !move.outOfBounds && !move.hitsBody);
+          if(!candidateMoves.length){
+            candidateMoves = rlMoves;
+          }
+          const observationMoves = rlSafeMoves && rlSafeMoves.length ? rlSafeMoves : candidateMoves;
+          const rlState = buildRlObservation(observationMoves);
+          const decision = rlAgent.decide(rlState, candidateMoves);
           if(decision){
-            const selected = pickViableMove({ dirIndex: decision.actionIdx }, rlMoves);
+            let selected = candidateMoves.find(move => move.dirIndex === decision.actionIdx);
+            if(!selected){
+              selected = pickViableMove({ dirIndex: decision.actionIdx }, candidateMoves) || pickViableMove(null, candidateMoves);
+            }
             if(selected){
-              rlPendingChoice = { stateKey: decision.stateKey, actionIdx: selected.dirIndex };
+              const updatedDecision = { ...decision, actionIdx: selected.dirIndex ?? decision.actionIdx };
+              rlPendingChoice = { method: rlMethod, decision: updatedDecision };
               currentStrategy = 'RL policy';
               return {x: selected.x, y: selected.y};
             }
