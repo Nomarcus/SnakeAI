@@ -1108,6 +1108,11 @@
                   <small>Extra reward for filling the entire board.</small>
                 </div>
                 <div class="param-control">
+                  <label>Record Time Bonus: <span id="rlBestTimeBonusValue">100</span></label>
+                  <input type="range" id="rlBestTimeBonus" class="size-slider" min="0" max="500" step="10" value="100">
+                  <small>Huge reward whenever the snake beats its fastest completion time.</small>
+                </div>
+                <div class="param-control">
                   <label>Endgame Plan Reward: <span id="rlEndgameRewardValue">1.5</span></label>
                   <input type="range" id="rlEndgameReward" class="size-slider" min="0" max="5" step="0.1" value="1.5">
                   <small>Bonus when the snake commits to the Hamilton endgame plan.</small>
@@ -2058,6 +2063,7 @@
       { id: 'fruitReward', label: 'Fruit reward' },
       { id: 'fruitApproachReward', label: 'Fruit approach bonus' },
       { id: 'winBonus', label: 'Win bonus' },
+      { id: 'bestTimeBonus', label: 'Record time bonus' },
       { id: 'endgamePlanReward', label: 'Endgame plan bonus' },
       { id: 'compactModeReward', label: 'Compact mode bonus' },
       { id: 'wallDistanceReward', label: 'Wall spacing bonus' },
@@ -2101,6 +2107,7 @@
       fruitReward: 5,
       fruitApproachReward: 0.5,
       winBonus: 15,
+      bestTimeBonus: 100,
       wallCrashPenalty: -5,
       selfCrashPenalty: -6,
       deathPenalty: -5,
@@ -3054,6 +3061,7 @@
       { id: 'rlFruitReward', valueId: 'rlFruitRewardValue', key: 'fruitReward', parser: parseFloat, format: v => v.toFixed(1) },
       { id: 'rlFruitApproach', valueId: 'rlFruitApproachValue', key: 'fruitApproachReward', parser: parseFloat, format: v => v.toFixed(2) },
       { id: 'rlWinBonus', valueId: 'rlWinBonusValue', key: 'winBonus', parser: parseFloat, format: v => v.toFixed(0) },
+      { id: 'rlBestTimeBonus', valueId: 'rlBestTimeBonusValue', key: 'bestTimeBonus', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlEndgameReward', valueId: 'rlEndgameRewardValue', key: 'endgamePlanReward', parser: parseFloat, format: v => v.toFixed(1) },
       { id: 'rlCompactReward', valueId: 'rlCompactRewardValue', key: 'compactModeReward', parser: parseFloat, format: v => v.toFixed(1) },
       { id: 'rlWallDistance', valueId: 'rlWallDistanceValue', key: 'wallDistanceReward', parser: parseFloat, format: v => v.toFixed(2) },
@@ -5514,6 +5522,15 @@
           fruit = {x: -1, y: -1};
           stepReward = rlConfig.winBonus;
           rewardBreakdown = rlTrainingEnabled ? [{ id: 'winBonus', amount: rlConfig.winBonus }] : rewardBreakdown;
+          const runDurationMs = startTime !== null ? performance.now() - startTime : lastElapsedMs;
+          const brokeRecord = Number.isFinite(runDurationMs) && (bestTimeMs === null || runDurationMs < bestTimeMs);
+          if(brokeRecord && rlTrainingEnabled){
+            const recordBonus = Number.isFinite(rlConfig.bestTimeBonus) ? rlConfig.bestTimeBonus : 0;
+            if(recordBonus !== 0){
+              stepReward += recordBonus;
+              rewardBreakdown?.push({ id: 'bestTimeBonus', amount: recordBonus });
+            }
+          }
           stepDone = true;
           completionMessage = rlTrainingEnabled
             ? '✅ Banan klar! RL-agenten fyllde hela brädet.'
