@@ -3439,6 +3439,9 @@
     }
     function computeRunTimeout(){
       const area = COLS * ROWS;
+      if(area === 15 * 15){
+        return 5 * 60 * 1000;
+      }
       const estimated = area * BASE_TIMEOUT_PER_CELL_MS;
       return Math.max(MIN_RUN_TIMEOUT_MS, Math.min(MAX_RUN_TIMEOUT_MS, estimated));
     }
