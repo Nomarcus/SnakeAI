@@ -1123,6 +1123,11 @@
                   <small>Encourages entering and sustaining compact manoeuvres when space is tight.</small>
                 </div>
                 <div class="param-control">
+                  <label>Pocket Fill Reward ×Δ: <span id="rlPocketRewardValue">0.40</span></label>
+                  <input type="range" id="rlPocketReward" class="size-slider" min="-2" max="2" step="0.05" value="0.4">
+                  <small>Rewards shrinking enclosed empty pockets and penalises creating trapped holes.</small>
+                </div>
+                <div class="param-control">
                   <label>Wall Distance Reward ×Δ: <span id="rlWallDistanceValue">0.30</span></label>
                   <input type="range" id="rlWallDistance" class="size-slider" min="-2" max="2" step="0.05" value="0.3">
                   <small>Bonus for increasing the gap to the nearest wall. Negative values encourage hugging edges.</small>
@@ -2066,6 +2071,7 @@
       { id: 'bestTimeBonus', label: 'Record time bonus' },
       { id: 'endgamePlanReward', label: 'Endgame plan bonus' },
       { id: 'compactModeReward', label: 'Compact mode bonus' },
+      { id: 'pocketFillReward', label: 'Pocket fill reward' },
       { id: 'wallDistanceReward', label: 'Wall spacing bonus' },
       { id: 'wallCrashPenalty', label: 'Wall crash penalty' },
       { id: 'selfCrashPenalty', label: 'Self crash penalty' },
@@ -2115,6 +2121,7 @@
       wallDistanceReward: 0.3,
       endgamePlanReward: 1.5,
       compactModeReward: 1,
+      pocketFillReward: 0.4,
       loopPenalty: -2,
       alpha: 0.2,
       gamma: 0.9,
@@ -3064,6 +3071,7 @@
       { id: 'rlBestTimeBonus', valueId: 'rlBestTimeBonusValue', key: 'bestTimeBonus', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlEndgameReward', valueId: 'rlEndgameRewardValue', key: 'endgamePlanReward', parser: parseFloat, format: v => v.toFixed(1) },
       { id: 'rlCompactReward', valueId: 'rlCompactRewardValue', key: 'compactModeReward', parser: parseFloat, format: v => v.toFixed(1) },
+      { id: 'rlPocketReward', valueId: 'rlPocketRewardValue', key: 'pocketFillReward', parser: parseFloat, format: v => v.toFixed(2) },
       { id: 'rlWallDistance', valueId: 'rlWallDistanceValue', key: 'wallDistanceReward', parser: parseFloat, format: v => v.toFixed(2) },
       { id: 'rlWallCrashPenalty', valueId: 'rlWallCrashPenaltyValue', key: 'wallCrashPenalty', parser: parseFloat, format: v => v.toFixed(0) },
       { id: 'rlSelfCrashPenalty', valueId: 'rlSelfCrashPenaltyValue', key: 'selfCrashPenalty', parser: parseFloat, format: v => v.toFixed(0) },
@@ -4767,6 +4775,42 @@
       }
       return cnt;
     };
+    function countEnclosedEmptyCells(body){
+      if(!Array.isArray(body) || body.length === 0) return 0;
+      const blocked = new Set(body.map(p => `${p.x},${p.y}`));
+      const visited = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+      const queue = [];
+      const enqueue = (x, y) => {
+        if(x < 0 || x >= COLS || y < 0 || y >= ROWS) return;
+        if(visited[y][x]) return;
+        if(blocked.has(`${x},${y}`)) return;
+        visited[y][x] = true;
+        queue.push({x, y});
+      };
+      for(let x = 0; x < COLS; x++){
+        enqueue(x, 0);
+        enqueue(x, ROWS - 1);
+      }
+      for(let y = 0; y < ROWS; y++){
+        enqueue(0, y);
+        enqueue(COLS - 1, y);
+      }
+      let idx = 0;
+      while(idx < queue.length){
+        const {x, y} = queue[idx++];
+        for(const d of DIRS){
+          enqueue(x + d.dx, y + d.dy);
+        }
+      }
+      let enclosed = 0;
+      for(let y = 0; y < ROWS; y++){
+        for(let x = 0; x < COLS; x++){
+          if(blocked.has(`${x},${y}`)) continue;
+          if(!visited[y][x]) enclosed++;
+        }
+      }
+      return enclosed;
+    }
     function getDistancesFromTail(){
       const dmap=Array.from({length:ROWS},()=>Array(COLS).fill(-1));
       if(snake.length<2) return dmap;
@@ -5423,6 +5467,7 @@
       const wallDistanceBefore = headBeforeMove ? distanceFromNearestWall(headBeforeMove) : 0;
       const freeNeighborsBeforeMove = countImmediateFreeNeighbors();
       const themeGame = currentTheme?.game ?? THEMES.aurora.game;
+      const enclosedEmptyBefore = rlTrainingEnabled ? countEnclosedEmptyCells(snake) : null;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
         handleSnakeDeath({
@@ -5568,6 +5613,17 @@
         resetRunTimeoutDeadline();
       }
       if(rlTrainingEnabled && !stepDone){
+        if(enclosedEmptyBefore !== null){
+          const enclosedEmptyAfter = countEnclosedEmptyCells(snake);
+          const pocketDelta = enclosedEmptyBefore - enclosedEmptyAfter;
+          if(pocketDelta !== 0){
+            const pocketReward = pocketDelta * rlConfig.pocketFillReward;
+            if(pocketReward !== 0){
+              stepReward += pocketReward;
+              rewardBreakdown?.push({ id: 'pocketFillReward', amount: pocketReward });
+            }
+          }
+        }
         if(!ate){
           if(fruit && fruit.x >= 0 && Number.isFinite(fruitDistanceBefore)){
             const currentFruitDistance = Math.abs(snake[0].x - fruit.x) + Math.abs(snake[0].y - fruit.y);
