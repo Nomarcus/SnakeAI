@@ -5414,6 +5414,7 @@
         : Infinity;
       const wallDistanceBefore = headBeforeMove ? distanceFromNearestWall(headBeforeMove) : 0;
       const freeNeighborsBeforeMove = countImmediateFreeNeighbors();
+      const themeGame = currentTheme?.game ?? THEMES.aurora.game;
       const nxt = manualMode ? getManualNext() : getNext();
       if(!nxt){
         handleSnakeDeath({
