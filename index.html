@@ -858,6 +858,10 @@
       font-weight: 600;
       font-size: 1rem;
     }
+    #completionStatus {
+      color: var(--success);
+      font-weight: 600;
+    }
     .status-explanation {
       color: var(--text);
       opacity: 0.85;
@@ -1063,15 +1067,15 @@
             <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable Reinforcement Learning</button>
             <p id="rlHint" class="manual-hint">Reinforcement learning is currently disabled.</p>
           </div>
-          <div class="controls-section rl-config-section collapsible-section">
+          <div class="controls-section rl-config-section collapsible-section collapsed">
             <div class="section-title-row">
               <h3>Fine-tune RL</h3>
-              <button id="rlPanelToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="rlParamContent" title="Show or hide reinforcement learning fine-tuning settings">
+              <button id="rlPanelToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="rlParamContent" title="Show or hide reinforcement learning fine-tuning settings">
                 <span class="chevron">▾</span>
-                <span class="collapse-label">Hide settings</span>
+                <span class="collapse-label">Show settings</span>
               </button>
             </div>
-            <div id="rlParamContent" class="collapsible-content">
+            <div id="rlParamContent" class="collapsible-content" hidden aria-hidden="true">
               <div class="param-control">
                 <label for="rlMethodSelect">RL Method</label>
                 <select id="rlMethodSelect" class="number-input">
@@ -1277,15 +1281,15 @@
               </fieldset>
             </div>
           </div>
-          <div class="controls-section collapsible-section" id="gridSizeSection">
+          <div class="controls-section collapsible-section collapsed" id="gridSizeSection">
             <div class="section-title-row">
               <h3>Grid Size</h3>
-              <button id="gridSizeToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="gridSizeContent" title="Show or hide grid size settings">
+              <button id="gridSizeToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="gridSizeContent" title="Show or hide grid size settings">
                 <span class="chevron">▾</span>
-                <span class="collapse-label">Hide settings</span>
+                <span class="collapse-label">Show settings</span>
               </button>
             </div>
-            <div id="gridSizeContent" class="collapsible-content">
+            <div id="gridSizeContent" class="collapsible-content" hidden aria-hidden="true">
               <div class="param-control">
                 <label>Columns (COLS): <span id="colsValue">20</span></label>
                 <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="5">
@@ -1299,15 +1303,15 @@
               </small>
             </div>
           </div>
-          <div class="controls-section collapsible-section" id="canvasSizeSection">
+          <div class="controls-section collapsible-section collapsed" id="canvasSizeSection">
             <div class="section-title-row">
               <h3>Canvas Size</h3>
-              <button id="canvasSizeToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="canvasSizeContent" title="Show or hide canvas size settings">
+              <button id="canvasSizeToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="canvasSizeContent" title="Show or hide canvas size settings">
                 <span class="chevron">▾</span>
-                <span class="collapse-label">Hide settings</span>
+                <span class="collapse-label">Show settings</span>
               </button>
             </div>
-            <div id="canvasSizeContent" class="collapsible-content">
+            <div id="canvasSizeContent" class="collapsible-content" hidden aria-hidden="true">
               <div class="size-controls">
                 <span>Small</span>
                 <input type="range" id="sizeSlider" class="size-slider" min="300" max="800" value="400" step="50">
@@ -1315,15 +1319,15 @@
               </div>
             </div>
           </div>
-          <div class="controls-section collapsible-section" id="aiParamsSection">
+          <div class="controls-section collapsible-section collapsed" id="aiParamsSection">
             <div class="section-title-row">
               <h3>AI Parameters</h3>
-              <button id="aiParamsToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="aiParamsContent" title="Show or hide AI parameter settings">
+              <button id="aiParamsToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="aiParamsContent" title="Show or hide AI parameter settings">
                 <span class="chevron">▾</span>
-                <span class="collapse-label">Hide settings</span>
+                <span class="collapse-label">Show settings</span>
               </button>
             </div>
-            <div id="aiParamsContent" class="collapsible-content">
+            <div id="aiParamsContent" class="collapsible-content" hidden aria-hidden="true">
               <div class="param-control">
                 <label>Endgame Threshold: <span id="endgameValue">5</span></label>
                 <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="5" step="5">
@@ -1355,15 +1359,15 @@
               </div>
             </div>
           </div>
-          <div class="controls-section collapsible-section" id="gameStatusSection">
+          <div class="controls-section collapsible-section collapsed" id="gameStatusSection">
             <div class="section-title-row">
               <h3>Game Status</h3>
-              <button id="gameStatusToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="gameStatusContent" title="Show or hide live game status">
+              <button id="gameStatusToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="gameStatusContent" title="Show or hide live game status">
                 <span class="chevron">▾</span>
-                <span class="collapse-label">Hide status</span>
+                <span class="collapse-label">Show status</span>
               </button>
             </div>
-            <div id="gameStatusContent" class="collapsible-content">
+            <div id="gameStatusContent" class="collapsible-content" hidden aria-hidden="true">
               <div class="status-display">
                 <div class="status-item">
                   <span class="status-label">Length:</span>
@@ -1400,18 +1404,19 @@
               </div>
             </div>
           </div>
-          <div class="controls-section collapsible-section" id="aiStatusSection">
+          <div class="controls-section collapsible-section collapsed" id="aiStatusSection">
             <div class="section-title-row">
               <h3>AI Status</h3>
-              <button id="aiStatusToggle" class="collapse-toggle" type="button" aria-expanded="true" aria-controls="aiStatusContent" title="Show or hide AI status updates">
+              <button id="aiStatusToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="aiStatusContent" title="Show or hide AI status updates">
                 <span class="chevron">▾</span>
-                <span class="collapse-label">Hide status</span>
+                <span class="collapse-label">Show status</span>
               </button>
             </div>
-            <div id="aiStatusContent" class="collapsible-content">
+            <div id="aiStatusContent" class="collapsible-content" hidden aria-hidden="true">
               <div id="statusMessages">
                 <p id="strategyStatus">Strategy: Initializing</p>
                 <p id="strategyExplanation" class="status-explanation"></p>
+                <p id="completionStatus" class="status-explanation" hidden aria-live="polite"></p>
                 <p id="hamStatus"></p>
                 <p id="loopStatus"></p>
                 <p id="compactStatus"></p>
@@ -2085,11 +2090,12 @@
     const BASE_TIMEOUT_PER_CELL_MS = 150;
     const MIN_RUN_TIMEOUT_MS = 30000;
     const MAX_RUN_TIMEOUT_MS = 120000;
-    let runTimeoutMs = 0;
+    let runTimeoutMs = null;
     let runTimeoutDeadline = null;
     let completedRounds = 0;
     let applesEaten = 0;
     let appleHighScore = 0;
+    let completionMessage = '';
     const rlConfig = {
       stepPenalty: -0.05,
       fruitReward: 5,
@@ -3339,6 +3345,7 @@
       rlTrainingEnabled = false;
       rlEpisodeActive = false;
       rlPendingChoice = null;
+      syncRunTimeout();
       resetRlBatchProgress();
       return {
         trainingDisabled: true,
@@ -3382,7 +3389,7 @@
       rlConfigSectionEl,
       rlPanelToggleBtn,
       rlParamContentEl,
-      { expandedLabel: 'Hide settings', collapsedLabel: 'Show settings' }
+      { collapsed: true, expandedLabel: 'Hide settings', collapsedLabel: 'Show settings' }
     );
     setupCollapsibleSection(
       rewardImpactSectionEl,
@@ -3390,20 +3397,35 @@
       rewardImpactContentEl,
       { collapsed: true, expandedLabel: 'Hide breakdown', collapsedLabel: 'Show breakdown' }
     );
-    setupCollapsibleSection(gridSizeSectionEl, gridSizeToggleBtn, gridSizeContentEl);
-    setupCollapsibleSection(canvasSizeSectionEl, canvasSizeToggleBtn, canvasSizeContentEl);
-    setupCollapsibleSection(aiParamsSectionEl, aiParamsToggleBtn, aiParamsContentEl);
+    setupCollapsibleSection(
+      gridSizeSectionEl,
+      gridSizeToggleBtn,
+      gridSizeContentEl,
+      { collapsed: true }
+    );
+    setupCollapsibleSection(
+      canvasSizeSectionEl,
+      canvasSizeToggleBtn,
+      canvasSizeContentEl,
+      { collapsed: true }
+    );
+    setupCollapsibleSection(
+      aiParamsSectionEl,
+      aiParamsToggleBtn,
+      aiParamsContentEl,
+      { collapsed: true }
+    );
     setupCollapsibleSection(
       gameStatusSectionEl,
       gameStatusToggleBtn,
       gameStatusContentEl,
-      { expandedLabel: 'Hide status', collapsedLabel: 'Show status' }
+      { collapsed: true, expandedLabel: 'Hide status', collapsedLabel: 'Show status' }
     );
     setupCollapsibleSection(
       aiStatusSectionEl,
       aiStatusToggleBtn,
       aiStatusContentEl,
-      { expandedLabel: 'Hide status', collapsedLabel: 'Show status' }
+      { collapsed: true, expandedLabel: 'Hide status', collapsedLabel: 'Show status' }
     );
     updateRewardImpactUI();
     const elapsedTimeEl = document.getElementById('elapsedTime');
@@ -3438,6 +3460,9 @@
       }
     }
     function computeRunTimeout(){
+      if(!rlTrainingEnabled){
+        return null;
+      }
       const area = COLS * ROWS;
       if(area === 15 * 15){
         return 5 * 60 * 1000;
@@ -3446,8 +3471,16 @@
       return Math.max(MIN_RUN_TIMEOUT_MS, Math.min(MAX_RUN_TIMEOUT_MS, estimated));
     }
     function resetRunTimeoutDeadline(){
+      if(!Number.isFinite(runTimeoutMs) || runTimeoutMs <= 0){
+        runTimeoutDeadline = null;
+        return;
+      }
       const now = performance.now();
       runTimeoutDeadline = now + runTimeoutMs;
+    }
+    function syncRunTimeout(){
+      runTimeoutMs = computeRunTimeout();
+      resetRunTimeoutDeadline();
     }
     function updateBestTimeDisplay(){
       if(bestTimeEl){
@@ -3492,7 +3525,7 @@
     }
     updateElapsedTimeDisplay(0);
     updateBestTimeDisplay();
-    runTimeoutMs = computeRunTimeout();
+    syncRunTimeout();
     updateCompletedRoundsDisplay();
     const KEY_TO_DIR = {
       'arrowup': {dx: 0, dy: -1},
@@ -3651,6 +3684,7 @@
         rlEpisodeActive = false;
         rlHintOverride = rlAgent.unavailableReason || 'PPO training is unavailable because TensorFlow.js did not load.';
         cancelScheduledAutoRestart();
+        syncRunTimeout();
         resetRlBatchProgress();
       } else if(rlTrainingEnabled){
         rlAgent.resetEpsilon?.(rlConfig.epsilonStart);
@@ -4205,6 +4239,7 @@
         cancelScheduledAutoRestart();
         resetRlBatchProgress();
         resetRewardImpactEpisode();
+        syncRunTimeout();
         updateRlToggleUI();
         updateRlStatus();
         updateRewardImpactUI();
@@ -4218,6 +4253,7 @@
         if(rlHint){
           rlHint.textContent = rlHintOverride;
         }
+        syncRunTimeout();
         updateRlToggleUI();
         updateRlStatus();
         return;
@@ -4232,6 +4268,7 @@
       rlAgent.startEpisode();
       rlEpisodeActive = true;
       resetRewardImpactEpisode();
+      syncRunTimeout();
       updateRlToggleUI();
       updateRlStatus();
       if(rlTrainingEnabled && rlBatchActive && rlHint){
@@ -4447,6 +4484,7 @@
           rlEpisodeActive = false;
           rlHintOverride = null;
           updateRlToggleUI();
+          syncRunTimeout();
         }
       }
       updateSafetyNetUI();
@@ -4584,6 +4622,7 @@
       endgamePlanThisMove = false;
       persistentLoopCounter = 0;
       applesEaten = 0;
+      completionMessage = '';
       updateAppleStats();
       if(manualMode){
         setInitialManualDirection();
@@ -4594,8 +4633,7 @@
       HAM = buildHamilton();
       if (loopHandle) clearInterval(loopHandle);
       gameRunning = true;
-      runTimeoutMs = computeRunTimeout();
-      resetRunTimeoutDeadline();
+      syncRunTimeout();
       if(rlTrainingEnabled){
         if(rlEpisodeActive){
           rlAgent.endEpisode();
@@ -5276,6 +5314,16 @@
       });
       document.getElementById('strategyStatus').textContent = `Strategy: ${currentStrategy}`;
       document.getElementById('strategyExplanation').textContent = getStrategyExplanation(currentStrategy);
+      const completionEl = document.getElementById('completionStatus');
+      if(completionEl){
+        if(completionMessage){
+          completionEl.textContent = completionMessage;
+          completionEl.hidden = false;
+        } else {
+          completionEl.textContent = '';
+          completionEl.hidden = true;
+        }
+      }
       document.getElementById('hamStatus').textContent = hamMode ? "Following the Hamilton safety cycle." : "";
       document.getElementById('loopStatus').textContent = loopDetected ? `Detected a loop – streak ${loopStreak}.` : "";
       document.getElementById('compactStatus').textContent = compactMode ? "Compressing the body to clear space." : "";
@@ -5337,6 +5385,7 @@
       clearInterval(loopHandle);
       gameRunning = false;
       finishRun(false);
+      completionMessage = '';
       draw();
       showOverlay(title, subtitle ?? `Final length: ${snake.length}`, color);
       scheduleAutoRestart();
@@ -5465,6 +5514,9 @@
           stepReward = rlConfig.winBonus;
           rewardBreakdown = rlTrainingEnabled ? [{ id: 'winBonus', amount: rlConfig.winBonus }] : rewardBreakdown;
           stepDone = true;
+          completionMessage = rlTrainingEnabled
+            ? '✅ Banan klar! RL-agenten fyllde hela brädet.'
+            : '✅ Banan klar! Klassiska algoritmen fyllde hela brädet.';
           applyRlUpdate(stepReward, stepDone, { breakdown: rewardBreakdown });
           draw();
           clearInterval(loopHandle);
