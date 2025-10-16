@@ -1230,6 +1230,11 @@
                   <small>Multiply all rewards (except crash penalty). Fine-tune how aggressive the agent becomes.</small>
                 </div>
                 <div class="param-control">
+                  <label>Timeout limit: <span id="timeoutSliderValue">02:00</span></label>
+                  <input type="range" id="timeoutSlider" class="size-slider" min="30000" max="900000" step="15000" value="120000">
+                  <small>Automatically restart training after this time without progress.</small>
+                </div>
+                <div class="param-control">
                   <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
                     <input type="checkbox" id="autoRestartToggle" style="width: 18px; height: 18px;">
                     <span>Auto restart after every episode (wins or crashes keep training rolling).</span>
@@ -2101,9 +2106,12 @@
     let rlRewardEpisodeAccumulator = createEmptyRewardImpactSnapshot();
     const BASE_TIMEOUT_PER_CELL_MS = 150;
     const MIN_RUN_TIMEOUT_MS = 30000;
-    const MAX_RUN_TIMEOUT_MS = 120000;
+    const DEFAULT_RUN_TIMEOUT_LIMIT_MS = 120000;
+    const MAX_RUN_TIMEOUT_MS = 15 * 60 * 1000;
+    const TIMEOUT_SLIDER_STEP_MS = 15000;
     let runTimeoutMs = null;
     let runTimeoutDeadline = null;
+    let timeoutUserOverride = false;
     let completedRounds = 0;
     let applesEaten = 0;
     let appleHighScore = 0;
@@ -3029,6 +3037,8 @@
     updateRlMethodUI();
     const rlResetButton = document.getElementById('rlResetLearning');
     const autoRestartToggle = document.getElementById('autoRestartToggle');
+    const timeoutSliderEl = document.getElementById('timeoutSlider');
+    const timeoutValueDisplay = document.getElementById('timeoutSliderValue');
     const rlLiveMetricsEl = document.getElementById('rlLiveMetrics');
     const rlEpisodeHistoryRows = document.getElementById('rlEpisodeHistoryRows');
     const rlPanelToggleBtn = document.getElementById('rlPanelToggle');
@@ -3108,6 +3118,37 @@
       } },
       { id: 'rlRewardScale', valueId: 'rlRewardScaleValue', key: 'rewardScale', parser: parseFloat, format: v => v.toFixed(1) }
     ];
+    if(timeoutSliderEl){
+      timeoutSliderEl.min = String(MIN_RUN_TIMEOUT_MS);
+      timeoutSliderEl.max = String(MAX_RUN_TIMEOUT_MS);
+      timeoutSliderEl.step = String(TIMEOUT_SLIDER_STEP_MS);
+      const initialTimeout = getTimeoutSliderValue();
+      if(Number.isFinite(initialTimeout)){
+        updateTimeoutSliderDisplay(initialTimeout);
+      } else {
+        updateTimeoutSliderDisplay(MIN_RUN_TIMEOUT_MS);
+      }
+      timeoutSliderEl.addEventListener('input', (event) => {
+        const parsed = parseInt(event.target.value, 10);
+        const normalized = clampTimeoutValue(parsed);
+        if(Number.isFinite(normalized)){
+          if(String(normalized) !== event.target.value){
+            event.target.value = normalized;
+          }
+          timeoutUserOverride = true;
+          updateTimeoutSliderDisplay(normalized);
+          if(rlTrainingEnabled){
+            runTimeoutMs = normalized;
+            resetRunTimeoutDeadline();
+          } else {
+            runTimeoutMs = null;
+            resetRunTimeoutDeadline();
+          }
+        }
+      });
+    } else if(timeoutValueDisplay){
+      updateTimeoutSliderDisplay(MIN_RUN_TIMEOUT_MS);
+    }
     const MAX_EPISODE_HISTORY = 10;
     const rlEpisodeLog = [];
     function formatRewardValue(value){
@@ -3475,16 +3516,50 @@
         appleHighScoreEl.textContent = appleHighScore;
       }
     }
+    function clampTimeoutValue(value){
+      if(!Number.isFinite(value)) return null;
+      const clamped = Math.max(MIN_RUN_TIMEOUT_MS, Math.min(MAX_RUN_TIMEOUT_MS, value));
+      if(TIMEOUT_SLIDER_STEP_MS > 0){
+        const stepped = Math.round(clamped / TIMEOUT_SLIDER_STEP_MS) * TIMEOUT_SLIDER_STEP_MS;
+        return Math.max(MIN_RUN_TIMEOUT_MS, Math.min(MAX_RUN_TIMEOUT_MS, stepped));
+      }
+      return clamped;
+    }
+    function formatTimeoutLabel(ms){
+      if(!Number.isFinite(ms) || ms <= 0) return '00:00';
+      const totalSeconds = Math.round(ms / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    function updateTimeoutSliderDisplay(ms){
+      if(timeoutValueDisplay){
+        timeoutValueDisplay.textContent = formatTimeoutLabel(ms);
+      }
+    }
+    function getTimeoutSliderValue(){
+      if(!timeoutSliderEl) return null;
+      const parsed = parseInt(timeoutSliderEl.value, 10);
+      return clampTimeoutValue(parsed);
+    }
+    function applyTimeoutToSlider(ms){
+      if(!timeoutSliderEl) return;
+      const normalized = clampTimeoutValue(ms);
+      if(!Number.isFinite(normalized)) return;
+      timeoutSliderEl.value = normalized;
+      updateTimeoutSliderDisplay(normalized);
+    }
     function computeRunTimeout(){
       if(!rlTrainingEnabled){
         return null;
       }
       const area = COLS * ROWS;
       if(area === 15 * 15){
-        return 5 * 60 * 1000;
+        return clampTimeoutValue(5 * 60 * 1000);
       }
       const estimated = area * BASE_TIMEOUT_PER_CELL_MS;
-      return Math.max(MIN_RUN_TIMEOUT_MS, Math.min(MAX_RUN_TIMEOUT_MS, estimated));
+      const limited = Math.min(DEFAULT_RUN_TIMEOUT_LIMIT_MS, estimated);
+      return clampTimeoutValue(limited);
     }
     function resetRunTimeoutDeadline(){
       if(!Number.isFinite(runTimeoutMs) || runTimeoutMs <= 0){
@@ -3495,7 +3570,28 @@
       runTimeoutDeadline = now + runTimeoutMs;
     }
     function syncRunTimeout(){
-      runTimeoutMs = computeRunTimeout();
+      let targetTimeout = null;
+      if(rlTrainingEnabled){
+        if(timeoutUserOverride){
+          const sliderValue = getTimeoutSliderValue();
+          if(Number.isFinite(sliderValue)){
+            targetTimeout = sliderValue;
+            updateTimeoutSliderDisplay(sliderValue);
+          } else {
+            timeoutUserOverride = false;
+          }
+        }
+        if(!timeoutUserOverride){
+          const computed = computeRunTimeout();
+          if(Number.isFinite(computed)){
+            targetTimeout = computed;
+            applyTimeoutToSlider(computed);
+          }
+        }
+      } else {
+        updateTimeoutSliderDisplay(getTimeoutSliderValue() ?? MIN_RUN_TIMEOUT_MS);
+      }
+      runTimeoutMs = Number.isFinite(targetTimeout) ? targetTimeout : null;
       resetRunTimeoutDeadline();
     }
     function updateBestTimeDisplay(){
@@ -4421,6 +4517,10 @@
         speed: SPEED,
         safetyNetEnabled,
         autoRestartEnabled,
+        timeout: {
+          value: getTimeoutSliderValue(),
+          userOverride: timeoutUserOverride
+        },
         rlConfig: rlConfigCopy,
         toggles: {
           rlTrainingEnabled,
@@ -4430,7 +4530,7 @@
     }
     function applyAiSettings(settings){
       if(!settings || typeof settings !== 'object') return;
-      const { grid, thresholds, compactProfile, speed, safetyNetEnabled: safetyFlag, autoRestartEnabled: autoFlag, rlConfig: rlValues, toggles } = settings;
+      const { grid, thresholds, compactProfile, speed, safetyNetEnabled: safetyFlag, autoRestartEnabled: autoFlag, timeout: timeoutSettings, rlConfig: rlValues, toggles } = settings;
       if(grid && typeof grid === 'object'){
         const targetCols = Number.isFinite(grid.cols) ? Math.max(5, Math.round(grid.cols)) : null;
         const targetRows = Number.isFinite(grid.rows) ? Math.max(5, Math.round(grid.rows)) : targetCols;
@@ -4484,6 +4584,16 @@
         autoRestartEnabled = autoFlag;
         autoRestartToggle.checked = autoFlag;
       }
+      if(timeoutSettings && timeoutSliderEl){
+        const sliderValue = clampTimeoutValue(timeoutSettings.value);
+        if(Number.isFinite(sliderValue)){
+          timeoutSliderEl.value = sliderValue;
+          updateTimeoutSliderDisplay(sliderValue);
+        }
+        timeoutUserOverride = !!timeoutSettings.userOverride && Number.isFinite(sliderValue);
+      } else {
+        timeoutUserOverride = false;
+      }
       if(rlValues && typeof rlValues === 'object'){
         if(typeof rlValues.method === 'string'){
           setRlMethod(rlValues.method);
@@ -4502,6 +4612,9 @@
           updateRlToggleUI();
           syncRunTimeout();
         }
+      }
+      if(!toggles || typeof toggles.rlTrainingEnabled !== 'boolean'){
+        syncRunTimeout();
       }
       updateSafetyNetUI();
       updateRlStatus();
