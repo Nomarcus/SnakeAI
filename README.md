@@ -90,6 +90,8 @@ That's it! The game runs entirely in the browser.
 Launch reinforcement learning straight from the in-game **Self-Learning** panel or via the browser console for hands-free training. Set how many episodes to run, start the trainer with a single click, and monitor the live learning rate, exploration factor, win rate, and progress without leaving the UI. The AI keeps the existing heuristics but adds an adaptive Q-learning layer that rebalances move choices after every round.
 Kick off reinforcement learning directly from the browser console for hands-free training. The AI keeps the existing heuristics but adds an adaptive Q-learning layer that rebalances move choices after every round.
 
+- **Background snakes multiplier**: Spin up additional hidden boards that train in parallel with the visible game. Each instance shares the same learning agent, so increasing this value accelerates how quickly the Q-table improves.
+
 ```js
 // Run 50 ultra-fast self-play sessions at 5ms per step
 trainSnakeAgent(50, { speed: 5 }).then(stats => console.table(stats));

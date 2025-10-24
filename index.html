@@ -1133,28 +1133,28 @@
                   <small>Bonus for increasing the gap to the nearest wall. Negative values encourage hugging edges.</small>
                 </div>
                 <div class="param-control">
-                  <label>Wall Crash Penalty: <span id="rlWallCrashPenaltyValue">-5</span></label>
-                  <input type="range" id="rlWallCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
+                  <label>Wall Crash Penalty: <span id="rlWallCrashPenaltyValue">-9</span></label>
+                  <input type="range" id="rlWallCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-9">
                   <small>Penalty when the snake runs into the wall.</small>
                 </div>
                 <div class="param-control">
-                  <label>Self Crash Penalty: <span id="rlSelfCrashPenaltyValue">-6</span></label>
-                  <input type="range" id="rlSelfCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-6">
-                  <small>Penalty when the snake collides with itself even though free squares were available.</small>
+                  <label>Self Crash Penalty: <span id="rlSelfCrashPenaltyValue">-14</span></label>
+                  <input type="range" id="rlSelfCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-14">
+                  <small>Penalty when the snake collides with itself even though free squares were available. Repeated self crashes ramp up this penalty further.</small>
                 </div>
                 <div class="param-control">
-                  <label>Fallback Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
-                  <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
+                  <label>Fallback Crash Penalty: <span id="rlDeathPenaltyValue">-9</span></label>
+                  <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-9">
                   <small>Default collision penalty if no specific crash category matches.</small>
                 </div>
                 <div class="param-control">
-                  <label>Dead-end Penalty: <span id="rlDeadEndPenaltyValue">-4.0</span></label>
-                  <input type="range" id="rlDeadEndPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-4">
+                  <label>Dead-end Penalty: <span id="rlDeadEndPenaltyValue">-12.0</span></label>
+                  <input type="range" id="rlDeadEndPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-12">
                   <small>Penalty applied when the snake traps itself with no safe exits.</small>
                 </div>
                 <div class="param-control">
-                  <label>Loop Stall Penalty: <span id="rlLoopPenaltyValue">-2</span></label>
-                  <input type="range" id="rlLoopPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-2">
+                  <label>Loop Stall Penalty: <span id="rlLoopPenaltyValue">-6</span></label>
+                  <input type="range" id="rlLoopPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-6">
                   <small>Penalty applied when an episode is terminated for a persistent loop.</small>
                 </div>
                 <div class="rl-grid two-col">
@@ -1223,6 +1223,11 @@
                   <label>Training Episodes: <span id="rlEpisodesValue">1</span></label>
                   <input type="number" id="rlEpisodes" class="number-input" min="1" max="100" step="1" value="1">
                   <small>Run multiple consecutive games before returning to manual control.</small>
+                </div>
+                <div class="param-control">
+                  <label>Background snakes: <span id="rlParallelSnakesValue">0</span></label>
+                  <input type="number" id="rlParallelSnakes" class="number-input" min="0" max="16" step="1" value="0">
+                  <small>Run hidden training boards in parallel to collect reinforcement learning data faster.</small>
                 </div>
                 <div class="param-control">
                   <label>Reward Scaling: <span id="rlRewardScaleValue">1.0</span></label>
@@ -2116,21 +2121,22 @@
     let applesEaten = 0;
     let appleHighScore = 0;
     let completionMessage = '';
+    let consecutiveSelfCrashCount = 0;
     const rlConfig = {
       stepPenalty: -0.05,
       fruitReward: 5,
       fruitApproachReward: 0.5,
       winBonus: 15,
       bestTimeBonus: 100,
-      wallCrashPenalty: -5,
-      selfCrashPenalty: -6,
-      deathPenalty: -5,
-      deadEndPenalty: -4,
+      wallCrashPenalty: -9,
+      selfCrashPenalty: -14,
+      deathPenalty: -9,
+      deadEndPenalty: -12,
       wallDistanceReward: 0.3,
       endgamePlanReward: 1.5,
       compactModeReward: 1,
       pocketFillReward: 0.4,
-      loopPenalty: -2,
+      loopPenalty: -6,
       alpha: 0.2,
       gamma: 0.9,
       epsilonStart: 0.3,
@@ -2138,6 +2144,7 @@
       epsilonDecay: 0.995,
       rewardScale: 1,
       trainingEpisodes: 1,
+      parallelSnakes: 0,
       method: 'tabular',
       ppoLearningRate: 0.0005,
       ppoClip: 0.2,
@@ -2217,6 +2224,9 @@
     let rlBatchEpisodesRemaining = 0;
     let rlBatchPlannedEpisodes = 1;
     let rlHintOverride = null;
+    let backgroundTrainingAbortController = null;
+    let backgroundTrainingTask = null;
+    let backgroundTrainingStats = null;
     /* ===== GAME STATE ===== */
     let snake=[], snakeSet=new Set();
     let fruit, prevFruitDist=Infinity, noProgressMoves=0;
@@ -2260,18 +2270,34 @@
       let epsilonDecay = typeof config.epsilonDecay === 'number' ? config.epsilonDecay : 0.995;
       const qTable = new Map();
       let episodes = 0;
-      let episodeReward = 0;
       let totalReward = 0;
       let lastEpisodeReward = 0;
-      let episodeStartTime = null;
       let lastEpisodeDuration = 0;
       let totalEpisodeDuration = 0;
-      let currentEpisodeDeaths = 0;
       let lastEpisodeDeaths = 0;
       let totalEpisodeDeaths = 0;
       let totalOutcomes = 0;
       let completedEpisodes = 0;
       const outcomeCounts = Object.create(null);
+      const contexts = new Map();
+      const normalizeContextId = (id) => {
+        if(typeof id === 'string' && id.trim()){
+          return id.trim();
+        }
+        return 'main';
+      };
+      const ensureContext = (id) => {
+        const key = normalizeContextId(id);
+        if(!contexts.has(key)){
+          contexts.set(key, {
+            episodeReward: 0,
+            episodeStartTime: null,
+            currentEpisodeDeaths: 0
+          });
+        }
+        return contexts.get(key);
+      };
+      ensureContext('main');
       const stateKey = state => state.join('|');
       const ensureState = key => {
         if(!qTable.has(key)){
@@ -2334,7 +2360,8 @@
           }
           return { stateKey: key, actionIdx };
         },
-        learn(prevKey, actionIdx, reward, nextState, done){
+        learn(prevKey, actionIdx, reward, nextState, done, contextId){
+          const ctx = ensureContext(contextId);
           ensureState(prevKey);
           const values = qTable.get(prevKey);
           let target = reward;
@@ -2346,39 +2373,42 @@
             target += gamma * maxNext;
           }
           values[actionIdx] += alpha * (target - values[actionIdx]);
-          episodeReward += reward;
+          ctx.episodeReward += reward;
         },
-        startEpisode(){
-          episodeReward = 0;
-          episodeStartTime = nowMs();
-          currentEpisodeDeaths = 0;
+        startEpisode(contextId){
+          const ctx = ensureContext(contextId);
+          ctx.episodeReward = 0;
+          ctx.episodeStartTime = nowMs();
+          ctx.currentEpisodeDeaths = 0;
         },
-        endEpisode(){
+        endEpisode(contextId){
+          const ctx = ensureContext(contextId);
           const finishedAt = nowMs();
-          const duration = episodeStartTime ? finishedAt - episodeStartTime : 0;
+          const duration = ctx.episodeStartTime ? finishedAt - ctx.episodeStartTime : 0;
           if(duration > 0){
             lastEpisodeDuration = duration;
             totalEpisodeDuration += duration;
           } else {
             lastEpisodeDuration = 0;
           }
-          episodeStartTime = null;
-          totalReward += episodeReward;
-          lastEpisodeReward = episodeReward;
-          lastEpisodeDeaths = currentEpisodeDeaths;
-          totalEpisodeDeaths += currentEpisodeDeaths;
+          ctx.episodeStartTime = null;
+          totalReward += ctx.episodeReward;
+          lastEpisodeReward = ctx.episodeReward;
+          lastEpisodeDeaths = ctx.currentEpisodeDeaths;
+          totalEpisodeDeaths += ctx.currentEpisodeDeaths;
           episodes++;
           epsilon = Math.max(epsilon * epsilonDecay, epsilonMin);
-          episodeReward = 0;
-          currentEpisodeDeaths = 0;
+          ctx.episodeReward = 0;
+          ctx.currentEpisodeDeaths = 0;
         },
-        registerTerminal(outcome){
+        registerTerminal(outcome, contextId){
           if(typeof outcome !== 'string') return;
           const key = outcome.trim().toLowerCase();
           if(!key) return;
           const deathOutcomes = new Set(['loss', 'timeout', 'wall-crash', 'self-crash', 'dead-end-crash']);
           if(deathOutcomes.has(key)){
-            currentEpisodeDeaths += 1;
+            const ctx = ensureContext(contextId);
+            ctx.currentEpisodeDeaths += 1;
           } else if(key === 'win'){
             completedEpisodes += 1;
           }
@@ -2395,11 +2425,146 @@
             config.epsilonStart = next;
           }
         },
+        createContext(id){
+          const key = normalizeContextId(id);
+          ensureContext(key);
+          return key;
+        },
+        deleteContext(id){
+          const key = normalizeContextId(id);
+          if(key === 'main') return false;
+          return contexts.delete(key);
+        },
+        async startTraining(episodesToRun = 1, options = {}){
+          const total = Number.isFinite(episodesToRun)
+            ? Math.max(1, Math.floor(episodesToRun))
+            : Infinity;
+          const rewardDefaults = {
+            stepPenalty: config.stepPenalty,
+            fruitReward: config.fruitReward,
+            fruitApproachReward: config.fruitApproachReward,
+            winBonus: config.winBonus,
+            wallCrashPenalty: config.wallCrashPenalty,
+            selfCrashPenalty: config.selfCrashPenalty,
+            deathPenalty: config.deathPenalty,
+            loopPenalty: config.loopPenalty,
+            wallDistanceReward: config.wallDistanceReward
+          };
+          const rewardConfig = Object.assign({}, rewardDefaults, options.rewardConfig || {});
+          const cols = Number.isFinite(options.cols) && options.cols >= 4 ? Math.floor(options.cols) : COLS;
+          const rows = Number.isFinite(options.rows) && options.rows >= 4 ? Math.floor(options.rows) : ROWS;
+          const parallelRequested = Number.isFinite(options.parallelSnakes)
+            ? Math.max(1, Math.min(32, Math.floor(options.parallelSnakes)))
+            : 1;
+          const idleLimit = Number.isFinite(options.idleLimit) && options.idleLimit > 0
+            ? Math.floor(options.idleLimit)
+            : cols * rows * 4;
+          const stepLimit = Number.isFinite(options.stepLimit) && options.stepLimit > 0
+            ? Math.floor(options.stepLimit)
+            : cols * rows * 10;
+          const stepDelay = Number.isFinite(options.stepDelay) && options.stepDelay > 0 ? options.stepDelay : 0;
+          const abortSignal = options.signal;
+          let aborted = false;
+          const abortListeners = [];
+          if(abortSignal){
+            if(abortSignal.aborted){
+              return { episodes: 0, wins: 0, apples: 0, steps: 0, crashes: 0 };
+            }
+            const onAbort = () => { aborted = true; };
+            abortSignal.addEventListener('abort', onAbort, { once: true });
+            abortListeners.push(onAbort);
+          }
+          if(parallelRequested <= 0){
+            return { episodes: 0, wins: 0, apples: 0, steps: 0, crashes: 0 };
+          }
+          const stats = { episodes: 0, wins: 0, apples: 0, steps: 0, crashes: 0 };
+          const unlimited = !Number.isFinite(total);
+          let scheduled = 0;
+          const onEpisodeComplete = typeof options.onEpisodeComplete === 'function'
+            ? options.onEpisodeComplete
+            : null;
+          const nextEpisodeIndex = () => {
+            if(aborted) return null;
+            if(!unlimited && scheduled >= total) return null;
+            const current = scheduled;
+            scheduled += 1;
+            return current;
+          };
+          const workerCount = unlimited ? parallelRequested : Math.min(parallelRequested, total);
+          const tasks = [];
+          const contextPrefix = options.contextPrefix || 'bg';
+          for(let i = 0; i < workerCount; i++){
+            const contextId = `${contextPrefix}-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
+            ensureContext(contextId);
+            const env = createBackgroundTrainingEnvironment({
+              cols,
+              rows,
+              idleLimit,
+              stepLimit,
+              rewardConfig
+            });
+            const runWorker = async () => {
+              while(!aborted){
+                const episodeIndex = nextEpisodeIndex();
+                if(episodeIndex === null && !unlimited){
+                  break;
+                }
+                const result = await runBackgroundTrainingEpisode({
+                  agent: this,
+                  contextId,
+                  environment: env,
+                  rewardConfig,
+                  stepDelay,
+                  signal: abortSignal
+                });
+                if(result == null){
+                  aborted = true;
+                  break;
+                }
+                stats.episodes += 1;
+                stats.steps += result.steps;
+                stats.apples += result.apples;
+                if(result.outcome === 'win') stats.wins += 1;
+                if(result.outcome === 'wall-crash' || result.outcome === 'self-crash'){
+                  stats.crashes += 1;
+                }
+                if(onEpisodeComplete){
+                  try {
+                    onEpisodeComplete(result);
+                  } catch (error){
+                    console.error('Background episode callback failed', error);
+                  }
+                }
+                if(!unlimited && stats.episodes >= total){
+                  break;
+                }
+              }
+              if(contextId !== 'main'){
+                contexts.delete(contextId);
+              }
+            };
+            tasks.push(runWorker());
+          }
+          try {
+            await Promise.all(tasks);
+          } finally {
+            if(abortSignal && abortListeners.length){
+              abortListeners.forEach(listener => abortSignal.removeEventListener('abort', listener));
+            }
+          }
+          if(aborted){
+            const abortError = new DOMException('Training aborted', 'AbortError');
+            abortError.stats = stats;
+            throw abortError;
+          }
+          return stats;
+        },
         exportData(){
           const serializedTable = [];
           qTable.forEach((values, key) => {
             serializedTable.push([key, values.map(v => Number.isFinite(v) ? v : 0)]);
           });
+          const mainContext = ensureContext('main');
           return {
             version: 1,
             method: 'tabular',
@@ -2413,12 +2578,12 @@
             },
             stats: {
               episodes,
-              episodeReward,
+              episodeReward: mainContext.episodeReward,
               totalReward,
               lastEpisodeReward,
               lastEpisodeDuration,
               totalEpisodeDuration,
-              currentEpisodeDeaths,
+              currentEpisodeDeaths: mainContext.currentEpisodeDeaths,
               lastEpisodeDeaths,
               totalEpisodeDeaths,
               totalOutcomes,
@@ -2428,10 +2593,12 @@
             qTable: serializedTable
           };
         },
-        importData(snapshot = {}){
-          if(!snapshot || typeof snapshot !== 'object') return false;
-          qTable.clear();
-          const tableData = Array.isArray(snapshot.qTable) ? snapshot.qTable : [];
+          importData(snapshot = {}){
+            if(!snapshot || typeof snapshot !== 'object') return false;
+            qTable.clear();
+            contexts.clear();
+            const mainContext = ensureContext('main');
+            const tableData = Array.isArray(snapshot.qTable) ? snapshot.qTable : [];
           for(const entry of tableData){
             if(!Array.isArray(entry) || entry.length < 2) continue;
             const [key, rawValues] = entry;
@@ -2454,12 +2621,12 @@
           }
           const stats = snapshot.stats || {};
           if(Number.isFinite(stats.episodes)) episodes = stats.episodes;
-          if(Number.isFinite(stats.episodeReward)) episodeReward = stats.episodeReward;
+          if(Number.isFinite(stats.episodeReward)) mainContext.episodeReward = stats.episodeReward;
           if(Number.isFinite(stats.totalReward)) totalReward = stats.totalReward;
           if(Number.isFinite(stats.lastEpisodeReward)) lastEpisodeReward = stats.lastEpisodeReward;
           if(Number.isFinite(stats.lastEpisodeDuration)) lastEpisodeDuration = stats.lastEpisodeDuration;
           if(Number.isFinite(stats.totalEpisodeDuration)) totalEpisodeDuration = stats.totalEpisodeDuration;
-          if(Number.isFinite(stats.currentEpisodeDeaths)) currentEpisodeDeaths = stats.currentEpisodeDeaths;
+          if(Number.isFinite(stats.currentEpisodeDeaths)) mainContext.currentEpisodeDeaths = stats.currentEpisodeDeaths;
           if(Number.isFinite(stats.lastEpisodeDeaths)) lastEpisodeDeaths = stats.lastEpisodeDeaths;
           if(Number.isFinite(stats.totalEpisodeDeaths)) totalEpisodeDeaths = stats.totalEpisodeDeaths;
           if(Number.isFinite(stats.totalOutcomes)) totalOutcomes = stats.totalOutcomes;
@@ -2477,23 +2644,25 @@
               }
             }
           }
-          episodeStartTime = null;
+          mainContext.episodeStartTime = null;
           return true;
         },
         resetLearning(){
           qTable.clear();
           episodes = 0;
-          episodeReward = 0;
           totalReward = 0;
           lastEpisodeReward = 0;
-          episodeStartTime = null;
           lastEpisodeDuration = 0;
           totalEpisodeDuration = 0;
-          currentEpisodeDeaths = 0;
           lastEpisodeDeaths = 0;
           totalEpisodeDeaths = 0;
           totalOutcomes = 0;
           completedEpisodes = 0;
+          contexts.clear();
+          const mainContext = ensureContext('main');
+          mainContext.episodeReward = 0;
+          mainContext.episodeStartTime = null;
+          mainContext.currentEpisodeDeaths = 0;
           for(const key in outcomeCounts){
             if(Object.prototype.hasOwnProperty.call(outcomeCounts, key)){
               delete outcomeCounts[key];
@@ -2526,6 +2695,291 @@
           };
         }
       };
+    }
+    function createBackgroundTrainingEnvironment(options = {}){
+      const cols = Math.max(4, Math.floor(options.cols || COLS));
+      const rows = Math.max(4, Math.floor(options.rows || ROWS));
+      const idleLimit = Math.max(10, Math.floor(options.idleLimit || cols * rows * 4));
+      const stepLimit = Math.max(idleLimit, Math.floor(options.stepLimit || cols * rows * 10));
+      const rewardConfig = options.rewardConfig || {};
+      const keyOf = (x, y) => `${x},${y}`;
+      const normalizeDirection = (dx, dy) => {
+        const length = Math.hypot(dx, dy) || 1;
+        return { dx: Math.sign(dx / length), dy: Math.sign(dy / length) };
+      };
+      const env = {
+        cols,
+        rows,
+        idleLimit,
+        stepLimit,
+        rewardConfig,
+        selfCrashChain: 0,
+        state: null,
+        reset(){
+          const centerX = Math.floor(cols / 2);
+          const centerY = Math.floor(rows / 2);
+          const snake = [];
+          if(cols >= 5){
+            snake.push({ x: centerX - 2, y: centerY }, { x: centerX - 1, y: centerY }, { x: centerX, y: centerY });
+          } else if(cols >= 3){
+            snake.push({ x: centerX - 1, y: centerY }, { x: centerX, y: centerY });
+          } else {
+            snake.push({ x: centerX, y: centerY });
+          }
+          snake.reverse();
+          const snakeSet = new Set(snake.map(part => keyOf(part.x, part.y)));
+          this.state = {
+            snake,
+            snakeSet,
+            fruit: { x: -1, y: -1 },
+            direction: { dx: 1, dy: 0 },
+            steps: 0,
+            idleSteps: 0,
+            apples: 0,
+            prevFruitDistance: Infinity
+          };
+          this.state.fruit = this.spawnFruit();
+          if(this.state.fruit && this.state.fruit.x >= 0){
+            const head = this.state.snake[0];
+            this.state.prevFruitDistance = Math.abs(head.x - this.state.fruit.x) + Math.abs(head.y - this.state.fruit.y);
+          }
+        },
+        spawnFruit(){
+          const free = [];
+          const blocked = this.state?.snakeSet ?? new Set();
+          for(let y = 0; y < rows; y++){
+            for(let x = 0; x < cols; x++){
+              if(!blocked.has(keyOf(x, y))){
+                free.push({ x, y });
+              }
+            }
+          }
+          return free.length ? free[(Math.random() * free.length) | 0] : { x: -1, y: -1 };
+        },
+        getMoves(){
+          const moves = [];
+          const state = this.state;
+          const head = state.snake[0];
+          const tail = state.snake.length > 1 ? state.snake[state.snake.length - 1] : null;
+          for(let i = 0; i < DIRS.length; i++){
+            const dir = DIRS[i];
+            const nx = head.x + dir.dx;
+            const ny = head.y + dir.dy;
+            const ate = state.fruit && state.fruit.x === nx && state.fruit.y === ny;
+            const isTailStep = tail && nx === tail.x && ny === tail.y;
+            const hitsBody = state.snakeSet.has(keyOf(nx, ny)) && !(isTailStep && !ate);
+            const outOfBounds = nx < 0 || nx >= cols || ny < 0 || ny >= rows;
+            moves.push({
+              x: nx,
+              y: ny,
+              dirIndex: i,
+              ate,
+              outOfBounds,
+              hitsBody
+            });
+          }
+          return moves;
+        },
+        getSafeMoves(moves){
+          return moves.filter(move => !move.outOfBounds && !move.hitsBody);
+        },
+        getWallDistance(point){
+          if(!point) return 0;
+          const dxLeft = point.x;
+          const dxRight = this.cols - 1 - point.x;
+          const dyTop = point.y;
+          const dyBottom = this.rows - 1 - point.y;
+          return Math.min(dxLeft, dxRight, dyTop, dyBottom);
+        },
+        buildObservation(moves){
+          const state = this.state;
+          const head = state.snake[0];
+          if(!head) return [1, 1, 1, 0, 0, 1, 0, 0, 0];
+          const direction = state.direction || { dx: 1, dy: 0 };
+          const candidateMoves = Array.isArray(moves) ? moves : [];
+          const safeSet = new Set(candidateMoves.map(move => move.dirIndex));
+          const dirIndex = (vector) => {
+            const key = `${vector.dx},${vector.dy}`;
+            return Object.prototype.hasOwnProperty.call(DIR_TO_INDEX, key) ? DIR_TO_INDEX[key] : DIR_TO_INDEX['1,0'];
+          };
+          const frontDir = dirIndex(direction);
+          const leftDir = dirIndex({ dx: direction.dy, dy: -direction.dx });
+          const rightDir = dirIndex({ dx: -direction.dy, dy: direction.dx });
+          const fruitDX = state.fruit && state.fruit.x >= 0 ? Math.sign(state.fruit.x - head.x) : 0;
+          const fruitDY = state.fruit && state.fruit.y >= 0 ? Math.sign(state.fruit.y - head.y) : 0;
+          const freeCells = this.cols * this.rows - state.snake.length;
+          const freeBucket = Math.min(3, Math.floor(freeCells / Math.max(1, Math.floor((this.cols * this.rows) / 4))));
+          return [
+            safeSet.has(frontDir) ? 0 : 1,
+            safeSet.has(leftDir) ? 0 : 1,
+            safeSet.has(rightDir) ? 0 : 1,
+            fruitDX,
+            fruitDY,
+            direction.dx,
+            direction.dy,
+            freeBucket,
+            0
+          ];
+        },
+        applyMove(move){
+          const state = this.state;
+          const head = state.snake[0];
+          if(move.outOfBounds){
+            return { crash: true, crashType: 'wall', ate: false, win: false, done: true };
+          }
+          const tail = state.snake.length > 1 ? state.snake[state.snake.length - 1] : null;
+          const key = keyOf(move.x, move.y);
+          const isTailStep = tail && move.x === tail.x && move.y === tail.y;
+          if(state.snakeSet.has(key) && !(isTailStep && !move.ate)){
+            return { crash: true, crashType: 'self', ate: false, win: false, done: true };
+          }
+          if(!move.ate){
+            const removed = state.snake.pop();
+            state.snakeSet.delete(keyOf(removed.x, removed.y));
+          } else {
+            state.apples += 1;
+          }
+          state.snake.unshift({ x: move.x, y: move.y });
+          state.snakeSet.add(key);
+          const dx = move.x - head.x;
+          const dy = move.y - head.y;
+          state.direction = normalizeDirection(dx, dy);
+          state.steps += 1;
+          if(move.ate){
+            state.idleSteps = 0;
+            state.fruit = this.spawnFruit();
+          } else {
+            state.idleSteps += 1;
+          }
+          if(state.fruit && state.fruit.x >= 0){
+            const newHead = state.snake[0];
+            state.prevFruitDistance = Math.abs(newHead.x - state.fruit.x) + Math.abs(newHead.y - state.fruit.y);
+          } else {
+            state.prevFruitDistance = Infinity;
+          }
+          const filled = state.snake.length === this.cols * this.rows;
+          return { crash: false, crashType: null, ate: move.ate, win: filled, done: filled };
+        }
+      };
+      env.reset();
+      return env;
+    }
+    async function runBackgroundTrainingEpisode({ agent, contextId, environment, rewardConfig, stepDelay = 0, signal }){
+      const env = environment;
+      env.reset();
+      agent.startEpisode(contextId);
+      let outcome = null;
+      while(true){
+        if(signal?.aborted){
+          agent.endEpisode(contextId);
+          return null;
+        }
+        const moves = env.getMoves();
+        const safeMoves = env.getSafeMoves(moves);
+        const candidates = safeMoves.length ? safeMoves : moves;
+        const observation = env.buildObservation(candidates);
+        const stateKey = observation.join('|');
+        let decision = agent.decide(observation, candidates);
+        let selected = decision ? candidates.find(move => move.dirIndex === decision.actionIdx) : null;
+        if(!selected){
+          selected = candidates[(Math.random() * candidates.length) | 0];
+          if(decision){
+            decision = { ...decision, actionIdx: selected.dirIndex };
+          } else {
+            decision = { stateKey, actionIdx: selected.dirIndex };
+          }
+        }
+        const prevKey = decision.stateKey || stateKey;
+        const actionIdx = decision.actionIdx;
+        const headBefore = env.state.snake[0];
+        const fruitDistanceBefore = env.state.fruit && env.state.fruit.x >= 0
+          ? Math.abs(headBefore.x - env.state.fruit.x) + Math.abs(headBefore.y - env.state.fruit.y)
+          : Infinity;
+        const wallBefore = env.getWallDistance(headBefore);
+        const result = env.applyMove(selected);
+        let reward = Number.isFinite(rewardConfig.stepPenalty) ? rewardConfig.stepPenalty : 0;
+        if(result.crash){
+          const penaltyKey = result.crashType === 'wall' ? 'wallCrashPenalty' : 'selfCrashPenalty';
+          let penalty = rewardConfig[penaltyKey];
+          if(!Number.isFinite(penalty)){
+            penalty = Number.isFinite(rewardConfig.deathPenalty) ? rewardConfig.deathPenalty : -5;
+          }
+          if(result.crashType === 'self'){
+            env.selfCrashChain = Math.min((env.selfCrashChain || 0) + 1, 6);
+            if(Number.isFinite(penalty)){
+              const streak = Math.min(Math.max(env.selfCrashChain - 1, 0), 6);
+              const streakMultiplier = 1 + streak * 0.35;
+              penalty *= streakMultiplier;
+            }
+          } else {
+            env.selfCrashChain = 0;
+          }
+          reward += penalty;
+          outcome = result.crashType === 'wall' ? 'wall-crash' : 'self-crash';
+        } else {
+          if(result.ate){
+            reward += Number.isFinite(rewardConfig.fruitReward) ? rewardConfig.fruitReward : 0;
+          } else if(env.state.fruit && env.state.fruit.x >= 0 && Number.isFinite(rewardConfig.fruitApproachReward)){
+            const headAfter = env.state.snake[0];
+            const fruitDistanceAfter = Math.abs(headAfter.x - env.state.fruit.x) + Math.abs(headAfter.y - env.state.fruit.y);
+            const delta = fruitDistanceBefore - fruitDistanceAfter;
+            if(delta !== 0){
+              reward += rewardConfig.fruitApproachReward * delta;
+            }
+          }
+          if(Number.isFinite(rewardConfig.wallDistanceReward)){
+            const wallAfter = env.getWallDistance(env.state.snake[0]);
+            reward += rewardConfig.wallDistanceReward * (wallAfter - wallBefore);
+          }
+          if(result.win){
+            env.selfCrashChain = 0;
+            reward += Number.isFinite(rewardConfig.winBonus) ? rewardConfig.winBonus : 0;
+            outcome = 'win';
+          }
+        }
+        let done = !!result.done || !!result.crash;
+        if(!done){
+          if(env.state.idleSteps >= env.idleLimit){
+            const loopPenalty = Number.isFinite(rewardConfig.loopPenalty)
+              ? rewardConfig.loopPenalty
+              : (Number.isFinite(rewardConfig.deathPenalty) ? rewardConfig.deathPenalty : -5);
+            reward += loopPenalty;
+            outcome = 'stalled';
+            done = true;
+            env.selfCrashChain = 0;
+          } else if(env.state.steps >= env.stepLimit){
+            const timeoutPenalty = Number.isFinite(rewardConfig.deathPenalty) ? rewardConfig.deathPenalty : -5;
+            reward += timeoutPenalty;
+            outcome = 'timeout';
+            done = true;
+            env.selfCrashChain = 0;
+          }
+        }
+        const nextMoves = done ? null : env.getMoves();
+        const nextSafeMoves = done ? null : env.getSafeMoves(nextMoves);
+        const nextObservation = done
+          ? null
+          : env.buildObservation(nextSafeMoves && nextSafeMoves.length ? nextSafeMoves : nextMoves);
+        agent.learn(prevKey, actionIdx, reward, nextObservation, done, contextId);
+        if(done){
+          const terminalOutcome = outcome || 'loss';
+          if(terminalOutcome){
+            agent.registerTerminal(terminalOutcome, contextId);
+          }
+          agent.endEpisode(contextId);
+          return {
+            outcome: terminalOutcome,
+            steps: env.state.steps,
+            apples: env.state.apples,
+            contextId
+          };
+        }
+        if(stepDelay > 0){
+          await new Promise(resolve => setTimeout(resolve, stepDelay));
+        } else if(env.state.steps % 400 === 0){
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
     }
     function createNeuralRlModule(config = {}){
       if(typeof tf === 'undefined' || !tf?.sequential){
@@ -3116,6 +3570,20 @@
           }
         }
       } },
+      { id: 'rlParallelSnakes', valueId: 'rlParallelSnakesValue', key: 'parallelSnakes', parser: value => {
+        const parsed = Number(value);
+        if(Number.isNaN(parsed)) return 0;
+        return Math.max(0, Math.min(32, Math.round(parsed)));
+      }, format: v => Math.round(v), onChange: v => {
+        rlConfig.parallelSnakes = v;
+        if(rlTrainingEnabled && rlMethod === RL_METHODS.TABULAR){
+          restartBackgroundTrainingIfActive();
+        } else if(!rlTrainingEnabled){
+          stopBackgroundTraining();
+          backgroundTrainingStats = null;
+          updateRlStatus();
+        }
+      } },
       { id: 'rlRewardScale', valueId: 'rlRewardScaleValue', key: 'rewardScale', parser: parseFloat, format: v => v.toFixed(1) }
     ];
     if(timeoutSliderEl){
@@ -3399,16 +3867,18 @@
       }
       const total = rlBatchPlannedEpisodes;
       cancelScheduledAutoRestart();
-      rlTrainingEnabled = false;
-      rlEpisodeActive = false;
-      rlPendingChoice = null;
-      syncRunTimeout();
-      resetRlBatchProgress();
-      return {
-        trainingDisabled: true,
-        message: `Completed ${total} RL episodes – training paused.`
-      };
-    }
+        rlTrainingEnabled = false;
+        rlEpisodeActive = false;
+        rlPendingChoice = null;
+        syncRunTimeout();
+        resetRlBatchProgress();
+        stopBackgroundTraining();
+        backgroundTrainingStats = null;
+        return {
+          trainingDisabled: true,
+          message: `Completed ${total} RL episodes – training paused.`
+        };
+      }
     function setupCollapsibleSection(sectionEl, buttonEl, contentEl, options = {}){
       if(!sectionEl || !buttonEl || !contentEl) return null;
       const {
@@ -3618,6 +4088,9 @@
       }, 200);
     }
     function finishRun(won = false){
+      if(won){
+        consecutiveSelfCrashCount = 0;
+      }
       if(startTime !== null){
         lastElapsedMs = performance.now() - startTime;
       }
@@ -3790,6 +4263,7 @@
       rlMethod = normalized;
       rlConfig.method = normalized;
       rlAgent = rlAgents[normalized];
+      stopBackgroundTraining();
       const agentUnavailable = rlMethod === RL_METHODS.PPO && rlAgent && rlAgent.available === false;
       if(agentUnavailable){
         rlTrainingEnabled = false;
@@ -3798,12 +4272,14 @@
         cancelScheduledAutoRestart();
         syncRunTimeout();
         resetRlBatchProgress();
+        backgroundTrainingStats = null;
       } else if(rlTrainingEnabled){
         rlAgent.resetEpsilon?.(rlConfig.epsilonStart);
         rlAgent.startEpisode?.();
         rlEpisodeActive = true;
         resetRewardImpactEpisode();
         updateRewardImpactUI();
+        restartBackgroundTrainingIfActive();
       }
       updateRlMethodUI();
       updateRlStatus();
@@ -4031,6 +4507,58 @@
       const lineFour = `crashes wall=${wallCrashCount} · self=${selfCrashCount} · dead-end=${deadEndCrashCount} · timeouts=${timeoutCount}`;
       rlLiveMetricsEl.innerHTML = `${lineOne}<br>${lineTwo}<br>${lineThree}<br>${lineFour}`;
     }
+    function stopBackgroundTraining(){
+      if(backgroundTrainingAbortController){
+        backgroundTrainingAbortController.abort();
+        backgroundTrainingAbortController = null;
+      }
+      backgroundTrainingTask = null;
+    }
+    function restartBackgroundTrainingIfActive(){
+      stopBackgroundTraining();
+      if(!rlTrainingEnabled || rlMethod !== RL_METHODS.TABULAR){
+        if(!rlTrainingEnabled){
+          backgroundTrainingStats = null;
+        }
+        updateRlStatus();
+        return;
+      }
+      const requested = Math.max(0, Math.round(rlConfig.parallelSnakes || 0));
+      if(requested <= 0){
+        backgroundTrainingStats = null;
+        updateRlStatus();
+        return;
+      }
+      backgroundTrainingStats = {
+        episodes: 0,
+        wins: 0,
+        crashes: 0,
+        apples: 0,
+        steps: 0
+      };
+      const controller = new AbortController();
+      backgroundTrainingAbortController = controller;
+      backgroundTrainingTask = rlAgent.startTraining(Number.POSITIVE_INFINITY, {
+        parallelSnakes: requested,
+        cols: COLS,
+        rows: ROWS,
+        signal: controller.signal,
+        onEpisodeComplete: (episode) => {
+          if(!backgroundTrainingStats) return;
+          backgroundTrainingStats.episodes += 1;
+          backgroundTrainingStats.steps += episode.steps;
+          backgroundTrainingStats.apples += episode.apples;
+          if(episode.outcome === 'win') backgroundTrainingStats.wins += 1;
+          if(episode.outcome === 'wall-crash' || episode.outcome === 'self-crash'){
+            backgroundTrainingStats.crashes += 1;
+          }
+          updateRlStatus();
+        }
+      }).catch(error => {
+        if(error?.name === 'AbortError') return;
+        console.error('Background training failed', error);
+      });
+    }
     function applyRlUpdate(reward, done, options = {}){
       if(!rlTrainingEnabled){
         rlPendingChoice = null;
@@ -4179,6 +4707,16 @@
           { label: 'α', value: alphaText },
           { label: 'γ', value: gammaText }
         );
+        const parallelCount = Math.max(0, Math.round(rlConfig.parallelSnakes || 0));
+        if(parallelCount > 0){
+          baseItems.push({ label: 'Background snakes', value: parallelCount.toLocaleString() });
+          if(backgroundTrainingStats){
+            baseItems.push({
+              label: 'Background episodes',
+              value: backgroundTrainingStats.episodes.toLocaleString()
+            });
+          }
+        }
       }
       const gridHtml = baseItems.map(item => `
         <div class="rl-status-item">
@@ -4351,6 +4889,8 @@
         cancelScheduledAutoRestart();
         resetRlBatchProgress();
         resetRewardImpactEpisode();
+        stopBackgroundTraining();
+        backgroundTrainingStats = null;
         syncRunTimeout();
         updateRlToggleUI();
         updateRlStatus();
@@ -4381,6 +4921,7 @@
       rlEpisodeActive = true;
       resetRewardImpactEpisode();
       syncRunTimeout();
+      restartBackgroundTrainingIfActive();
       updateRlToggleUI();
       updateRlStatus();
       if(rlTrainingEnabled && rlBatchActive && rlHint){
@@ -4450,6 +4991,7 @@
           document.getElementById('endgameSlider').max = Math.max(100, Math.floor((COLS * ROWS) * 0.4));
         }
         restartGame();
+        restartBackgroundTrainingIfActive();
       }
     }
     function handleGridInput(event) {
@@ -4731,6 +5273,7 @@
       return state;
     }
     function restartGame() {
+      const manualRestart = gameRunning;
       cancelRunTimer();
       const fresh = createFreshState();
       snake = fresh.snake;
@@ -4780,6 +5323,9 @@
       loopHandle = setInterval(update, SPEED);
       startRunTimer();
       updateCompletedRoundsDisplay();
+      if(manualRestart){
+        consecutiveSelfCrashCount = 0;
+      }
     }
     document.getElementById('restartBtn').addEventListener('click', restartGame);
     /* ===== HAMILTON-SLINGA ===== */
@@ -5525,19 +6071,31 @@
       }, delay);
     }
     function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = currentTheme?.game?.danger ?? '#ef4444', penalty = rlConfig.deathPenalty, outcome = 'loss', componentId } = {}){
+      const normalizedOutcome = typeof outcome === 'string' ? outcome.toLowerCase() : '';
+      const isSelfInflicted = normalizedOutcome === 'self-crash' || normalizedOutcome === 'dead-end-crash';
+      if(isSelfInflicted){
+        consecutiveSelfCrashCount = Math.min(consecutiveSelfCrashCount + 1, 6);
+      } else {
+        consecutiveSelfCrashCount = 0;
+      }
       if(rlTrainingEnabled){
         rlAgent.registerTerminal(outcome);
       }
-      const penaltyValue = Number.isFinite(penalty) ? penalty : rlConfig.deathPenalty;
+      let penaltyValue = Number.isFinite(penalty) ? penalty : rlConfig.deathPenalty;
+      if(isSelfInflicted && Number.isFinite(penaltyValue)){
+        const streak = Math.min(Math.max(consecutiveSelfCrashCount - 1, 0), 6);
+        const streakMultiplier = 1 + streak * 0.35;
+        penaltyValue *= streakMultiplier;
+      }
       let penaltyComponent = componentId && RL_REWARD_COMPONENT_MAP[componentId]
         ? componentId
         : null;
       if(!penaltyComponent){
-        if(penaltyValue === rlConfig.deadEndPenalty || outcome === 'timeout'){
+        if(normalizedOutcome === 'dead-end-crash' || penaltyValue === rlConfig.deadEndPenalty || outcome === 'timeout'){
           penaltyComponent = 'deadEndPenalty';
-        } else if(penaltyValue === rlConfig.wallCrashPenalty){
+        } else if(normalizedOutcome === 'wall-crash' || penaltyValue === rlConfig.wallCrashPenalty){
           penaltyComponent = 'wallCrashPenalty';
-        } else if(penaltyValue === rlConfig.selfCrashPenalty){
+        } else if(isSelfInflicted || penaltyValue === rlConfig.selfCrashPenalty){
           penaltyComponent = 'selfCrashPenalty';
         } else {
           penaltyComponent = 'deathPenalty';
@@ -5799,7 +6357,13 @@
     }
     async function trainSnakeAgent(episodes = 10, options = {}){
       if(typeof episodes !== 'number' || episodes <= 0) throw new Error('Episodes must be a positive number.');
-      return rlAgent.startTraining(episodes, options);
+      const mergedOptions = {
+        ...options,
+        parallelSnakes: options.parallelSnakes ?? rlConfig.parallelSnakes,
+        cols: options.cols ?? COLS,
+        rows: options.rows ?? ROWS
+      };
+      return rlAgent.startTraining(episodes, mergedOptions);
     }
     window.trainSnakeAgent = trainSnakeAgent;
     window.rlAgent = rlAgent;
