@@ -1133,28 +1133,28 @@
                   <small>Bonus for increasing the gap to the nearest wall. Negative values encourage hugging edges.</small>
                 </div>
                 <div class="param-control">
-                  <label>Wall Crash Penalty: <span id="rlWallCrashPenaltyValue">-5</span></label>
-                  <input type="range" id="rlWallCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
+                  <label>Wall Crash Penalty: <span id="rlWallCrashPenaltyValue">-9</span></label>
+                  <input type="range" id="rlWallCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-9">
                   <small>Penalty when the snake runs into the wall.</small>
                 </div>
                 <div class="param-control">
-                  <label>Self Crash Penalty: <span id="rlSelfCrashPenaltyValue">-6</span></label>
-                  <input type="range" id="rlSelfCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-6">
-                  <small>Penalty when the snake collides with itself even though free squares were available.</small>
+                  <label>Self Crash Penalty: <span id="rlSelfCrashPenaltyValue">-14</span></label>
+                  <input type="range" id="rlSelfCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-14">
+                  <small>Penalty when the snake collides with itself even though free squares were available. Repeated self crashes ramp up this penalty further.</small>
                 </div>
                 <div class="param-control">
-                  <label>Fallback Crash Penalty: <span id="rlDeathPenaltyValue">-5</span></label>
-                  <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-5">
+                  <label>Fallback Crash Penalty: <span id="rlDeathPenaltyValue">-9</span></label>
+                  <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-9">
                   <small>Default collision penalty if no specific crash category matches.</small>
                 </div>
                 <div class="param-control">
-                  <label>Dead-end Penalty: <span id="rlDeadEndPenaltyValue">-4.0</span></label>
-                  <input type="range" id="rlDeadEndPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-4">
+                  <label>Dead-end Penalty: <span id="rlDeadEndPenaltyValue">-12.0</span></label>
+                  <input type="range" id="rlDeadEndPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-12">
                   <small>Penalty applied when the snake traps itself with no safe exits.</small>
                 </div>
                 <div class="param-control">
-                  <label>Loop Stall Penalty: <span id="rlLoopPenaltyValue">-2</span></label>
-                  <input type="range" id="rlLoopPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-2">
+                  <label>Loop Stall Penalty: <span id="rlLoopPenaltyValue">-6</span></label>
+                  <input type="range" id="rlLoopPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-6">
                   <small>Penalty applied when an episode is terminated for a persistent loop.</small>
                 </div>
                 <div class="rl-grid two-col">
@@ -2121,21 +2121,22 @@
     let applesEaten = 0;
     let appleHighScore = 0;
     let completionMessage = '';
+    let consecutiveSelfCrashCount = 0;
     const rlConfig = {
       stepPenalty: -0.05,
       fruitReward: 5,
       fruitApproachReward: 0.5,
       winBonus: 15,
       bestTimeBonus: 100,
-      wallCrashPenalty: -5,
-      selfCrashPenalty: -6,
-      deathPenalty: -5,
-      deadEndPenalty: -4,
+      wallCrashPenalty: -9,
+      selfCrashPenalty: -14,
+      deathPenalty: -9,
+      deadEndPenalty: -12,
       wallDistanceReward: 0.3,
       endgamePlanReward: 1.5,
       compactModeReward: 1,
       pocketFillReward: 0.4,
-      loopPenalty: -2,
+      loopPenalty: -6,
       alpha: 0.2,
       gamma: 0.9,
       epsilonStart: 0.3,
@@ -2712,6 +2713,7 @@
         idleLimit,
         stepLimit,
         rewardConfig,
+        selfCrashChain: 0,
         state: null,
         reset(){
           const centerX = Math.floor(cols / 2);
@@ -2902,6 +2904,16 @@
           if(!Number.isFinite(penalty)){
             penalty = Number.isFinite(rewardConfig.deathPenalty) ? rewardConfig.deathPenalty : -5;
           }
+          if(result.crashType === 'self'){
+            env.selfCrashChain = Math.min((env.selfCrashChain || 0) + 1, 6);
+            if(Number.isFinite(penalty)){
+              const streak = Math.min(Math.max(env.selfCrashChain - 1, 0), 6);
+              const streakMultiplier = 1 + streak * 0.35;
+              penalty *= streakMultiplier;
+            }
+          } else {
+            env.selfCrashChain = 0;
+          }
           reward += penalty;
           outcome = result.crashType === 'wall' ? 'wall-crash' : 'self-crash';
         } else {
@@ -2920,6 +2932,7 @@
             reward += rewardConfig.wallDistanceReward * (wallAfter - wallBefore);
           }
           if(result.win){
+            env.selfCrashChain = 0;
             reward += Number.isFinite(rewardConfig.winBonus) ? rewardConfig.winBonus : 0;
             outcome = 'win';
           }
@@ -2933,11 +2946,13 @@
             reward += loopPenalty;
             outcome = 'stalled';
             done = true;
+            env.selfCrashChain = 0;
           } else if(env.state.steps >= env.stepLimit){
             const timeoutPenalty = Number.isFinite(rewardConfig.deathPenalty) ? rewardConfig.deathPenalty : -5;
             reward += timeoutPenalty;
             outcome = 'timeout';
             done = true;
+            env.selfCrashChain = 0;
           }
         }
         const nextMoves = done ? null : env.getMoves();
@@ -4073,6 +4088,9 @@
       }, 200);
     }
     function finishRun(won = false){
+      if(won){
+        consecutiveSelfCrashCount = 0;
+      }
       if(startTime !== null){
         lastElapsedMs = performance.now() - startTime;
       }
@@ -5255,6 +5273,7 @@
       return state;
     }
     function restartGame() {
+      const manualRestart = gameRunning;
       cancelRunTimer();
       const fresh = createFreshState();
       snake = fresh.snake;
@@ -5304,6 +5323,9 @@
       loopHandle = setInterval(update, SPEED);
       startRunTimer();
       updateCompletedRoundsDisplay();
+      if(manualRestart){
+        consecutiveSelfCrashCount = 0;
+      }
     }
     document.getElementById('restartBtn').addEventListener('click', restartGame);
     /* ===== HAMILTON-SLINGA ===== */
@@ -6049,19 +6071,31 @@
       }, delay);
     }
     function handleSnakeDeath({ title = 'Crash! 💥', subtitle, color = currentTheme?.game?.danger ?? '#ef4444', penalty = rlConfig.deathPenalty, outcome = 'loss', componentId } = {}){
+      const normalizedOutcome = typeof outcome === 'string' ? outcome.toLowerCase() : '';
+      const isSelfInflicted = normalizedOutcome === 'self-crash' || normalizedOutcome === 'dead-end-crash';
+      if(isSelfInflicted){
+        consecutiveSelfCrashCount = Math.min(consecutiveSelfCrashCount + 1, 6);
+      } else {
+        consecutiveSelfCrashCount = 0;
+      }
       if(rlTrainingEnabled){
         rlAgent.registerTerminal(outcome);
       }
-      const penaltyValue = Number.isFinite(penalty) ? penalty : rlConfig.deathPenalty;
+      let penaltyValue = Number.isFinite(penalty) ? penalty : rlConfig.deathPenalty;
+      if(isSelfInflicted && Number.isFinite(penaltyValue)){
+        const streak = Math.min(Math.max(consecutiveSelfCrashCount - 1, 0), 6);
+        const streakMultiplier = 1 + streak * 0.35;
+        penaltyValue *= streakMultiplier;
+      }
       let penaltyComponent = componentId && RL_REWARD_COMPONENT_MAP[componentId]
         ? componentId
         : null;
       if(!penaltyComponent){
-        if(penaltyValue === rlConfig.deadEndPenalty || outcome === 'timeout'){
+        if(normalizedOutcome === 'dead-end-crash' || penaltyValue === rlConfig.deadEndPenalty || outcome === 'timeout'){
           penaltyComponent = 'deadEndPenalty';
-        } else if(penaltyValue === rlConfig.wallCrashPenalty){
+        } else if(normalizedOutcome === 'wall-crash' || penaltyValue === rlConfig.wallCrashPenalty){
           penaltyComponent = 'wallCrashPenalty';
-        } else if(penaltyValue === rlConfig.selfCrashPenalty){
+        } else if(isSelfInflicted || penaltyValue === rlConfig.selfCrashPenalty){
           penaltyComponent = 'selfCrashPenalty';
         } else {
           penaltyComponent = 'deathPenalty';
