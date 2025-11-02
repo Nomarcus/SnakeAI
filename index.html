@@ -74,6 +74,110 @@
       white-space: nowrap;
       border: 0;
     }
+    body.performance-mode {
+      background: #000;
+      overflow: hidden;
+    }
+    body.performance-mode::before {
+      content: none;
+    }
+    body.performance-mode nav,
+    body.performance-mode .hero,
+    body.performance-mode .controls-panel,
+    body.performance-mode .page:not(#game-page) {
+      display: none !important;
+    }
+    body.performance-mode .container {
+      max-width: none;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    body.performance-mode .game-wrapper {
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+      justify-content: center;
+      align-items: center;
+      max-width: none;
+      width: auto;
+    }
+    body.performance-mode .game-container {
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      background: transparent;
+      backdrop-filter: none;
+      max-width: none;
+      width: auto;
+    }
+    body.performance-mode .game-container::before {
+      display: none;
+    }
+    body.performance-mode #game {
+      width: min(95vw, 95vh);
+      height: min(95vw, 95vh);
+      max-width: 95vmin;
+      max-height: 95vmin;
+    }
+    #performanceExit {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 2000;
+      display: none;
+      width: auto;
+      padding: 0.65rem 1.2rem;
+    }
+    #performanceExit[hidden] {
+      display: none !important;
+    }
+    body.performance-mode #performanceExit {
+      display: inline-flex;
+    }
+    #performanceHud {
+      position: fixed;
+      top: 1.5rem;
+      left: 1.5rem;
+      display: none;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 0.75rem 1.25rem;
+      background: rgba(15, 15, 35, 0.9);
+      border-radius: 1rem;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      font-variant-numeric: tabular-nums;
+      z-index: 2000;
+    }
+    #performanceHud[hidden] {
+      display: none !important;
+    }
+    body.performance-mode #performanceHud {
+      display: flex;
+    }
+    .performance-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.75rem;
+      color: rgba(226, 232, 240, 0.7);
+    }
+    .performance-label {
+      font-weight: 600;
+      opacity: 0.85;
+    }
+    .performance-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: none;
+      letter-spacing: normal;
+    }
     /* Navigation */
     nav {
       background: var(--glass);
@@ -1050,6 +1154,10 @@
               <button id="safetyNetToggle" class="button toggle-active" style="width: 100%;">🛡️ Safety Net: ON</button>
               <p id="safetyNetHint" class="manual-hint">Safety net algorithms are active.</p>
             </div>
+            <div style="margin-top: 0.8rem;">
+              <button id="performanceToggle" class="button" style="width: 100%;">🚀 Performance Mode</button>
+              <p id="performanceHint" class="manual-hint">Hide the interface to maximise performance.</p>
+            </div>
             <div class="param-control" style="margin-top: 1.2rem;">
               <label for="themeSelect">Color theme</label>
               <select id="themeSelect" class="select-control">
@@ -1448,6 +1556,17 @@
 
         </div>
       </div>
+      <button id="performanceExit" class="button warning" type="button" hidden>⬅️ Exit Performance</button>
+      <div id="performanceHud" class="performance-hud" hidden>
+        <div class="performance-stat">
+          <span class="performance-label">Length</span>
+          <span id="performanceLength" class="performance-value">3</span>
+        </div>
+        <div class="performance-stat">
+          <span class="performance-label">Elapsed</span>
+          <span id="performanceElapsed" class="performance-value">00:00.0</span>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Guide Page -->
@@ -1728,8 +1847,10 @@
     let rlPendingChoice = null;
     let rlEpisodeActive = false;
     let autoRestartEnabled = false;
+    let performanceMode = false;
     let startTime = null;
     let elapsedTimerHandle = null;
+    let elapsedTimeEl = null;
     let lastElapsedMs = 0;
     let bestTimeMs = null;
     let lastObservedReward = 0;
@@ -3469,10 +3590,59 @@
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
     const pages = document.querySelectorAll('.page');
+    const performanceToggleBtn = document.getElementById('performanceToggle');
+    const performanceHint = document.getElementById('performanceHint');
+    const performanceHud = document.getElementById('performanceHud');
+    const performanceExitBtn = document.getElementById('performanceExit');
+    const performanceLengthEl = document.getElementById('performanceLength');
+    const performanceElapsedEl = document.getElementById('performanceElapsed');
+
+    function updatePerformanceHint(){
+      if(!performanceHint) return;
+      performanceHint.textContent = performanceMode
+        ? 'Performance mode active – use the floating button or press Esc to exit.'
+        : 'Hide the interface to maximise performance.';
+    }
+
+    function updatePerformanceHud(){
+      if(performanceLengthEl){
+        performanceLengthEl.textContent = snake.length;
+      }
+      if(performanceElapsedEl && elapsedTimeEl){
+        performanceElapsedEl.textContent = elapsedTimeEl.textContent;
+      }
+    }
+
+    function setPerformanceMode(enabled){
+      const next = !!enabled;
+      performanceMode = next;
+      document.body.classList.toggle('performance-mode', next);
+      if(performanceHud){
+        performanceHud.hidden = !next;
+      }
+      if(performanceExitBtn){
+        performanceExitBtn.hidden = !next;
+      }
+      if(performanceToggleBtn){
+        performanceToggleBtn.classList.toggle('toggle-active', next);
+        performanceToggleBtn.textContent = next ? '🚀 Performance Mode: ON' : '🚀 Performance Mode';
+        performanceToggleBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
+      }
+      updatePerformanceHint();
+      if(next){
+        updatePerformanceHud();
+      }
+    }
+
+    updatePerformanceHint();
+    setPerformanceMode(false);
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const targetPage = link.dataset.page;
+        if(performanceMode){
+          setPerformanceMode(false);
+        }
         navLinks.forEach(l => l.classList.remove('active'));
         link.classList.add('active');
         pages.forEach(p => p.classList.remove('active'));
@@ -3955,7 +4125,7 @@
       { collapsed: true, expandedLabel: 'Hide status', collapsedLabel: 'Show status' }
     );
     updateRewardImpactUI();
-    const elapsedTimeEl = document.getElementById('elapsedTime');
+    elapsedTimeEl = document.getElementById('elapsedTime');
     const bestTimeEl = document.getElementById('bestTime');
     const completedRoundsEl = document.getElementById('completedRounds');
     const applesEatenEl = document.getElementById('applesEaten');
@@ -3969,8 +4139,12 @@
       return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
     }
     function updateElapsedTimeDisplay(ms = 0){
+      const formatted = formatTime(ms);
       if(elapsedTimeEl){
-        elapsedTimeEl.textContent = formatTime(ms);
+        elapsedTimeEl.textContent = formatted;
+      }
+      if(performanceElapsedEl){
+        performanceElapsedEl.textContent = formatted;
       }
     }
     function updateCompletedRoundsDisplay(){
@@ -4855,6 +5029,18 @@
         return true;
       });
     }
+    performanceToggleBtn?.addEventListener('click', () => {
+      setPerformanceMode(!performanceMode);
+    });
+    performanceExitBtn?.addEventListener('click', () => {
+      setPerformanceMode(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      const key = event.key;
+      if((key === 'Escape' || key === 'Esc') && performanceMode){
+        setPerformanceMode(false);
+      }
+    });
     manualToggleBtn?.addEventListener('click', toggleManualMode);
     safetyNetToggleBtn?.addEventListener('click', () => setSafetyNet(!safetyNetEnabled));
     document.addEventListener('keydown', (event) => {
@@ -6041,6 +6227,9 @@
       document.getElementById('compactStepStatus').textContent = compactMode ? `Compact path step ${compactModeSteps} of ${COMPACT_MODE_MAX_STEPS}.` : "";
       const freeCellsCount = COLS * ROWS - snake.length;
       document.getElementById('snakeLength').textContent = snake.length;
+      if(performanceLengthEl){
+        performanceLengthEl.textContent = snake.length;
+      }
       document.getElementById('freeCells').textContent = freeCellsCount;
       document.getElementById('progress').textContent = ((snake.length / (COLS * ROWS)) * 100).toFixed(1) + '%';
       updateAppleStats();
