@@ -113,7 +113,8 @@
       max-width: none;
       width: auto;
     }
-    body.performance-mode .game-container::before {
+    body.performance-mode .game-container::before,
+    body.performance-mode .game-container::after {
       display: none;
     }
     body.performance-mode #game {
@@ -121,6 +122,9 @@
       height: min(95vw, 95vh);
       max-width: 95vmin;
       max-height: 95vmin;
+      box-shadow: none;
+      border-radius: 0;
+      transition: none;
     }
     #performanceExit {
       position: fixed;
@@ -288,7 +292,7 @@
   padding: 1rem 1.5rem;
 }
    /* Game container – anpassad för större spelruta */
-.game-container {
+    .game-container {
   flex: 1 1 auto;
   max-width: 820px;                 /* ökar från ~700px */
   border: 2px solid var(--glass-border);
@@ -301,8 +305,23 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  position: relative;
+  overflow: visible;
 }
     .game-container::before {
+      content: '';
+      position: absolute;
+      inset: -4rem;
+      background: radial-gradient(circle at center,
+        rgba(255, 255, 255, 0.45) 0%,
+        rgba(224, 224, 224, 0.25) 30%,
+        rgba(192, 192, 192, 0.12) 55%,
+        rgba(255, 255, 255, 0) 75%);
+      filter: blur(45px);
+      z-index: -2;
+      pointer-events: none;
+    }
+    .game-container::after {
       content: '';
       position: absolute;
       top: -2px;
@@ -315,7 +334,7 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
-    .game-container:hover::before {
+    .game-container:hover::after {
       opacity: 0.5;
     }
     #game {
@@ -3614,6 +3633,7 @@
     }
 
     function setPerformanceMode(enabled){
+      const previous = performanceMode;
       const next = !!enabled;
       performanceMode = next;
       document.body.classList.toggle('performance-mode', next);
@@ -3631,6 +3651,9 @@
       updatePerformanceHint();
       if(next){
         updatePerformanceHud();
+        eatParticles = [];
+      } else if(previous !== next){
+        draw();
       }
     }
 
@@ -6073,66 +6096,87 @@
     /* ===== RENDER ===== */
     function draw(){
       const now = performance.now();
-      updateParticles(now - lastRender);
+      const delta = now - lastRender;
       lastRender = now;
+      const minimalRender = performanceMode;
+      if(!minimalRender){
+        updateParticles(delta);
+      } else if(eatParticles.length){
+        eatParticles = [];
+      }
       const themeGame = currentTheme?.game ?? THEMES.aurora.game;
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       const boardStart = Array.isArray(themeGame.boardGradient) ? themeGame.boardGradient[0] : '#1a1a2e';
       const boardEnd = Array.isArray(themeGame.boardGradient) ? themeGame.boardGradient[1] : '#0f0f23';
-      gradient.addColorStop(0, boardStart);
-      gradient.addColorStop(1, boardEnd);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = themeGame.grid ?? 'rgba(255, 255, 255, 0.02)';
-      ctx.lineWidth = 1;
-      for(let i = 0; i <= COLS; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * CELL, 0);
-        ctx.lineTo(i * CELL, canvas.height);
-        ctx.stroke();
-      }
-      for(let i = 0; i <= ROWS; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, i * CELL);
-        ctx.lineTo(canvas.width, i * CELL);
-        ctx.stroke();
+      if(minimalRender){
+        ctx.fillStyle = boardStart;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, boardStart);
+        gradient.addColorStop(1, boardEnd);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = themeGame.grid ?? 'rgba(255, 255, 255, 0.02)';
+        ctx.lineWidth = 1;
+        for(let i = 0; i <= COLS; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * CELL, 0);
+          ctx.lineTo(i * CELL, canvas.height);
+          ctx.stroke();
+        }
+        for(let i = 0; i <= ROWS; i++) {
+          ctx.beginPath();
+          ctx.moveTo(0, i * CELL);
+          ctx.lineTo(canvas.width, i * CELL);
+          ctx.stroke();
+        }
       }
       if(fruit && fruit.x >= 0){
         const centerX = fruit.x * CELL + CELL / 2;
         const centerY = fruit.y * CELL + CELL / 2;
-        const appleRadius = CELL / 2.6;
-        const glowGradient = ctx.createRadialGradient(
-          centerX, centerY, 0,
-          centerX, centerY, CELL
-        );
-        glowGradient.addColorStop(0, themeGame.appleGlow ?? 'rgba(220, 38, 38, 0.5)');
-        glowGradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = glowGradient;
-        ctx.fillRect(fruit.x * CELL, fruit.y * CELL, CELL, CELL);
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, appleRadius, 0, 2 * Math.PI);
-        ctx.fillStyle = themeGame.apple ?? '#d62828';
-        ctx.fill();
-        ctx.lineWidth = Math.max(2, CELL / 8);
-        ctx.strokeStyle = themeGame.appleStroke ?? '#111';
-        ctx.stroke();
-        ctx.lineWidth = 1;
-        ctx.fillStyle = themeGame.appleHighlight ?? 'rgba(255, 255, 255, 0.3)';
-        ctx.beginPath();
-        ctx.arc(centerX - appleRadius / 2.2, centerY - appleRadius / 2.2, appleRadius / 4, 0, 2 * Math.PI);
-        ctx.fill();
+        if(minimalRender){
+          const appleRadius = CELL / 3;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, appleRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = themeGame.apple ?? '#d62828';
+          ctx.fill();
+        } else {
+          const appleRadius = CELL / 2.6;
+          const glowGradient = ctx.createRadialGradient(
+            centerX, centerY, 0,
+            centerX, centerY, CELL
+          );
+          glowGradient.addColorStop(0, themeGame.appleGlow ?? 'rgba(220, 38, 38, 0.5)');
+          glowGradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = glowGradient;
+          ctx.fillRect(fruit.x * CELL, fruit.y * CELL, CELL, CELL);
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, appleRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = themeGame.apple ?? '#d62828';
+          ctx.fill();
+          ctx.lineWidth = Math.max(2, CELL / 8);
+          ctx.strokeStyle = themeGame.appleStroke ?? '#111';
+          ctx.stroke();
+          ctx.lineWidth = 1;
+          ctx.fillStyle = themeGame.appleHighlight ?? 'rgba(255, 255, 255, 0.3)';
+          ctx.beginPath();
+          ctx.arc(centerX - appleRadius / 2.2, centerY - appleRadius / 2.2, appleRadius / 4, 0, 2 * Math.PI);
+          ctx.fill();
+        }
       }
-      eatParticles.forEach(p => {
-        const alpha = Math.max(0, p.life / p.maxLife);
-        const flare = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-        flare.addColorStop(0, `hsla(${p.hue}, 90%, 80%, ${alpha * 0.85})`);
-        flare.addColorStop(0.6, `hsla(${p.hue}, 90%, 65%, ${alpha * 0.45})`);
-        flare.addColorStop(1, `hsla(${p.hue}, 90%, 40%, 0)`);
-        ctx.fillStyle = flare;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
+      if(!minimalRender){
+        eatParticles.forEach(p => {
+          const alpha = Math.max(0, p.life / p.maxLife);
+          const flare = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+          flare.addColorStop(0, `hsla(${p.hue}, 90%, 80%, ${alpha * 0.85})`);
+          flare.addColorStop(0.6, `hsla(${p.hue}, 90%, 65%, ${alpha * 0.45})`);
+          flare.addColorStop(1, `hsla(${p.hue}, 90%, 40%, 0)`);
+          ctx.fillStyle = flare;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
       const baseHead = themeGame.head ?? '#667eea';
       const headColor = hamMode
         ? themeGame.ham ?? '#4ade80'
@@ -6151,6 +6195,15 @@
       const bodyStart = themeGame.bodyStart ?? '#8b5cf6';
       const bodyEnd = themeGame.bodyEnd ?? '#4338ca';
       snake.forEach((p, i) => {
+        if(minimalRender){
+          const ratio = snake.length > 1 ? i / (snake.length - 1) : 0;
+          const baseColor = i === 0
+            ? headColor
+            : rgbToCss(mixHexColors(bodyStart, bodyEnd, ratio));
+          ctx.fillStyle = baseColor;
+          ctx.fillRect(p.x * CELL, p.y * CELL, CELL, CELL);
+          return;
+        }
         const isHead = i === 0;
         const size = CELL * 0.95;
         const offset = (CELL - size) / 2;
@@ -6209,6 +6262,12 @@
           }
         }
       });
+      if(performanceLengthEl){
+        performanceLengthEl.textContent = snake.length;
+      }
+      if(minimalRender){
+        return;
+      }
       document.getElementById('strategyStatus').textContent = `Strategy: ${currentStrategy}`;
       document.getElementById('strategyExplanation').textContent = getStrategyExplanation(currentStrategy);
       const completionEl = document.getElementById('completionStatus');
@@ -6467,9 +6526,7 @@
           prevFruitDist = (fruit.x >= 0) ? Math.abs(snake[0].x - fruit.x) + Math.abs(snake[0].y - fruit.y) : Infinity;
           noProgressMoves = 0;
         }
-        if(atePosition){
-          spawnEatEffect(atePosition.x, atePosition.y);
-        }
+        // Skip particle bursts to keep apple pickups smooth.
         resetRunTimeoutDeadline();
       }
       if(rlTrainingEnabled && !stepDone){
