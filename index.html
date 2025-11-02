@@ -6286,6 +6286,9 @@
       document.getElementById('compactStepStatus').textContent = compactMode ? `Compact path step ${compactModeSteps} of ${COMPACT_MODE_MAX_STEPS}.` : "";
       const freeCellsCount = COLS * ROWS - snake.length;
       document.getElementById('snakeLength').textContent = snake.length;
+      if(performanceLengthEl){
+        performanceLengthEl.textContent = snake.length;
+      }
       document.getElementById('freeCells').textContent = freeCellsCount;
       document.getElementById('progress').textContent = ((snake.length / (COLS * ROWS)) * 100).toFixed(1) + '%';
       updateAppleStats();
