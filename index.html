@@ -976,6 +976,99 @@
       color: rgba(226, 232, 240, 0.7);
       font-size: 0.9rem;
     }
+
+    .rl-status-extra {
+      margin-top: 0.25rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.3);
+      padding-top: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .rl-sparkline-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .rl-sparkline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(148, 163, 184, 0.9);
+    }
+    .rl-sparkline-title {
+      font-weight: 600;
+    }
+    .rl-sparkline-sub {
+      opacity: 0.8;
+      font-variant-numeric: tabular-nums;
+    }
+    .rl-sparkline {
+      width: 100%;
+      height: 52px;
+      border-radius: 0.75rem;
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.7));
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+    .rl-sparkline-path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 2;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      transition: d 0.4s ease-out;
+    }
+    .rl-mode-badge {
+      pointer-events: none;
+      position: absolute;
+      right: 0.9rem;
+      bottom: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      background: radial-gradient(circle at top left, var(--primary-overlay-strong), rgba(15,23,42,0.95));
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      font-size: 0.8rem;
+      color: var(--text);
+      opacity: 0.0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease-out, transform 0.25s ease-out, box-shadow 0.25s ease-out;
+    }
+    .rl-mode-badge:not([hidden]) {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .rl-mode-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.7rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: radial-gradient(circle at top, var(--accent), #ffffff);
+      color: #020617;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 15px rgba(56, 189, 248, 0.7);
+    }
+    .rl-mode-badge--ppo .rl-mode-pill {
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 16px rgba(249, 115, 22, 0.9);
+    }
+    .rl-mode-badge--tabular .rl-mode-pill {
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 16px rgba(52, 211, 153, 0.9);
+    }
+    .rl-mode-text {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
     #strategyStatus {
       color: var(--accent);
       font-weight: 600;
@@ -1288,6 +1381,10 @@
                 <span id="progressRingPercent">0%</span>
                 <small>Board filled</small>
               </div>
+            </div>
+            <div id="rlModeBadge" class="rl-mode-badge" hidden aria-live="polite">
+              <span class="rl-mode-pill">RL</span>
+              <span id="rlBadgeText" class="rl-mode-text">Idle</span>
             </div>
           </div>
         </div>
@@ -2019,6 +2116,9 @@
     let progressRingCircle = null;
     let progressRingMaxLength = null;
     let progressRingPercentLabel = null;
+    let rlRewardHistory = [];
+    const RL_REWARD_HISTORY_LIMIT = 60;
+    let lastRlPhaseLabel = null;
 
     const THEME_STORAGE_KEY = 'snakeai-theme';
     const THEMES = {
@@ -3995,6 +4095,67 @@
       if(value === 0) return '0.00';
       return rounded;
     }
+
+    function getRlPhase(epsilon, epsilonStart, epsilonEnd){
+      if(!Number.isFinite(epsilon) || !Number.isFinite(epsilonStart) || !Number.isFinite(epsilonEnd)){
+        return null;
+      }
+      const range = epsilonStart - epsilonEnd;
+      if(range <= 0){
+        return epsilon <= epsilonEnd ? 'Exploiting' : 'Exploring';
+      }
+      const clampedEps = Math.max(Math.min(epsilon, epsilonStart), epsilonEnd);
+      const progress = (epsilonStart - clampedEps) / range;
+      if(progress < 0.15) return 'Warm‑up';
+      if(progress < 0.55) return 'Exploring';
+      if(progress < 0.9) return 'Balancing';
+      return 'Exploiting';
+    }
+    function pushRlRewardSample(stats){
+      if(!stats || !Number.isFinite(stats.lastEpisodeReward)) return;
+      rlRewardHistory.push(stats.lastEpisodeReward);
+      if(rlRewardHistory.length > RL_REWARD_HISTORY_LIMIT){
+        rlRewardHistory.splice(0, rlRewardHistory.length - RL_REWARD_HISTORY_LIMIT);
+      }
+    }
+    function updateRlSparkline(episodeCount){
+      const svg = document.getElementById('rlRewardSparkline');
+      const path = document.getElementById('rlRewardSparklinePath');
+      const label = document.getElementById('rlRewardTrendLabel');
+      if(!svg || !path || !rlRewardHistory.length) return;
+      const viewBox = svg.viewBox && svg.viewBox.baseVal
+        ? svg.viewBox.baseVal
+        : { x: 0, y: 0, width: 220, height: 50 };
+      const width = viewBox.width || 220;
+      const height = viewBox.height || 50;
+      const min = Math.min(...rlRewardHistory);
+      const max = Math.max(...rlRewardHistory);
+      const span = max - min || 1;
+      const n = rlRewardHistory.length;
+      const stepX = n > 1 ? width / (n - 1) : width;
+      let d = '';
+      rlRewardHistory.forEach((value, index) => {
+        const x = index * stepX;
+        const normalized = (value - min) / span;
+        const y = height - normalized * height;
+        d += (index === 0 ? 'M' : ' L') + x.toFixed(2) + ',' + y.toFixed(2);
+      });
+      path.setAttribute('d', d);
+      if(label){
+        const windowSize = Math.min(RL_REWARD_HISTORY_LIMIT, rlRewardHistory.length);
+        const episodesText = episodeCount && Number.isFinite(episodeCount)
+          ? `${episodesTextFormatter(episodeCount)} eps`
+          : 'recent episodes';
+        label.textContent = `${windowSize} sample(s) · ${episodesText}`;
+      }
+    }
+    function episodesTextFormatter(value){
+      if(!Number.isFinite(value)) return '--';
+      if(value >= 1000){
+        return (value / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+      }
+      return value.toLocaleString();
+    }
     function formatImpactTrend(diff){
       if(!Number.isFinite(diff) || Math.abs(diff) < 0.01){
         return '<span class="trend trend-flat">—</span>';
@@ -4171,6 +4332,8 @@
     }
     function recordRlEpisodeSnapshot(){
       const stats = rlAgent.getStats();
+      pushRlRewardSample(stats);
+
       if(!Number.isFinite(stats.episodes) || stats.episodes <= 0) return;
       rlEpisodeLog.unshift({
         episode: stats.episodes,
@@ -4982,6 +5145,10 @@
       const agentUnavailable = rlMethod === RL_METHODS.PPO && rlAgent && rlAgent.available === false;
       if(!rlTrainingEnabled){
         rlStatusEl.classList.add('rl-inactive');
+        const rlBadgeEl = document.getElementById('rlModeBadge');
+        if(rlBadgeEl){
+          rlBadgeEl.hidden = true;
+        }
         if(agentUnavailable){
           rlStatusEl.innerHTML = `
             <div class="rl-status-header">
@@ -5051,6 +5218,7 @@
         { label: 'Wall distance ×Δ', value: wallWeightText }
       );
       if(rlMethod === RL_METHODS.PPO){
+        lastRlPhaseLabel = null;
         baseItems.push(
           { label: 'Learning rate', value: lrText },
           { label: 'Clip range', value: clipText },
@@ -5062,12 +5230,17 @@
           { label: 'γ', value: gammaText }
         );
       } else {
+        const epsilonPhaseLabel = getRlPhase(stats.epsilon, rlConfig.epsilonStart, rlConfig.epsilonEnd);
         baseItems.push(
           { label: 'ε', value: `${epsilonText} → ${epsilonMinText}` },
           { label: 'ε decay', value: epsilonDecayText },
           { label: 'α', value: alphaText },
           { label: 'γ', value: gammaText }
         );
+        if(epsilonPhaseLabel){
+          baseItems.push({ label: 'Phase', value: epsilonPhaseLabel });
+        }
+        lastRlPhaseLabel = epsilonPhaseLabel || null;
         const parallelCount = Math.max(0, Math.round(rlConfig.parallelSnakes || 0));
         if(parallelCount > 0){
           baseItems.push({ label: 'Background snakes', value: parallelCount.toLocaleString() });
@@ -5120,9 +5293,42 @@
           ${gridHtml}
         </div>
         ${outcomeHtml}
+        <div class="rl-status-extra">
+          <div class="rl-sparkline-wrapper">
+            <div class="rl-sparkline-header">
+              <span class="rl-sparkline-title">Reward trend</span>
+              <span class="rl-sparkline-sub" id="rlRewardTrendLabel">Waiting for episodes...</span>
+            </div>
+            <svg id="rlRewardSparkline" class="rl-sparkline" viewBox="0 0 220 50" preserveAspectRatio="none" role="img" aria-label="Reward trend over recent RL episodes">
+              <path id="rlRewardSparklinePath" class="rl-sparkline-path" d=""></path>
+            </svg>
+          </div>
+        </div>
       `;
       if(rlHint){
-        rlHint.textContent = rlHintOverride ?? `RL is learning live – episodes: ${episodes}`;
+        let hintText;
+        if(rlHintOverride){
+          hintText = rlHintOverride;
+        } else if(episodes < 10){
+          hintText = 'RL warm-up – let it explore the board for a bit.';
+        } else if(wins === 0){
+          hintText = 'RL is still searching for its first flawless run – keep it training.';
+        } else if(wins > 0 && wins < 20){
+          hintText = `RL is stabilising – ${wins.toLocaleString()} perfect runs so far.`;
+        } else {
+          hintText = `RL is refining its policy – episodes: ${episodes.toLocaleString()}, wins: ${wins.toLocaleString()}.`;
+        }
+        rlHint.textContent = hintText;
+      }
+      updateRlSparkline(episodes);
+      const badgeEl = document.getElementById('rlModeBadge');
+      const badgeTextEl = document.getElementById('rlBadgeText');
+      if(badgeEl && badgeTextEl){
+        badgeEl.hidden = false;
+        badgeEl.classList.toggle('rl-mode-badge--ppo', rlMethod === RL_METHODS.PPO);
+        badgeEl.classList.toggle('rl-mode-badge--tabular', rlMethod !== RL_METHODS.PPO);
+        const phasePart = lastRlPhaseLabel ? ` · ${lastRlPhaseLabel}` : '';
+        badgeTextEl.textContent = `${episodes.toLocaleString()} eps${phasePart}`;
       }
       updateRlLiveMetrics();
     }
