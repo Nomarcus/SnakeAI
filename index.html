@@ -1096,6 +1096,137 @@
       width: 100%;
       background: linear-gradient(135deg, var(--primary), var(--accent));
     }
+
+
+    /* Progress ring HUD */
+    .game-container {
+      position: relative;
+    }
+    .game-overlay {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .progress-ring-wrapper {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      filter: drop-shadow(0 0 12px var(--primary-ambient-strong));
+    }
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+    .progress-ring-bg {
+      fill: none;
+      stroke: rgba(15, 23, 42, 0.75);
+      stroke-width: 10;
+    }
+    .progress-ring-value {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 0;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.35s ease-out;
+    }
+    .progress-ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .progress-ring-label span {
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .progress-ring-label small {
+      opacity: 0.7;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Keyboard help overlay */
+    .help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(18px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2300;
+    }
+    .help-overlay[hidden] {
+      display: none;
+    }
+    .help-card {
+      max-width: 480px;
+      width: 90%;
+      background: radial-gradient(circle at top left, var(--primary-overlay-strong), var(--darker));
+      border-radius: 1.5rem;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7);
+      padding: 2rem 2.25rem 1.75rem;
+      color: var(--text);
+    }
+    .help-card h2 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      font-size: 1.6rem;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .help-card h2::before {
+      content: '⌨️';
+      font-size: 1.4rem;
+    }
+    .help-card ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0 0 1.5rem 0;
+    }
+    .help-card li {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.6rem;
+      line-height: 1.5;
+    }
+    .help-card kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      padding: 0.25rem 0.6rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.6));
+      box-shadow: 0 2px 0 rgba(15, 23, 42, 0.9);
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .help-card li span {
+      opacity: 0.9;
+      font-size: 0.9rem;
+    }
+    .help-card .button {
+      width: 100%;
+      justify-content: center;
+    }
+
     /* Responsive */
     @media (max-width: 1200px) {
       .game-wrapper {
@@ -1147,6 +1278,18 @@
       <div class="game-wrapper">
         <div class="game-container">
           <canvas id="game" width="600" height="600"></canvas>
+          <div class="game-overlay">
+            <div class="progress-ring-wrapper">
+              <svg class="progress-ring" width="110" height="110">
+                <circle class="progress-ring-bg" cx="55" cy="55" r="46"></circle>
+                <circle class="progress-ring-value" cx="55" cy="55" r="46"></circle>
+              </svg>
+              <div class="progress-ring-label">
+                <span id="progressRingPercent">0%</span>
+                <small>Board filled</small>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="controls-panel">
           <div class="controls-section">
@@ -1873,6 +2016,10 @@
     let lastElapsedMs = 0;
     let bestTimeMs = null;
     let lastObservedReward = 0;
+    let progressRingCircle = null;
+    let progressRingMaxLength = null;
+    let progressRingPercentLabel = null;
+
     const THEME_STORAGE_KEY = 'snakeai-theme';
     const THEMES = {
       aurora: {
@@ -3712,6 +3859,23 @@
     const aiStatusSectionEl = document.getElementById('aiStatusSection');
     const aiStatusToggleBtn = document.getElementById('aiStatusToggle');
     const aiStatusContentEl = document.getElementById('aiStatusContent');
+    const helpOverlayEl = document.getElementById('helpOverlay');
+    const helpCloseBtn = document.getElementById('helpCloseBtn');
+    const progressRingEl = document.querySelector('.progress-ring-value');
+    progressRingPercentLabel = document.getElementById('progressRingPercent');
+    if (progressRingEl) {
+      progressRingCircle = progressRingEl;
+      const radius = progressRingCircle.r.baseVal.value;
+      progressRingMaxLength = 2 * Math.PI * radius;
+      progressRingCircle.style.strokeDasharray = progressRingMaxLength;
+      progressRingCircle.style.strokeDashoffset = progressRingMaxLength;
+    }
+    if (helpCloseBtn && helpOverlayEl) {
+      helpCloseBtn.addEventListener('click', () => {
+        helpOverlayEl.hidden = true;
+      });
+    }
+
     if(themeSelect){
       themeSelect.value = currentThemeKey;
       themeSelect.addEventListener('change', (event) => {
@@ -5062,6 +5226,22 @@
       const key = event.key;
       if((key === 'Escape' || key === 'Esc') && performanceMode){
         setPerformanceMode(false);
+        return;
+      }
+      if(key === '?' || (key === 'h' && !event.ctrlKey && !event.metaKey)){
+        const overlay = document.getElementById('helpOverlay');
+        if(overlay){
+          overlay.hidden = !overlay.hidden;
+        }
+        event.preventDefault();
+        return;
+      }
+      if(key === ' ' && !event.repeat){
+        const activeTag = (document.activeElement && document.activeElement.tagName) || '';
+        if(!/^(INPUT|TEXTAREA|SELECT|BUTTON)$/i.test(activeTag)){
+          toggleManualMode();
+          event.preventDefault();
+        }
       }
     });
     manualToggleBtn?.addEventListener('click', toggleManualMode);
@@ -6290,10 +6470,23 @@
         performanceLengthEl.textContent = snake.length;
       }
       document.getElementById('freeCells').textContent = freeCellsCount;
-      document.getElementById('progress').textContent = ((snake.length / (COLS * ROWS)) * 100).toFixed(1) + '%';
+      const progressRatio = snake.length / (COLS * ROWS);
+      document.getElementById('progress').textContent = (progressRatio * 100).toFixed(1) + '%';
+      updateProgressVisual(progressRatio);
       updateAppleStats();
       updateRlStatus();
     }
+
+    function updateProgressVisual(progressRatio){
+      if(!progressRingCircle || progressRingMaxLength == null) return;
+      const clamped = Math.max(0, Math.min(1, progressRatio || 0));
+      const offset = progressRingMaxLength * (1 - clamped);
+      progressRingCircle.style.strokeDashoffset = offset;
+      if(progressRingPercentLabel){
+        progressRingPercentLabel.textContent = (clamped * 100).toFixed(1) + '%';
+      }
+    }
+
     function showOverlay(title, subtitle, color = currentTheme?.game?.danger ?? '#ef4444'){
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -6659,5 +6852,18 @@
     document.getElementById('compactValue').textContent = COMPACT_MODE_MAX_STEPS;
     updateCompactProfile(COMPACT_MODE_PROFILE);
   </script>
+
+  <div id="helpOverlay" class="help-overlay" hidden>
+    <div class="help-card" role="dialog" aria-modal="true" aria-labelledby="helpOverlayTitle">
+      <h2 id="helpOverlayTitle">Keyboard shortcuts</h2>
+      <ul>
+        <li><kbd>?</kbd> <span>Toggle this help overlay</span></li>
+        <li><kbd>Space</kbd> <span>Toggle manual / AI control</span></li>
+        <li><kbd>WASD</kbd> / <kbd>Arrow keys</kbd> <span>Steer the snake in manual mode</span></li>
+        <li><kbd>Esc</kbd> <span>Exit performance mode</span></li>
+      </ul>
+      <button type="button" id="helpCloseBtn" class="button">Got it</button>
+    </div>
+  </div>
 </body>
 </html>
