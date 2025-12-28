@@ -6,8 +6,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Snake Simulation - Intelligent Snake Experience</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
-
   <style>
     * {
       margin: 0;
@@ -438,9 +436,6 @@
     .collapsible-section.collapsed {
       margin-bottom: 1.5rem;
     }
-    .rl-config-section fieldset {
-      margin: 0;
-    }
     /* Modern buttons */
     .button {
       background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
@@ -504,213 +499,6 @@
       color: var(--light);
       opacity: 0.7;
       text-align: center;
-    }
-    .episode-history-card {
-      margin-top: 1.25rem;
-      padding: 1.1rem;
-      border-radius: 1rem;
-      border: 1px solid var(--glass-border);
-      background: rgba(255, 255, 255, 0.04);
-      backdrop-filter: blur(12px);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-    }
-    .episode-history-heading {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 0.75rem;
-      margin-bottom: 0.75rem;
-    }
-    .episode-history-heading h4 {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .episode-history-heading small {
-      color: var(--text);
-      opacity: 0.6;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-    .episode-history-grid-header,
-    .episode-history-row {
-      display: grid;
-      grid-template-columns: 0.7fr 1fr 1fr 0.8fr 1fr 1fr;
-      gap: 0.5rem;
-      align-items: center;
-      font-size: 0.82rem;
-    }
-    .episode-history-grid-header {
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      opacity: 0.65;
-      margin-bottom: 0.35rem;
-    }
-    .episode-history-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-      max-height: 220px;
-      overflow-y: auto;
-      padding-right: 0.25rem;
-    }
-    .episode-history-rows::-webkit-scrollbar {
-      width: 6px;
-    }
-    .episode-history-rows::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    .episode-history-rows::-webkit-scrollbar-thumb {
-      background: var(--accent-glow);
-      border-radius: 999px;
-    }
-    .reward-impact-card {
-      margin-top: 1.25rem;
-      padding: 1rem 1.1rem;
-      border-radius: 1rem;
-      border: 1px solid var(--glass-border);
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      box-shadow: inset 0 0 0 1px var(--primary-outline);
-    }
-    .reward-impact-card h4 {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .section-title-row.compact {
-      margin-bottom: 0.6rem;
-    }
-    .reward-impact-table {
-      display: flex;
-      flex-direction: column;
-      gap: 0.45rem;
-      margin-top: 0.5rem;
-      overflow-x: auto;
-    }
-    .reward-impact-table::-webkit-scrollbar {
-      height: 6px;
-    }
-    .reward-impact-table::-webkit-scrollbar-thumb {
-      background: var(--primary-overlay-strong);
-      border-radius: 999px;
-    }
-    .reward-impact-row {
-      display: grid;
-      grid-template-columns: 1.6fr 0.9fr 0.9fr 0.9fr 1fr;
-      gap: 0.4rem;
-      align-items: center;
-      padding: 0.45rem 0.6rem;
-      border-radius: 0.75rem;
-      background: rgba(15, 15, 35, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 0.82rem;
-      min-width: 520px;
-    }
-    .reward-impact-row span:last-child {
-      justify-self: flex-end;
-    }
-    .reward-impact-row.reward-impact-header {
-      background: transparent;
-      border: none;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      opacity: 0.65;
-      padding-bottom: 0;
-    }
-    .reward-impact-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-    }
-    .reward-impact-row.impact-top {
-      border-color: var(--accent-outline);
-      box-shadow: 0 0 0 1px var(--accent-ring);
-      background: var(--primary-overlay);
-    }
-    .reward-impact-empty {
-      text-align: center;
-      font-size: 0.85rem;
-      opacity: 0.75;
-      padding: 0.5rem 0;
-    }
-    .trend {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      font-weight: 600;
-    }
-    .trend-up {
-      color: var(--success);
-    }
-    .trend-down {
-      color: var(--danger);
-    }
-    .trend-flat {
-      opacity: 0.6;
-    }
-    .reward-impact-summary {
-      margin-top: 0.75rem;
-      font-size: 0.8rem;
-    }
-    .episode-history-row {
-      background: rgba(255, 255, 255, 0.035);
-      border-radius: 0.8rem;
-      padding: 0.5rem 0.75rem;
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    }
-    .episode-history-row span {
-      white-space: nowrap;
-    }
-    .episode-history-empty {
-      font-size: 0.82rem;
-      color: var(--text);
-      opacity: 0.65;
-      text-align: center;
-      padding: 0.75rem 0.25rem;
-    }
-    .rl-fieldset {
-      margin-top: 1.5rem;
-      border: 1px solid var(--glass-border);
-      border-radius: 1.2rem;
-      padding: 1.5rem;
-      background: rgba(15, 15, 35, 0.7);
-      transition: opacity 0.3s ease;
-    }
-    .rl-fieldset[data-active-method="ppo"] [data-rl-method="tabular"] {
-      display: none;
-    }
-    .rl-fieldset[data-active-method="tabular"] [data-rl-method="ppo"] {
-      display: none;
-    }
-    .rl-fieldset legend {
-      padding: 0 0.6rem;
-      font-weight: 700;
-      color: var(--accent);
-      font-size: 1.1rem;
-    }
-    .rl-fieldset.inactive {
-      opacity: 0.45;
-    }
-    .rl-grid {
-      display: grid;
-      gap: 1rem;
-    }
-    @media (min-width: 480px) {
-      .rl-grid.two-col {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
     }
     .number-input {
       width: 100%;
@@ -880,193 +668,6 @@
       margin: 0.3rem 0;
       font-size: 0.9rem;
       opacity: 0.9;
-    }
-    .rl-status-card {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      padding: 1rem 1.2rem;
-      background: rgba(15, 15, 35, 0.75);
-      border: 1px solid var(--glass-border);
-      border-radius: 1rem;
-      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    .rl-status-card.rl-inactive {
-      background: rgba(239, 68, 68, 0.08);
-      border-color: rgba(239, 68, 68, 0.35);
-      box-shadow: inset 0 2px 12px rgba(239, 68, 68, 0.15);
-    }
-    .rl-status-header {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-    .rl-status-indicator {
-      width: 0.75rem;
-      height: 0.75rem;
-      border-radius: 999px;
-      background: var(--accent);
-      box-shadow: 0 0 12px var(--accent-glow-strong);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .rl-status-indicator.active {
-      transform: scale(1.05);
-    }
-    .rl-status-indicator.paused {
-      background: var(--warning);
-      box-shadow: 0 0 6px rgba(251, 191, 36, 0.45);
-    }
-    .rl-status-card.rl-inactive .rl-status-indicator {
-      background: var(--danger);
-      box-shadow: 0 0 0;
-    }
-    .rl-status-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 0.6rem;
-    }
-    .rl-status-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      padding: 0.55rem 0.7rem;
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 0.75rem;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .rl-status-label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: rgba(226, 232, 240, 0.65);
-    }
-    .rl-status-value {
-      font-variant-numeric: tabular-nums;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .rl-outcome-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 0.5rem;
-    }
-    .rl-outcome-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0.7rem;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 0.75rem;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 0.9rem;
-    }
-    .rl-outcome-label {
-      color: rgba(226, 232, 240, 0.85);
-    }
-    .rl-outcome-value {
-      color: var(--accent);
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-    .rl-status-note {
-      margin: 0;
-      color: rgba(226, 232, 240, 0.7);
-      font-size: 0.9rem;
-    }
-
-    .rl-status-extra {
-      margin-top: 0.25rem;
-      border-top: 1px solid rgba(148, 163, 184, 0.3);
-      padding-top: 0.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .rl-sparkline-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-    .rl-sparkline-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: rgba(148, 163, 184, 0.9);
-    }
-    .rl-sparkline-title {
-      font-weight: 600;
-    }
-    .rl-sparkline-sub {
-      opacity: 0.8;
-      font-variant-numeric: tabular-nums;
-    }
-    .rl-sparkline {
-      width: 100%;
-      height: 52px;
-      border-radius: 0.75rem;
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.7));
-      border: 1px solid rgba(148, 163, 184, 0.5);
-    }
-    .rl-sparkline-path {
-      fill: none;
-      stroke: var(--accent);
-      stroke-width: 2;
-      stroke-linejoin: round;
-      stroke-linecap: round;
-      transition: d 0.4s ease-out;
-    }
-    .rl-mode-badge {
-      pointer-events: none;
-      position: absolute;
-      right: 0.9rem;
-      bottom: 0.9rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.4rem 0.75rem;
-      border-radius: 999px;
-      background: radial-gradient(circle at top left, var(--primary-overlay-strong), rgba(15,23,42,0.95));
-      border: 1px solid var(--glass-border);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-      font-size: 0.8rem;
-      color: var(--text);
-      opacity: 0.0;
-      transform: translateY(6px);
-      transition: opacity 0.25s ease-out, transform 0.25s ease-out, box-shadow 0.25s ease-out;
-    }
-    .rl-mode-badge:not([hidden]) {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .rl-mode-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      font-weight: 800;
-      font-size: 0.7rem;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      background: radial-gradient(circle at top, var(--accent), #ffffff);
-      color: #020617;
-      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 15px rgba(56, 189, 248, 0.7);
-    }
-    .rl-mode-badge--ppo .rl-mode-pill {
-      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 16px rgba(249, 115, 22, 0.9);
-    }
-    .rl-mode-badge--tabular .rl-mode-pill {
-      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 16px rgba(52, 211, 153, 0.9);
-    }
-    .rl-mode-text {
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
     }
 
     #strategyStatus {
@@ -1382,10 +983,6 @@
                 <small>Board filled</small>
               </div>
             </div>
-            <div id="rlModeBadge" class="rl-mode-badge" hidden aria-live="polite">
-              <span class="rl-mode-pill">RL</span>
-              <span id="rlBadgeText" class="rl-mode-text">Idle</span>
-            </div>
           </div>
         </div>
         <div class="controls-panel">
@@ -1427,245 +1024,6 @@
                 <option value="matrix">Matrix</option>
               </select>
               <small>Pick a palette to recolor the board, snake and interface.</small>
-            </div>
-          </div>
-          <div class="controls-section" style="margin-top: 1.5rem;">
-            <h3>ML / RL Training</h3>
-            <button id="rlToggle" class="button" style="width: 100%;">🤖 Enable Reinforcement Learning</button>
-            <p id="rlHint" class="manual-hint">Reinforcement learning is currently disabled.</p>
-          </div>
-          <div class="controls-section rl-config-section collapsible-section collapsed">
-            <div class="section-title-row">
-              <h3>Fine-tune RL</h3>
-              <button id="rlPanelToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="rlParamContent" title="Show or hide reinforcement learning fine-tuning settings">
-                <span class="chevron">▾</span>
-                <span class="collapse-label">Show settings</span>
-              </button>
-            </div>
-            <div id="rlParamContent" class="collapsible-content" hidden aria-hidden="true">
-              <div class="param-control">
-                <label for="rlMethodSelect">RL Method</label>
-                <select id="rlMethodSelect" class="number-input">
-                  <option value="tabular">Q-learning (tabular)</option>
-                  <option value="ppo">Proximal Policy Optimization (PPO)</option>
-                </select>
-                <small>Switch between the classic Q-table agent and the neural PPO agent.</small>
-              </div>
-              <fieldset id="rlParamFieldset" class="rl-fieldset inactive" disabled>
-                <legend class="visually-hidden">Fine-tune RL</legend>
-                <p class="manual-hint" style="margin-bottom: 1rem;">Turn on RL to unlock reward tuning and hyperparameters.</p>
-                <div class="param-control">
-                  <label>Step Penalty: <span id="rlStepPenaltyValue">-0.05</span></label>
-                  <input type="range" id="rlStepPenalty" class="size-slider" min="-0.5" max="0" step="0.01" value="-0.05">
-                  <small>Negative reward every move – increasing the penalty forces shorter routes.</small>
-                </div>
-                <div class="param-control">
-                  <label>Fruit Reward: <span id="rlFruitRewardValue">5</span></label>
-                  <input type="range" id="rlFruitReward" class="size-slider" min="0" max="20" step="0.5" value="5">
-                  <small>Positive reward when fruit is eaten. Raise it to prioritise fast growth.</small>
-                </div>
-                <div class="param-control">
-                  <label>Fruit Distance Reward ×Δ: <span id="rlFruitApproachValue">0.50</span></label>
-                  <input type="range" id="rlFruitApproach" class="size-slider" min="-2" max="2" step="0.05" value="0.5">
-                  <small>Reward applied for each tile closer to the fruit. Negative values penalise moving away.</small>
-                </div>
-                <div class="param-control">
-                  <label>Win Bonus: <span id="rlWinBonusValue">15</span></label>
-                  <input type="range" id="rlWinBonus" class="size-slider" min="0" max="40" step="1" value="15">
-                  <small>Extra reward for filling the entire board.</small>
-                </div>
-                <div class="param-control">
-                  <label>Record Time Bonus: <span id="rlBestTimeBonusValue">100</span></label>
-                  <input type="range" id="rlBestTimeBonus" class="size-slider" min="0" max="500" step="10" value="100">
-                  <small>Huge reward whenever the snake beats its fastest completion time.</small>
-                </div>
-                <div class="param-control">
-                  <label>Endgame Plan Reward: <span id="rlEndgameRewardValue">1.5</span></label>
-                  <input type="range" id="rlEndgameReward" class="size-slider" min="0" max="5" step="0.1" value="1.5">
-                  <small>Bonus when the snake commits to the Hamilton endgame plan.</small>
-                </div>
-                <div class="param-control">
-                  <label>Compact Mode Reward: <span id="rlCompactRewardValue">1.0</span></label>
-                  <input type="range" id="rlCompactReward" class="size-slider" min="0" max="5" step="0.1" value="1">
-                  <small>Encourages entering and sustaining compact manoeuvres when space is tight.</small>
-                </div>
-                <div class="param-control">
-                  <label>Pocket Fill Reward ×Δ: <span id="rlPocketRewardValue">0.40</span></label>
-                  <input type="range" id="rlPocketReward" class="size-slider" min="-2" max="2" step="0.05" value="0.4">
-                  <small>Rewards shrinking enclosed empty pockets and penalises creating trapped holes.</small>
-                </div>
-                <div class="param-control">
-                  <label>Wall Distance Reward ×Δ: <span id="rlWallDistanceValue">0.30</span></label>
-                  <input type="range" id="rlWallDistance" class="size-slider" min="-2" max="2" step="0.05" value="0.3">
-                  <small>Bonus for increasing the gap to the nearest wall. Negative values encourage hugging edges.</small>
-                </div>
-                <div class="param-control">
-                  <label>Wall Crash Penalty: <span id="rlWallCrashPenaltyValue">-9</span></label>
-                  <input type="range" id="rlWallCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-9">
-                  <small>Penalty when the snake runs into the wall.</small>
-                </div>
-                <div class="param-control">
-                  <label>Self Crash Penalty: <span id="rlSelfCrashPenaltyValue">-14</span></label>
-                  <input type="range" id="rlSelfCrashPenalty" class="size-slider" min="-50" max="0" step="1" value="-14">
-                  <small>Penalty when the snake collides with itself even though free squares were available. Repeated self crashes ramp up this penalty further.</small>
-                </div>
-                <div class="param-control">
-                  <label>Fallback Crash Penalty: <span id="rlDeathPenaltyValue">-9</span></label>
-                  <input type="range" id="rlDeathPenalty" class="size-slider" min="-50" max="0" step="1" value="-9">
-                  <small>Default collision penalty if no specific crash category matches.</small>
-                </div>
-                <div class="param-control">
-                  <label>Dead-end Penalty: <span id="rlDeadEndPenaltyValue">-12.0</span></label>
-                  <input type="range" id="rlDeadEndPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-12">
-                  <small>Penalty applied when the snake traps itself with no safe exits.</small>
-                </div>
-                <div class="param-control">
-                  <label>Loop Stall Penalty: <span id="rlLoopPenaltyValue">-6</span></label>
-                  <input type="range" id="rlLoopPenalty" class="size-slider" min="-20" max="0" step="0.5" value="-6">
-                  <small>Penalty applied when an episode is terminated for a persistent loop.</small>
-                </div>
-                <div class="rl-grid two-col">
-                  <div class="param-control" data-rl-method="tabular">
-                    <label>Learning rate α: <span id="rlAlphaValue">0.20</span></label>
-                    <input type="number" id="rlAlpha" class="number-input" min="0.01" max="1" step="0.01" value="0.2">
-                    <small>How fast the Q-table updates. Higher values react quickly but can be unstable.</small>
-                  </div>
-                  <div class="param-control">
-                    <label>Discount γ: <span id="rlGammaValue">0.90</span></label>
-                    <input type="number" id="rlGamma" class="number-input" min="0" max="0.99" step="0.01" value="0.9">
-                    <small>How much future rewards are valued. Higher values favour long-term planning.</small>
-                  </div>
-                  <div class="param-control" data-rl-method="tabular">
-                    <label>Start ε: <span id="rlEpsilonStartValue">0.30</span></label>
-                    <input type="number" id="rlEpsilonStart" class="number-input" min="0" max="1" step="0.01" value="0.3">
-                    <small>Exploration at the beginning of training. Higher values = more random moves.</small>
-                  </div>
-                  <div class="param-control" data-rl-method="tabular">
-                    <label>Min ε: <span id="rlEpsilonMinValue">0.05</span></label>
-                    <input type="number" id="rlEpsilonMin" class="number-input" min="0" max="0.5" step="0.01" value="0.05">
-                    <small>Lowest exploration after long training.</small>
-                  </div>
-                  <div class="param-control" data-rl-method="tabular">
-                    <label>ε decay: <span id="rlEpsilonDecayValue">0.995</span></label>
-                    <input type="number" id="rlEpsilonDecay" class="number-input" min="0.8" max="0.999" step="0.001" value="0.995">
-                    <small>How quickly exploration shrinks each episode.</small>
-                  </div>
-                </div>
-                <div class="rl-grid two-col" data-rl-method="ppo">
-                  <div class="param-control">
-                    <label>Learning rate η: <span id="rlPpoLrValue">0.00050</span></label>
-                    <input type="number" id="rlPpoLr" class="number-input" min="0.00001" max="0.01" step="0.00001" value="0.0005">
-                    <small>Optimizer step size for updating the neural policy and value networks.</small>
-                  </div>
-                  <div class="param-control">
-                    <label>Clip range ε<sub>clip</sub>: <span id="rlPpoClipValue">0.20</span></label>
-                    <input type="number" id="rlPpoClip" class="number-input" min="0.05" max="0.4" step="0.01" value="0.2">
-                    <small>Bounds the policy update ratio to keep training stable.</small>
-                  </div>
-                  <div class="param-control">
-                    <label>GAE λ: <span id="rlPpoLambdaValue">0.95</span></label>
-                    <input type="number" id="rlPpoLambda" class="number-input" min="0.5" max="0.99" step="0.01" value="0.95">
-                    <small>Mix between Monte Carlo returns and bootstrapping when estimating advantages.</small>
-                  </div>
-                  <div class="param-control">
-                    <label>Entropy bonus β: <span id="rlPpoEntropyValue">0.01</span></label>
-                    <input type="number" id="rlPpoEntropy" class="number-input" min="0" max="0.1" step="0.001" value="0.01">
-                    <small>Encourages exploration by rewarding uncertain policies.</small>
-                  </div>
-                  <div class="param-control">
-                    <label>Value loss coeff c<sub>v</sub>: <span id="rlPpoValueCoeffValue">0.50</span></label>
-                    <input type="number" id="rlPpoValueCoeff" class="number-input" min="0" max="2" step="0.05" value="0.5">
-                    <small>Scales the critic loss when updating the networks.</small>
-                  </div>
-                  <div class="param-control">
-                    <label>Epochs × batches: <span id="rlPpoEpochsValue">4</span> × <span id="rlPpoBatchSizeValue">64</span></label>
-                    <div style="display: flex; gap: 0.75rem;">
-                      <input type="number" id="rlPpoEpochs" class="number-input" min="1" max="10" step="1" value="4" style="flex: 1;">
-                      <input type="number" id="rlPpoBatchSize" class="number-input" min="8" max="512" step="8" value="64" style="flex: 1;">
-                    </div>
-                    <small>Number of passes over collected trajectories and mini-batch size per update.</small>
-                  </div>
-                </div>
-                <div class="param-control">
-                  <label>Training Episodes: <span id="rlEpisodesValue">1</span></label>
-                  <input type="number" id="rlEpisodes" class="number-input" min="1" max="100" step="1" value="1">
-                  <small>Run multiple consecutive games before returning to manual control.</small>
-                </div>
-                <div class="param-control">
-                  <label>Background snakes: <span id="rlParallelSnakesValue">0</span></label>
-                  <input type="number" id="rlParallelSnakes" class="number-input" min="0" max="16" step="1" value="0">
-                  <small>Run hidden training boards in parallel to collect reinforcement learning data faster.</small>
-                </div>
-                <div class="param-control">
-                  <label>Reward Scaling: <span id="rlRewardScaleValue">1.0</span></label>
-                  <input type="range" id="rlRewardScale" class="size-slider" min="0.1" max="2" step="0.1" value="1">
-                  <small>Multiply all rewards (except crash penalty). Fine-tune how aggressive the agent becomes.</small>
-                </div>
-                <div class="param-control">
-                  <label>Timeout limit: <span id="timeoutSliderValue">02:00</span></label>
-                  <input type="range" id="timeoutSlider" class="size-slider" min="30000" max="900000" step="15000" value="120000">
-                  <small>Automatically restart training after this time without progress.</small>
-                </div>
-                <div class="param-control">
-                  <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                    <input type="checkbox" id="autoRestartToggle" style="width: 18px; height: 18px;">
-                    <span>Auto restart after every episode (wins or crashes keep training rolling).</span>
-                  </label>
-                  <div class="param-control">
-                    <label>Training data &amp; AI settings</label>
-                    <div class="button-row">
-                      <button type="button" id="rlExportButton" class="button">💾 Export</button>
-                      <button type="button" id="rlImportButton" class="button">📂 Import</button>
-                    </div>
-                    <small>Backup the Q-table, rewards, and AI configuration — or load a previous session.</small>
-                    <input type="file" id="rlImportFile" accept="application/json" class="visually-hidden">
-                  </div>
-                  <div class="reward-impact-card collapsible-section" id="rewardImpactSection">
-                    <div class="section-title-row compact">
-                      <h4>🎯 Reward impact monitor</h4>
-                      <button id="rewardImpactToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="rewardImpactContent" title="Show or hide reward impact breakdown">
-                        <span class="chevron">▾</span>
-                        <span class="collapse-label">Show breakdown</span>
-                      </button>
-                    </div>
-                    <div id="rewardImpactContent" class="collapsible-content" hidden aria-hidden="true">
-                      <p class="manual-hint" id="rewardImpactIntro">See which rewards and penalties shape RL training the most. Updates after each completed episode.</p>
-                      <div class="reward-impact-table">
-                        <div class="reward-impact-row reward-impact-header">
-                          <span>Component</span>
-                          <span>Last</span>
-                          <span>Average</span>
-                          <span>Share</span>
-                          <span>Trend</span>
-                        </div>
-                        <div id="rlRewardImpactRows" class="reward-impact-rows">
-                          <p class="reward-impact-empty">Enable RL to start tracking reward impact.</p>
-                        </div>
-                      </div>
-                      <p id="rlRewardImpactSummary" class="manual-hint reward-impact-summary">Waiting for RL training to begin.</p>
-                    </div>
-                  </div>
-                  <div class="episode-history-card">
-                    <div class="episode-history-heading">
-                      <h4>📊 Episode tracker</h4>
-                      <small>Tracks last 10 RL runs</small>
-                    </div>
-                    <div class="episode-history-grid-header">
-                      <span>Episode</span>
-                      <span>Reward</span>
-                      <span>Avg reward</span>
-                      <span>Deaths (ep/avg)</span>
-                      <span>Duration</span>
-                      <span>Avg duration</span>
-                    </div>
-                    <div id="rlEpisodeHistoryRows" class="episode-history-rows">
-                      <p class="episode-history-empty">Enable RL to start logging episodes.</p>
-                    </div>
-                  </div>
-                  <button type="button" id="rlResetLearning" class="button" style="width: 100%;">🔁 Reset RL learning</button>
-                  <p class="manual-hint">Clears the Q-table, stats, and sets ε back to its starting value.</p>
-                </div>
-              </fieldset>
             </div>
           </div>
           <div class="controls-section collapsible-section collapsed" id="gridSizeSection">
@@ -1808,7 +1166,6 @@
                 <p id="loopStatus"></p>
                 <p id="compactStatus"></p>
                 <p id="compactStepStatus"></p>
-                <div id="rlStatus" class="rl-status-card rl-inactive" role="status" aria-live="polite"></div>
               </div>
             </div>
           </div>
@@ -1944,59 +1301,57 @@
     <div class="container">
       <div class="hero">
         <h1>AI Handbook</h1>
-        <p>Understand how the smart pieces work together: classic algorithms, heuristic AI, and reinforcement learning.</p>
+        <p>Understand how the strategies work together: safety cycles, pathfinding, and heuristics.</p>
       </div>
       <div class="info-content">
         <div class="info-section">
-          <h2>🤔 What do ML, RL, and classic algorithms mean?</h2>
-          <h3>Machine Learning (ML)</h3>
-          <p>Machine learning is the umbrella for techniques where a model learns from data. In Snake we use ML when the agent collects experience from games and adjusts its behaviour based on the outcome. Reinforcement learning (RL) is a specialised branch of ML.</p>
-          <h3>Reinforcement Learning (RL)</h3>
-          <p>In reinforcement learning the agent tries different moves, receives <em>rewards</em> or <em>penalties</em>, and updates an internal table (a Q-table) that describes how good each action is in a given situation. Over time the agent learns to maximise the expected reward.</p>
-          <h3>Classic algorithms (rules / heuristics)</h3>
-          <p>Alongside ML we rely on handcrafted algorithms such as the Hamilton cycle, BFS search, and compact zig-zag movements. These deterministic rules always behave the same way in the same situation and work without any learning.</p>
+          <h2>🧭 Core navigation toolkit</h2>
+          <h3>Hamilton safety cycle</h3>
+          <p>The Hamilton cycle is a pre-computed route that visits every cell exactly once. When the board is tight, following this path guarantees the snake will not trap itself.</p>
+          <h3>BFS pathfinding</h3>
+          <p>Breadth-first search calculates short, safe routes to the fruit or tail. It is the default option when space is open and a clean path exists.</p>
+          <h3>Greedy chase</h3>
+          <p>The greedy step tries to reduce the distance to the fruit, but only if the tail stays reachable. This keeps fruit collection fast without risking dead ends.</p>
+          <h3>Compact zig-zag</h3>
+          <p>When the fruit spawns in a pocket, the compact mode wriggles in a tight pattern to clear space and keep an escape route open.</p>
         </div>
         <div class="info-section">
           <h2>🔗 How the parts work together</h2>
           <ul>
             <li><strong>Baseline safety via algorithms:</strong> The Hamilton cycle and BFS guarantee that the snake always has a safe route when the board gets tight.</li>
             <li><strong>Heuristic switches:</strong> Loop and compact modes analyse the situation and hand over to safe patterns when needed.</li>
-            <li><strong>RL on top:</strong> When RL is enabled the agent chooses between the safe moves. It searches for the option that leads to the highest long-term reward by updating the Q-table.</li>
-            <li><strong>Result:</strong> You combine the stability of algorithms with the flexibility of ML. The agent experiments with new paths but falls back to the safety net when necessary.</li>
+            <li><strong>Heuristic scoring:</strong> When multiple safe moves exist, the AI scores them based on space, wall distance, and fruit access.</li>
+            <li><strong>Result:</strong> You combine the stability of the algorithms with flexible decision-making for faster, safer runs.</li>
           </ul>
-          <p>An episode starts when the game begins and ends when the snake crashes or fills the entire board. After each episode the exploration rate (ε) is updated according to your settings.</p>
+          <p>The AI adapts on each move, but it always prioritizes safe reachability checks before taking a risk.</p>
         </div>
         <div class="info-section">
-          <h2>🧮 The reward system</h2>
-          <p>When RL is active every move becomes a learning opportunity. You can shape how attractive different outcomes are:</p>
+          <h2>📊 Heuristic scoring highlights</h2>
           <ul>
-            <li><strong>Step penalty:</strong> A small negative value per move so the agent does not stall.</li>
-            <li><strong>Fruit reward:</strong> Positive reward when fruit is eaten – controls how aggressively the agent hunts fruit.</li>
-            <li><strong>Win bonus:</strong> Extra reward for filling the whole board, rewarding long-term survival.</li>
-            <li><strong>Wall crash penalty:</strong> Discourages slamming into the border when there was room to turn.</li>
-            <li><strong>Self crash penalty:</strong> Punishes colliding with the body while an escape square was open.</li>
-            <li><strong>Dead-end penalty:</strong> Punishes moves that leave no safe escape so the agent learns to avoid cul-de-sacs.</li>
-            <li><strong>Fallback crash penalty:</strong> Safety net value used if a crash does not fit any specific category.</li>
+            <li><strong>Open space:</strong> Moves that keep more reachable cells get a boost.</li>
+            <li><strong>Fruit distance:</strong> Shorter paths to the fruit are preferred when safe.</li>
+            <li><strong>Wall spacing:</strong> Staying away from edges is favored unless the board is nearly full.</li>
+            <li><strong>Momentum:</strong> Straight paths score slightly higher to reduce jittery movement.</li>
           </ul>
-          <p>Press <strong>"Reset RL learning"</strong> to start over with the current reward values.</p>
         </div>
         <div class="info-section">
-          <h2>⚙️ RL hyperparameters</h2>
+          <h2>⚙️ Parameter tuning</h2>
           <ul>
-            <li><strong>Learning rate (α):</strong> Controls how fast Q-values update. A high α learns faster but can be unstable.</li>
-            <li><strong>Discount (γ):</strong> Determines how much future rewards matter. A high γ makes the agent more long-term.</li>
-            <li><strong>Exploration (ε):</strong> Governs how often the agent tries new moves. Over time ε decays toward Min-ε.</li>
+            <li><strong>Endgame Threshold:</strong> Move this up to favor early safety, down to stay aggressive longer.</li>
+            <li><strong>Loop Streak Threshold:</strong> Lower values break loops faster on cramped boards.</li>
+            <li><strong>No Progress Threshold:</strong> Higher values keep the snake hunting for fruit longer.</li>
+            <li><strong>Compact Mode Steps:</strong> Increase on big grids to navigate tight pockets.</li>
           </ul>
-          <p>Tweak a parameter and play a few rounds. Track progress in the <strong>AI Status</strong> panel where you can see the current ε, episode count, and average reward.</p>
+          <p>Tweak a parameter and play a few rounds. Track progress in the <strong>AI Status</strong> panel and adjust based on how often the snake loops or stalls.</p>
         </div>
         <div class="info-section">
           <h2>🧭 Recommended strategies</h2>
           <ul>
-            <li><strong>Fast start:</strong> High start ε (0.5–0.7) and a slightly harsher step penalty to encourage exploration.</li>
-            <li><strong>Fine-tuning:</strong> Lower α to 0.1 and ε-decay to 0.998 once the agent has a behaviour you like.</li>
-            <li><strong>Risk control:</strong> Combine a strong crash penalty with a high fruit reward to balance safety and aggression.</li>
+            <li><strong>Fast start:</strong> Lower Endgame Threshold and increase No Progress so fruit hunts stay aggressive.</li>
+            <li><strong>Balanced runs:</strong> Keep Loop Streak at 3–4 and Compact Steps around 100–150.</li>
+            <li><strong>Maximum safety:</strong> Raise Endgame Threshold and lower Loop Streak to avoid risky loops.</li>
           </ul>
-          <p>You can always switch back to the heuristic AI by turning off RL – then only the handcrafted algorithms are used.</p>
+          <p>Combine these sliders with the theme selector to match speed, safety, and visuals to your preference.</p>
         </div>
       </div>
     </div>
@@ -6029,6 +5384,18 @@
       }
       return cnt;
     };
+    function countFreeNeighbors(x, y, body){
+      const blocked = new Set(body.map(p => `${p.x},${p.y}`));
+      let count = 0;
+      for(const d of DIRS){
+        const nx = x + d.dx;
+        const ny = y + d.dy;
+        if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        if(blocked.has(`${nx},${ny}`)) continue;
+        count++;
+      }
+      return count;
+    }
     function countEnclosedEmptyCells(body){
       if(!Array.isArray(body) || body.length === 0) return 0;
       const blocked = new Set(body.map(p => `${p.x},${p.y}`));
@@ -6379,6 +5746,7 @@
         const tailPos=snake.length>1?snake[snake.length-1]:null;
         const randomFactor=loopDetected?Math.random()*5:0;
         const avoidFactor=loopDetected?0.5:1;
+        const currentDir = getCurrentDirection();
         for(let dirIndex = 0; dirIndex < DIRS.length; dirIndex++){
           const d = DIRS[dirIndex];
           const nx=head.x+d.dx, ny=head.y+d.dy;
@@ -6389,11 +5757,16 @@
           if(!canReachTailFrom({x:nx,y:ny},sim)) continue;
           const freeAfter=floodSize(nx,ny,sim);
           if(freeAfter<COLS*ROWS-sim.length) continue;
+          const neighborFreedom = countFreeNeighbors(nx, ny, sim);
+          const isTurn = d.dx !== currentDir.dx || d.dy !== currentDir.dy;
           let score=0;
           if(fruit&&fruit.x>=0&&freeCells>Math.max(6, COLS-2)){
             score+=(COLS+ROWS-(Math.abs(nx-fruit.x)+Math.abs(ny-fruit.y)))*2*avoidFactor;
           }
           if(isEndgame && tailPos && nx===tailPos.x && ny===tailPos.y) score+=10000;
+          score+=neighborFreedom * 3;
+          if(!isEndgame && neighborFreedom <= 1) score-=6;
+          score+=isTurn ? -0.5 : 1.5;
           score+=Math.min(nx,ny,COLS-1-nx,ROWS-1-ny);
           score+=randomFactor;
           score+=freeAfter*2;
@@ -6599,6 +5972,12 @@
         ctx.fillRect(x + 2, y + 2, size, size);
         const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
         if(isHead) {
+          ctx.save();
+          ctx.shadowColor = headAccent;
+          ctx.shadowBlur = CELL * 0.6;
+          ctx.fillStyle = headColor;
+          ctx.fillRect(x, y, size, size);
+          ctx.restore();
           gradient.addColorStop(0, headColor);
           gradient.addColorStop(1, headAccent);
         } else {
@@ -6895,9 +6274,7 @@
             }
           }
           stepDone = true;
-          completionMessage = rlTrainingEnabled
-            ? '✅ Banan klar! RL-agenten fyllde hela brädet.'
-            : '✅ Banan klar! Klassiska algoritmen fyllde hela brädet.';
+          completionMessage = '✅ Banan klar! Ormen fyllde hela brädet.';
           applyRlUpdate(stepReward, stepDone, { breakdown: rewardBreakdown });
           draw();
           clearInterval(loopHandle);
