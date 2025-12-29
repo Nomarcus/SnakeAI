@@ -158,6 +158,7 @@
     const GRID_SIZE = 12;
     const CELL_SIZE = 500 / GRID_SIZE;
     const SPEED = 160;
+    const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
 
     let snake = [{x: 0, y: 0}];
     let food = {x: 5, y: 5};
@@ -165,6 +166,8 @@
     let steps = 0;
     let running = true;
     let hamiltonPath = [];
+    let hamiltonIndex = [];
+    let snakeSet = new Set();
     let gameLoopTimeout;
 
     const canvas = document.getElementById('gameCanvas');
@@ -172,8 +175,9 @@
 
     function initEnvironment() {
       document.getElementById('gridDisplay').innerText = `${GRID_SIZE}x${GRID_SIZE}`;
-      document.getElementById('totalSizeVal').innerText = GRID_SIZE * GRID_SIZE;
+      document.getElementById('totalSizeVal').innerText = TOTAL_CELLS;
       hamiltonPath = generateHamiltonianCycle();
+      hamiltonIndex = buildHamiltonIndex(hamiltonPath);
     }
 
     function generateHamiltonianCycle() {
@@ -189,16 +193,24 @@
       return path;
     }
 
-    function spawnFood() {
-      const occupied = new Set();
-      for (const segment of snake) {
-        occupied.add(`${segment.x},${segment.y}`);
+    function buildHamiltonIndex(path) {
+      const indexMap = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill(-1));
+      for (let i = 0; i < path.length; i++) {
+        const node = path[i];
+        indexMap[node.x][node.y] = i;
       }
+      return indexMap;
+    }
 
+    function coordKey(x, y) {
+      return `${x},${y}`;
+    }
+
+    function spawnFood() {
       const freeCells = [];
       for (let x = 0; x < GRID_SIZE; x++) {
         for (let y = 0; y < GRID_SIZE; y++) {
-          if (!occupied.has(`${x},${y}`)) {
+          if (!snakeSet.has(coordKey(x, y))) {
             freeCells.push({x, y});
           }
         }
@@ -215,14 +227,14 @@
 
     function getNextMove() {
       const head = snake[0];
-      const currIdx = hamiltonPath.findIndex(p => p.x === head.x && p.y === head.y);
+      const currIdx = hamiltonIndex[head.x][head.y];
       let nextIdx = (currIdx + 1) % hamiltonPath.length;
       let finalMove = hamiltonPath[nextIdx];
 
-      const foodIdx = hamiltonPath.findIndex(p => p.x === food.x && p.y === food.y);
-      const tailIdx = hamiltonPath.findIndex(p => p.x === snake[snake.length - 1].x && p.y === snake[snake.length - 1].y);
-      const totalCells = GRID_SIZE * GRID_SIZE;
-      const fillRatio = score / totalCells;
+      const foodIdx = food.x === -1 ? -1 : hamiltonIndex[food.x][food.y];
+      const tail = snake[snake.length - 1];
+      const tailIdx = hamiltonIndex[tail.x][tail.y];
+      const fillRatio = score / TOTAL_CELLS;
 
       const neighbors = [
         {x: head.x + 1, y: head.y},
@@ -235,9 +247,9 @@
 
       for (const n of neighbors) {
         if (n.x < 0 || n.x >= GRID_SIZE || n.y < 0 || n.y >= GRID_SIZE) continue;
-        if (snake.some(s => s.x === n.x && s.y === n.y)) continue;
+        if (snakeSet.has(coordKey(n.x, n.y))) continue;
 
-        const nIdx = hamiltonPath.findIndex(p => p.x === n.x && p.y === n.y);
+        const nIdx = hamiltonIndex[n.x][n.y];
         let isSafe = false;
 
         if (currIdx < tailIdx) {
@@ -251,17 +263,17 @@
           const currentBestDist = (foodIdx - bestShortcutIdx + hamiltonPath.length) % hamiltonPath.length;
 
           if (fillRatio > 0.75) {
-            if (distToFood < currentBestDist) {
-              bestShortcutIdx = nIdx;
-              finalMove = n;
-            }
-          } else {
-            if (distToFood < currentBestDist) {
-              bestShortcutIdx = nIdx;
-              finalMove = n;
-            }
+          if (distToFood < currentBestDist) {
+            bestShortcutIdx = nIdx;
+            finalMove = n;
+          }
+        } else {
+          if (distToFood < currentBestDist) {
+            bestShortcutIdx = nIdx;
+            finalMove = n;
           }
         }
+      }
       }
 
       return finalMove;
@@ -284,10 +296,12 @@
         spawnFood();
         addLog(`LINK_STABLE_${score}`, "text-cyan-400");
       } else {
-        snake.pop();
+        const tail = snake.pop();
+        snakeSet.delete(coordKey(tail.x, tail.y));
       }
 
       snake.unshift(next);
+      snakeSet.add(coordKey(next.x, next.y));
       steps++;
 
       updateUI();
@@ -298,7 +312,7 @@
     function updateUI() {
       document.getElementById('scoreVal').innerText = score;
       document.getElementById('stepVal').innerText = steps;
-      document.getElementById('coverageVal').innerText = ((score / (GRID_SIZE * GRID_SIZE)) * 100).toFixed(0) + "%";
+      document.getElementById('coverageVal').innerText = ((score / TOTAL_CELLS) * 100).toFixed(0) + "%";
       document.getElementById('speedValDisplay').innerText = SPEED <= 160 ? "Max" : "Hög";
     }
 
@@ -355,6 +369,7 @@
     function resetGame() {
       clearTimeout(gameLoopTimeout);
       snake = [{x: 0, y: 0}];
+      snakeSet = new Set([coordKey(0, 0)]);
       score = 1;
       steps = 0;
       running = true;
