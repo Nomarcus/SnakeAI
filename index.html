@@ -324,96 +324,6 @@
     .progress-percent { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
     .progress-text { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; }
 
-    .performance-hud {
-      position: fixed;
-      top: 1.5rem;
-      left: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1.25rem;
-      padding: 0.75rem 1.25rem;
-      background: rgba(15, 15, 35, 0.9);
-      border-radius: 1rem;
-      border: 1px solid var(--glass-border);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      font-variant-numeric: tabular-nums;
-      z-index: 2000;
-    }
-
-    .performance-hud[hidden] { display: none !important; }
-
-    #performanceExit {
-      position: fixed;
-      top: 1.5rem;
-      right: 1.5rem;
-      z-index: 2000;
-      display: none;
-      width: auto;
-      padding: 0.65rem 1.2rem;
-    }
-
-    #performanceExit[hidden] { display: none !important; }
-
-    .performance-stat {
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-size: 0.75rem;
-      color: rgba(226, 232, 240, 0.7);
-    }
-
-    .performance-label { font-weight: 600; opacity: 0.85; }
-
-    .performance-value {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--accent);
-      text-transform: none;
-      letter-spacing: normal;
-    }
-
-    body.performance-mode {
-      background: #000;
-      overflow: hidden;
-    }
-
-    body.performance-mode::before { content: none; }
-    body.performance-mode .header,
-    body.performance-mode .panel,
-    body.performance-mode .stats-grid { display: none !important; }
-
-    body.performance-mode .container {
-      max-width: none;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    body.performance-mode .main-grid {
-      grid-template-columns: 1fr;
-      gap: 0;
-    }
-
-    body.performance-mode .game-container {
-      padding: 0;
-    }
-
-    body.performance-mode #game {
-      width: min(95vw, 95vh);
-      height: min(95vw, 95vh);
-      max-width: 95vmin;
-      max-height: 95vmin;
-      box-shadow: none;
-      border-radius: 0;
-    }
-
-    body.performance-mode #performanceExit { display: inline-flex; }
-    body.performance-mode #performanceHud { display: flex; }
-
     .help-overlay {
       position: fixed;
       inset: 0;
@@ -603,16 +513,6 @@
         </div>
 
         <div class="control-group">
-          <button id="safetyNetToggle" class="button toggle-active">🛡️ Safety Net: ON</button>
-          <p id="safetyNetHint" class="helper-text">Safety net algorithms are active.</p>
-        </div>
-
-        <div class="control-group">
-          <button id="performanceToggle" class="button">🚀 Performance Mode</button>
-          <p id="performanceHint" class="helper-text">Hide the interface to maximise performance.</p>
-        </div>
-
-        <div class="control-group">
           <label for="themeSelect">Color theme</label>
           <select id="themeSelect">
             <option value="aurora">Aurora · Lila &amp; blå</option>
@@ -667,17 +567,6 @@
       </div>
     </div>
 
-    <button id="performanceExit" class="button warning" type="button" hidden>⬅️ Exit Performance</button>
-    <div id="performanceHud" class="performance-hud" hidden>
-      <div class="performance-stat">
-        <span class="performance-label">Length</span>
-        <span id="performanceLength" class="performance-value">3</span>
-      </div>
-      <div class="performance-stat">
-        <span class="performance-label">Elapsed</span>
-        <span id="performanceElapsed" class="performance-value">00:00.0</span>
-      </div>
-    </div>
   </div>
 
   <!-- Embedded updated JS logic -->
@@ -701,7 +590,6 @@
     let rlPendingChoice = null;
     let rlEpisodeActive = false;
     let autoRestartEnabled = false;
-    let performanceMode = false;
     let startTime = null;
     let elapsedTimerHandle = null;
     let elapsedTimeEl = null;
@@ -2451,63 +2339,10 @@
     /* ===== PAGE NAVIGATION ===== */
     const navLinks = document.querySelectorAll('.nav-link');
     const pages = document.querySelectorAll('.page');
-    const performanceToggleBtn = document.getElementById('performanceToggle');
-    const performanceHint = document.getElementById('performanceHint');
-    const performanceHud = document.getElementById('performanceHud');
-    const performanceExitBtn = document.getElementById('performanceExit');
-    const performanceLengthEl = document.getElementById('performanceLength');
-    const performanceElapsedEl = document.getElementById('performanceElapsed');
-
-    function updatePerformanceHint(){
-      if(!performanceHint) return;
-      performanceHint.textContent = performanceMode
-        ? 'Performance mode active – use the floating button or press Esc to exit.'
-        : 'Hide the interface to maximise performance.';
-    }
-
-    function updatePerformanceHud(){
-      if(performanceLengthEl){
-        performanceLengthEl.textContent = snake.length;
-      }
-      if(performanceElapsedEl && elapsedTimeEl){
-        performanceElapsedEl.textContent = elapsedTimeEl.textContent;
-      }
-    }
-
-    function setPerformanceMode(enabled){
-      const previous = performanceMode;
-      const next = !!enabled;
-      performanceMode = next;
-      document.body.classList.toggle('performance-mode', next);
-      if(performanceHud){
-        performanceHud.hidden = !next;
-      }
-      if(performanceExitBtn){
-        performanceExitBtn.hidden = !next;
-      }
-      if(performanceToggleBtn){
-        performanceToggleBtn.classList.toggle('toggle-active', next);
-        performanceToggleBtn.textContent = next ? '🚀 Performance Mode: ON' : '🚀 Performance Mode';
-        performanceToggleBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
-      }
-      updatePerformanceHint();
-      if(next){
-        updatePerformanceHud();
-        eatParticles = [];
-      } else if(previous !== next){
-        draw();
-      }
-    }
-
-    updatePerformanceHint();
-    setPerformanceMode(false);
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const targetPage = link.dataset.page;
-        if(performanceMode){
-          setPerformanceMode(false);
-        }
         navLinks.forEach(l => l.classList.remove('active'));
         link.classList.add('active');
         pages.forEach(p => p.classList.remove('active'));
@@ -2517,8 +2352,6 @@
     const manualToggleBtn = document.getElementById('manualToggle');
     const manualHint = document.getElementById('manualHint');
     const themeSelect = document.getElementById('themeSelect');
-    const safetyNetToggleBtn = document.getElementById('safetyNetToggle');
-    const safetyNetHint = document.getElementById('safetyNetHint');
     const rlToggleBtn = document.getElementById('rlToggle');
     const rlHint = document.getElementById('rlHint');
     const rlParamFieldset = document.getElementById('rlParamFieldset');
@@ -3253,51 +3086,6 @@
         manualHint.textContent = 'Manual mode off – AI is playing automatically.';
       }
     }
-    function updateSafetyNetUI(){
-      if(!safetyNetToggleBtn) return;
-      if(safetyNetEnabled){
-        safetyNetToggleBtn.classList.add('toggle-active');
-        safetyNetToggleBtn.classList.remove('warning');
-        safetyNetToggleBtn.textContent = '🛡️ Safety Net: ON';
-        safetyNetToggleBtn.setAttribute('aria-pressed', 'true');
-        if(safetyNetHint){
-          safetyNetHint.textContent = 'Safety net algorithms are active.';
-        }
-      } else {
-        safetyNetToggleBtn.classList.remove('toggle-active');
-        safetyNetToggleBtn.classList.add('warning');
-        safetyNetToggleBtn.textContent = '⚠️ Safety Net: OFF';
-        safetyNetToggleBtn.setAttribute('aria-pressed', 'false');
-        if(safetyNetHint){
-          safetyNetHint.textContent = 'Safety net disabled – the snake is on its own.';
-        }
-      }
-    }
-    function setSafetyNet(enabled){
-      const next = !!enabled;
-      const changed = next !== safetyNetEnabled;
-      safetyNetEnabled = next;
-      if(!safetyNetEnabled){
-        hamMode = false;
-        compactMode = false;
-        compactModeSteps = 0;
-        loopDetected = false;
-        loopStreak = 0;
-        loopCountAdjust = 0;
-        noProgressMoves = 0;
-        prevFruitDist = Infinity;
-        persistentLoopCounter = 0;
-        windowMoves = [];
-        lastMoves = [];
-        endgamePlanThisMove = false;
-        currentStrategy = 'Unsafe roam';
-      } else if(changed){
-        currentStrategy = 'Initializing';
-      }
-      updateSafetyNetUI();
-      updateRlStatus();
-      draw();
-    }
     function setInitialManualDirection(){
       if(snake.length > 1){
         manualDirection = {
@@ -4017,18 +3805,8 @@
         return true;
       });
     }
-    performanceToggleBtn?.addEventListener('click', () => {
-      setPerformanceMode(!performanceMode);
-    });
-    performanceExitBtn?.addEventListener('click', () => {
-      setPerformanceMode(false);
-    });
     document.addEventListener('keydown', (event) => {
       const key = event.key;
-      if((key === 'Escape' || key === 'Esc') && performanceMode){
-        setPerformanceMode(false);
-        return;
-      }
       if(key === '?' || (key === 'h' && !event.ctrlKey && !event.metaKey)){
         const overlay = document.getElementById('helpOverlay');
         if(overlay){
@@ -4046,7 +3824,6 @@
       }
     });
     manualToggleBtn?.addEventListener('click', toggleManualMode);
-    safetyNetToggleBtn?.addEventListener('click', () => setSafetyNet(!safetyNetEnabled));
     document.addEventListener('keydown', (event) => {
       if(!manualMode) return;
       const dir = KEY_TO_DIR[event.key.toLowerCase()];
@@ -4066,7 +3843,6 @@
       }
     });
     updateManualUI();
-    updateSafetyNetUI();
     rlToggleBtn?.addEventListener('click', () => {
       if(rlTrainingEnabled){
         if(rlEpisodeActive){
@@ -4247,7 +4023,6 @@
         },
         compactProfile: COMPACT_MODE_PROFILE,
         speed: SPEED,
-        safetyNetEnabled,
         autoRestartEnabled,
         timeout: {
           value: getTimeoutSliderValue(),
@@ -4262,7 +4037,7 @@
     }
     function applyAiSettings(settings){
       if(!settings || typeof settings !== 'object') return;
-      const { grid, thresholds, compactProfile, speed, safetyNetEnabled: safetyFlag, autoRestartEnabled: autoFlag, timeout: timeoutSettings, rlConfig: rlValues, toggles } = settings;
+      const { grid, thresholds, compactProfile, speed, autoRestartEnabled: autoFlag, timeout: timeoutSettings, rlConfig: rlValues, toggles } = settings;
       if(grid && typeof grid === 'object'){
         const targetCols = Number.isFinite(grid.cols) ? Math.max(5, Math.round(grid.cols)) : null;
         const targetRows = Number.isFinite(grid.rows) ? Math.max(5, Math.round(grid.rows)) : targetCols;
@@ -4309,9 +4084,6 @@
       if(Number.isFinite(speed)){
         changeSpeed(Math.max(MIN_SPEED, Math.min(MAX_SPEED, Math.round(speed))));
       }
-      if(typeof safetyFlag === 'boolean'){
-        setSafetyNet(safetyFlag);
-      }
       if(typeof autoFlag === 'boolean' && autoRestartToggle){
         autoRestartEnabled = autoFlag;
         autoRestartToggle.checked = autoFlag;
@@ -4348,7 +4120,6 @@
       if(!toggles || typeof toggles.rlTrainingEnabled !== 'boolean'){
         syncRunTimeout();
       }
-      updateSafetyNetUI();
       updateRlStatus();
     }
     async function createTrainingSnapshot(){
@@ -5097,7 +4868,7 @@
       const now = performance.now();
       const delta = now - lastRender;
       lastRender = now;
-      const minimalRender = performanceMode;
+      const minimalRender = false;
       if(!minimalRender){
         updateParticles(delta);
       } else if(eatParticles.length){
@@ -5683,7 +5454,6 @@
         <li><kbd>?</kbd> <span>Toggle this help overlay</span></li>
         <li><kbd>Space</kbd> <span>Toggle manual / AI control</span></li>
         <li><kbd>WASD</kbd> / <kbd>Arrow keys</kbd> <span>Steer the snake in manual mode</span></li>
-        <li><kbd>Esc</kbd> <span>Exit performance mode</span></li>
       </ul>
       <button type="button" id="helpCloseBtn" class="button">Got it</button>
     </div>
