@@ -526,12 +526,12 @@
 
         <h3 style="margin-top: 2rem;">Grid Size</h3>
         <div class="control-group">
-          <label>Columns <span id="colsValue">20</span></label>
-          <input type="range" id="colsSlider" min="10" max="100" value="20" step="5">
+          <label>Columns <span id="colsValue">10</span></label>
+          <input type="range" id="colsSlider" min="10" max="100" value="10" step="5">
         </div>
         <div class="control-group">
-          <label>Rows <span id="rowsValue">20</span></label>
-          <input type="range" id="rowsSlider" min="10" max="100" value="20" step="5">
+          <label>Rows <span id="rowsValue">10</span></label>
+          <input type="range" id="rowsSlider" min="10" max="100" value="10" step="5">
         </div>
         <div class="control-group">
           <label>Canvas Size</label>
@@ -540,8 +540,8 @@
 
         <h3 style="margin-top: 2rem;">AI Parameters</h3>
         <div class="control-group">
-          <label>Endgame Threshold <span id="endgameValue">5</span></label>
-          <input type="range" id="endgameSlider" min="0" max="100" value="5" step="5">
+          <label>Endgame Threshold <span id="endgameValue">0</span></label>
+          <input type="range" id="endgameSlider" min="0" max="100" value="0" step="5">
         </div>
         <div class="control-group">
           <label>Loop Streak Threshold <span id="loopThreshValue">3</span></label>
@@ -572,7 +572,7 @@
   <!-- Embedded updated JS logic -->
   <script>
     /* ===== KONFIGURATION ===== */
-    let COLS = 20, ROWS = 20;
+    let COLS = 10, ROWS = 10;
     let CELL = 30;
     let SPEED = 100;
     const DIRS = [ {dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0} ];
@@ -593,6 +593,7 @@
     let startTime = null;
     let elapsedTimerHandle = null;
     let elapsedTimeEl = null;
+    let performanceElapsedEl = null;
     let lastElapsedMs = 0;
     let bestTimeMs = null;
     let lastObservedReward = 0;
@@ -1026,7 +1027,7 @@
     };
     /* ===== DYNAMIC THRESHOLDS ===== */
     // Initialize endgame threshold; dynamic updates will override when grid changes
-    let ENDGAME_THRESHOLD = 5;
+    let ENDGAME_THRESHOLD = 0;
     let MAX_LOOP_DETECTION = Math.max(8,(COLS+ROWS)/2|0);
     let WINDOW_SIZE = Math.max(10, COLS + ROWS);
     let FILL_POCKET_LIMIT = COLS * 4;
@@ -2904,6 +2905,7 @@
     );
     updateRewardImpactUI();
     elapsedTimeEl = document.getElementById('elapsedTime');
+    performanceElapsedEl = document.getElementById('performanceElapsed');
     const bestTimeEl = document.getElementById('bestTime');
     const completedRoundsEl = document.getElementById('completedRounds');
     const applesEatenEl = document.getElementById('applesEaten');
