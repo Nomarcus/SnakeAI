@@ -5,13 +5,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Snake Simulation - Intelligent Snake Experience</title>
+  <title>Ultimate Snake AI - Perfect Algorithm</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     :root {
       --primary: #667eea;
       --secondary: #764ba2;
@@ -25,27 +24,16 @@
       --text: #e2e8f0;
       --glass: rgba(255, 255, 255, 0.1);
       --glass-border: rgba(255, 255, 255, 0.2);
-      --primary-shadow: rgba(102, 126, 234, 0.4);
-      --primary-shadow-strong: rgba(102, 126, 234, 0.6);
-      --primary-ambient: rgba(102, 126, 234, 0.3);
-      --primary-ambient-strong: rgba(102, 126, 234, 0.5);
-      --primary-ambient-xstrong: rgba(102, 126, 234, 0.8);
-      --primary-overlay: rgba(102, 126, 234, 0.15);
-      --primary-overlay-strong: rgba(102, 126, 234, 0.4);
-      --primary-outline: rgba(102, 126, 234, 0.08);
-      --accent-ring: rgba(240, 147, 251, 0.25);
-      --accent-glow: rgba(240, 147, 251, 0.35);
-      --accent-glow-strong: rgba(240, 147, 251, 0.75);
-      --accent-outline: rgba(240, 147, 251, 0.45);
     }
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'JetBrains Mono', monospace;
       background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
       min-height: 100vh;
       color: var(--text);
       overflow-x: hidden;
-      position: relative;
     }
+
     body::before {
       content: '';
       position: fixed;
@@ -58,92 +46,289 @@
       animation: rotate 60s linear infinite;
       z-index: -1;
     }
-    @keyframes rotate {
-      to { transform: rotate(360deg); }
+
+    @keyframes rotate { to { transform: rotate(360deg); } }
+
+    .container { max-width: 1600px; margin: 0 auto; padding: 2rem; }
+    .header { text-align: center; margin-bottom: 2rem; }
+    .header h1 {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      letter-spacing: -2px;
     }
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
+    .header p { opacity: 0.8; font-size: 1rem; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr 380px;
+      gap: 2rem;
+      align-items: start;
     }
-    body.performance-mode {
-      background: #000;
-      overflow: hidden;
+
+    .panel {
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
-    body.performance-mode::before {
-      content: none;
-    }
-    body.performance-mode nav,
-    body.performance-mode .hero,
-    body.performance-mode .controls-panel,
-    body.performance-mode .page:not(#game-page) {
-      display: none !important;
-    }
-    body.performance-mode .container {
-      max-width: none;
-      padding: 0;
+    .panel h3 {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
       display: flex;
-      justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      gap: 0.5rem;
     }
-    body.performance-mode .game-wrapper {
-      min-height: 100vh;
-      padding: 0;
-      margin: 0;
-      justify-content: center;
+    .panel h3::before {
+      content: '';
+      width: 3px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .game-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      max-width: none;
-      width: auto;
+      gap: 1rem;
     }
-    body.performance-mode .game-container {
+
+    .canvas-wrapper {
+      position: relative;
+      padding: 8px;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      border-radius: 1rem;
+      box-shadow: 0 0 50px rgba(112, 0, 255, 0.3);
+    }
+
+    #game {
+      display: block;
+      border-radius: 8px;
+      background: #000;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 700px;
+    }
+
+    .stats-stack {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      text-align: center;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.6;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .control-group { margin-bottom: 1.25rem; }
+
+    .control-group label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.9;
+    }
+
+    .control-group label span {
+      color: var(--accent);
+      font-weight: 700;
+      float: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--darker);
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+    }
+
+    .button {
+      width: 100%;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: #fff;
       border: none;
-      box-shadow: none;
-      padding: 0;
-      background: transparent;
-      backdrop-filter: none;
-      max-width: none;
-      width: auto;
+      border-radius: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      user-select: none;
     }
-    body.performance-mode .game-container::before,
-    body.performance-mode .game-container::after {
-      display: none;
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
     }
-    body.performance-mode #game {
-      width: min(95vw, 95vh);
-      height: min(95vw, 95vh);
-      max-width: 95vmin;
-      max-height: 95vmin;
-      box-shadow: none;
-      border-radius: 0;
-      transition: none;
+
+    .button.danger {
+      background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
     }
-    #performanceExit {
-      position: fixed;
-      top: 1.5rem;
-      right: 1.5rem;
-      z-index: 2000;
-      display: none;
-      width: auto;
-      padding: 0.65rem 1.2rem;
+
+    .button.warning {
+      background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%);
+      color: #1f2937;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.45);
     }
-    #performanceExit[hidden] {
-      display: none !important;
+
+    .button.toggle-active {
+      background: linear-gradient(135deg, var(--success) 0%, var(--accent) 100%);
+      box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4);
     }
-    body.performance-mode #performanceExit {
-      display: inline-flex;
+
+    .button-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
     }
-    #performanceHud {
+
+    select {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 0.5rem;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    select option { background: var(--dark); color: var(--text); }
+
+    .helper-text {
+      margin-top: 0.4rem;
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+
+    .strategy-display {
+      background: var(--darker);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      margin-top: 1rem;
+      border: 1px solid var(--glass-border);
+    }
+
+    .strategy-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .strategy-text { font-size: 0.85rem; line-height: 1.4; opacity: 0.9; }
+
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.active { background: var(--success); }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .progress-ring {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 110px;
+      height: 110px;
+    }
+
+    .progress-ring circle { fill: none; stroke-width: 10; }
+    .progress-ring-bg { stroke: rgba(15, 23, 42, 0.75); }
+
+    .progress-ring-value {
+      stroke: var(--accent);
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 0.3s;
+    }
+
+    .progress-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-family: 'Syncopate', sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-percent { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .progress-text { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; }
+
+    .performance-hud {
       position: fixed;
       top: 1.5rem;
       left: 1.5rem;
-      display: none;
+      display: flex;
       align-items: center;
       gap: 1.25rem;
       padding: 0.75rem 1.25rem;
@@ -154,12 +339,21 @@
       font-variant-numeric: tabular-nums;
       z-index: 2000;
     }
-    #performanceHud[hidden] {
-      display: none !important;
+
+    .performance-hud[hidden] { display: none !important; }
+
+    #performanceExit {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 2000;
+      display: none;
+      width: auto;
+      padding: 0.65rem 1.2rem;
     }
-    body.performance-mode #performanceHud {
-      display: flex;
-    }
+
+    #performanceExit[hidden] { display: none !important; }
+
     .performance-stat {
       display: flex;
       flex-direction: column;
@@ -169,10 +363,9 @@
       font-size: 0.75rem;
       color: rgba(226, 232, 240, 0.7);
     }
-    .performance-label {
-      font-weight: 600;
-      opacity: 0.85;
-    }
+
+    .performance-label { font-weight: 600; opacity: 0.85; }
+
     .performance-value {
       font-size: 1.4rem;
       font-weight: 700;
@@ -180,676 +373,47 @@
       text-transform: none;
       letter-spacing: normal;
     }
-    /* Navigation */
-    nav {
-      background: var(--glass);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--glass-border);
-      padding: 1rem 2rem;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-    .nav-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .logo {
-      font-size: 1.8rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .logo::before {
-      content: '🐍';
-      font-size: 2rem;
-      -webkit-text-fill-color: initial;
-    }
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
-    .nav-links a {
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.3s;
-      position: relative;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-    }
-    .nav-links a:hover {
-      color: var(--accent);
-      background: var(--glass);
-    }
-    .nav-links a.active {
-      color: var(--accent);
-      background: var(--glass);
-    }
-    /* Page transitions */
-    .page {
-      display: none;
-      animation: fadeIn 0.5s ease-in-out;
-    }
-    .page.active {
-      display: block;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    /* Main container */
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 3rem 2rem;
-    }
-    /* Hero section */
-    .hero {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-    .hero h1 {
-      font-size: 3.5rem;
-      font-weight: 900;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, var(--light) 0%, var(--accent) 50%, var(--primary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradient 3s ease-in-out infinite;
-      background-size: 200%;
-    }
-    @keyframes gradient {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    .hero p {
-      font-size: 1.2rem;
-      color: var(--text);
-      opacity: 0.8;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-.game-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  flex-wrap: nowrap;
-  gap: 1.5rem;         /* 👈 lägger till avstånd mellan rutorna */
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1rem 1.5rem;
-}
-   /* Game container – anpassad för större spelruta */
-    .game-container {
-  flex: 1 1 auto;
-  max-width: 820px;                 /* ökar från ~700px */
-  border: 2px solid var(--glass-border);
-  border-radius: 1rem;
-  padding: 1.2rem;
-  background: transparent;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  position: relative;
-  overflow: visible;
-}
-    .game-container::before {
-      content: '';
-      position: absolute;
-      inset: -4rem;
-      background: radial-gradient(circle at center,
-        rgba(255, 255, 255, 0.45) 0%,
-        rgba(224, 224, 224, 0.25) 30%,
-        rgba(192, 192, 192, 0.12) 55%,
-        rgba(255, 255, 255, 0) 75%);
-      filter: blur(45px);
-      z-index: -2;
-      pointer-events: none;
-    }
-    .game-container::after {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      background: linear-gradient(45deg, var(--accent), var(--primary), var(--secondary));
-      border-radius: 2rem;
-      z-index: -1;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .game-container:hover::after {
-      opacity: 0.5;
-    }
-    #game {
-      border-radius: 1rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      transition: transform 0.3s;
-    }
-    #game:hover {
-      transform: scale(1.02);
-    }
-/* Controls panel – bredare version */
-.controls-panel {
-  background: var(--glass);
-  backdrop-filter: blur(22px);
-  border: 1px solid var(--glass-border);
-  border-radius: 1.5rem;
-  padding: 2.8rem;
-  min-width: 640px;                                /* tidigare 580px */
-  width: clamp(640px, 36vw + 140px, 780px);        /* mer flex – växer med skärmen */
-  max-width: 820px;                                /* övre gräns */
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-  max-height: 90vh;
-  overflow-y: auto;
-  flex: 0 1 auto;
-}
 
-/* Scrollbar styling */
-.controls-panel::-webkit-scrollbar {
-  width: 8px;
-}
-.controls-panel::-webkit-scrollbar-track {
-  background: var(--darker);
-  border-radius: 4px;
-}
-.controls-panel::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--accent), var(--primary));
-  border-radius: 4px;
-}
-.controls-panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--primary), var(--secondary));
-}
-    .controls-section {
-      margin-bottom: 2rem;
-    }
-    .controls-section h3 {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .controls-section h3::before {
-      content: '⚡';
-      font-size: 1.5rem;
-    }
-    .section-title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-    }
-    .section-title-row h3 {
-      margin-bottom: 0;
-    }
-    .collapse-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      background: none;
-      border: none;
-      color: var(--text);
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      padding: 0.35rem 0.6rem;
-      border-radius: 999px;
-      transition: color 0.2s ease, background 0.2s ease;
-    }
-    .collapse-toggle:hover,
-    .collapse-toggle:focus-visible {
-      color: var(--accent);
-      background: rgba(255, 255, 255, 0.08);
-      outline: none;
-    }
-    .collapse-toggle .chevron {
-      display: inline-block;
-      transition: transform 0.2s ease;
-    }
-    .collapsible-section.collapsed .collapse-toggle .chevron {
-      transform: rotate(-90deg);
-    }
-    .collapsible-section.collapsed .collapsible-content {
-      display: none;
-    }
-    .collapsible-content[hidden] {
-      display: none;
-    }
-    .collapsible-section.collapsed {
-      margin-bottom: 1.5rem;
-    }
-    /* Modern buttons */
-    .button {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 0.8rem;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 15px var(--primary-shadow);
-      position: relative;
+    body.performance-mode {
+      background: #000;
       overflow: hidden;
     }
-    .button::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.2);
-      transition: left 0.5s;
-    }
-    .button:hover::before {
-      left: 100%;
-    }
-    .button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px var(--primary-shadow-strong);
-    }
-    .button:active {
-      transform: translateY(0);
-    }
-    .button.toggle-active {
-      background: linear-gradient(135deg, var(--success) 0%, var(--accent) 100%);
-      box-shadow: 0 8px 25px rgba(74, 222, 128, 0.45);
-    }
-    .button.warning {
-      background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%);
-      color: #1f2937;
-      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.45);
-    }
-    .button.warning:hover {
-      box-shadow: 0 6px 20px rgba(251, 191, 36, 0.6);
-    }
-    .button-row {
+
+    body.performance-mode::before { content: none; }
+    body.performance-mode .header,
+    body.performance-mode .panel,
+    body.performance-mode .stats-grid { display: none !important; }
+
+    body.performance-mode .container {
+      max-width: none;
+      padding: 0;
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      margin-top: 0.5rem;
-    }
-    .button-row .button {
-      flex: 1 1 180px;
-      min-width: 0;
-    }
-    .manual-hint {
-      font-size: 0.85rem;
-      margin-top: 0.5rem;
-      color: var(--light);
-      opacity: 0.7;
-      text-align: center;
-    }
-    .number-input {
-      width: 100%;
-      padding: 0.6rem 0.8rem;
-      border-radius: 0.75rem;
-      border: 1px solid var(--glass-border);
-      background: var(--glass);
-      color: var(--text);
-      font-weight: 500;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    .number-input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-ring);
-    }
-    .button.danger {
-      background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
-      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-    }
-    .button.danger:hover {
-      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
-    }
-    /* Speed controls */
-    .speed-controls {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
       justify-content: center;
-      margin: 1rem 0;
-    }
-    .speed-btn {
-      display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 0.2rem;
-      padding: 0.8rem 1.2rem;
-      min-width: 100px;
-    }
-    .speed-btn span {
-      display: block;
-    }
-    .speed-display {
-      background: var(--darker);
-      padding: 0.8rem 1.5rem;
-      border-radius: 0.8rem;
-      min-width: 140px;
-      text-align: center;
-      font-weight: 600;
-      border: 1px solid var(--primary);
-      box-shadow: 0 0 20px var(--primary-ambient);
-    }
-    /* Size controls */
-    .size-controls {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin: 1rem 0;
-    }
-    .size-slider {
-      flex: 1;
-      -webkit-appearance: none;
-      height: 8px;
-      background: var(--darker);
-      border-radius: 4px;
-      outline: none;
-      position: relative;
-    }
-    .size-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 0 10px var(--primary-ambient-strong);
-      transition: all 0.3s;
-    }
-    .size-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-      box-shadow: 0 0 20px var(--primary-ambient-xstrong);
-    }
-    .select-control {
-      width: 100%;
-      padding: 0.6rem 0.8rem;
-      background: var(--glass);
-      border: 1px solid var(--glass-border);
-      border-radius: 0.75rem;
-      color: var(--text);
-      font-weight: 500;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    .select-control:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-ring);
-    }
-    .select-control option {
-      background: var(--dark);
-      color: var(--text);
-    }
-    /* Parameter controls */
-    .param-control {
-      margin-bottom: 1.5rem;
-    }
-    .param-control label {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: var(--text);
-    }
-    .param-control label span {
-      color: var(--accent);
-      font-weight: 700;
-      min-width: 40px;
-      text-align: right;
-    }
-    .param-control small {
-      display: block;
-      margin-top: 0.3rem;
-      color: var(--text);
-      opacity: 0.6;
-      font-size: 0.8rem;
-    }
-    .param-control .size-slider {
-      width: 100%;
-    }
-    /* Status display */
-    .status-display {
-      background: var(--darker);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      margin-top: 1rem;
-      border: 1px solid var(--glass-border);
-      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
-    }
-    .status-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid var(--glass-border);
-    }
-    .status-item:last-child {
-      border-bottom: none;
-    }
-    .status-label {
-      color: var(--text);
-      opacity: 0.8;
-    }
-    .status-value {
-      font-weight: 600;
-      color: var(--accent);
-    }
-    /* AI Status messages */
-    #statusMessages {
-      background: var(--darker);
-      border-radius: 1rem;
-      padding: 1rem;
-      margin-top: 1rem;
-      min-height: 120px;
-      border: 1px solid var(--glass-border);
-      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
-    }
-    #statusMessages p {
-      margin: 0.3rem 0;
-      font-size: 0.9rem;
-      opacity: 0.9;
+      min-height: 100vh;
     }
 
-    #strategyStatus {
-      color: var(--accent);
-      font-weight: 600;
-      font-size: 1rem;
-    }
-    #completionStatus {
-      color: var(--success);
-      font-weight: 600;
-    }
-    .status-explanation {
-      color: var(--text);
-      opacity: 0.85;
-      line-height: 1.4;
-    }
-    #hamStatus { color: var(--success); }
-    #loopStatus { color: var(--warning); }
-    #compactStatus { color: var(--warning); }
-    /* Info page */
-    .info-content {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .info-section {
-      background: var(--glass);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: 1.5rem;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    }
-    .info-section h2 {
-      color: var(--accent);
-      margin-bottom: 1rem;
-      font-size: 1.8rem;
-    }
-    .info-section h3 {
-      color: var(--primary);
-      margin: 1.5rem 0 1rem;
-    }
-    .info-section p, .info-section li {
-      line-height: 1.8;
-      opacity: 0.9;
-    }
-    .info-section ul {
-      list-style: none;
-      padding-left: 0;
-    }
-    .info-section li {
-      position: relative;
-      padding-left: 2rem;
-      margin-bottom: 0.5rem;
-    }
-    .info-section li::before {
-      content: '→';
-      position: absolute;
-      left: 0;
-      color: var(--accent);
-      font-weight: bold;
-    }
-    /* Contact page */
-    .contact-content {
-      max-width: 600px;
-      margin: 0 auto;
-      text-align: center;
-    }
-    .contact-card {
-      background: var(--glass);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: 1.5rem;
-      padding: 3rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    }
-    .contact-card h2 {
-      color: var(--accent);
-      margin-bottom: 2rem;
-      font-size: 2rem;
-    }
-    .contact-info {
-      font-size: 1.2rem;
-      margin: 2rem 0;
-    }
-    .contact-email {
-      display: inline-block;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      color: white;
-      padding: 1rem 2rem;
-      border-radius: 2rem;
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.3s;
-      box-shadow: 0 4px 15px var(--primary-shadow);
-      margin-top: 1rem;
-    }
-    .contact-email:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px var(--primary-shadow-strong);
-    }
-    /* Combo preset styling */
-    .combo-preset {
-      background: var(--darker);
-      padding: 1.5rem;
-      border-radius: 1rem;
-      margin-top: 1rem;
-      border: 1px solid var(--primary);
-    }
-    .combo-preset ul {
-      margin-bottom: 1rem;
-    }
-    .combo-preset li {
-      padding-left: 1.5rem;
-      font-family: monospace;
-      font-size: 1.1rem;
-      color: var(--accent);
-    }
-    .load-preset {
-      width: 100%;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
+    body.performance-mode .main-grid {
+      grid-template-columns: 1fr;
+      gap: 0;
     }
 
-
-    /* Progress ring HUD */
-    .game-container {
-      position: relative;
-    }
-    .game-overlay {
-      position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-    }
-    .progress-ring-wrapper {
-      position: relative;
-      width: 110px;
-      height: 110px;
-      filter: drop-shadow(0 0 12px var(--primary-ambient-strong));
-    }
-    .progress-ring {
-      transform: rotate(-90deg);
-    }
-    .progress-ring-bg {
-      fill: none;
-      stroke: rgba(15, 23, 42, 0.75);
-      stroke-width: 10;
-    }
-    .progress-ring-value {
-      fill: none;
-      stroke: var(--accent);
-      stroke-width: 10;
-      stroke-linecap: round;
-      stroke-dasharray: 0;
-      stroke-dashoffset: 0;
-      transition: stroke-dashoffset 0.35s ease-out;
-    }
-    .progress-ring-label {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-variant-numeric: tabular-nums;
-    }
-    .progress-ring-label span {
-      font-weight: 800;
-      font-size: 1.1rem;
-    }
-    .progress-ring-label small {
-      opacity: 0.7;
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    body.performance-mode .game-container {
+      padding: 0;
     }
 
-    /* Keyboard help overlay */
+    body.performance-mode #game {
+      width: min(95vw, 95vh);
+      height: min(95vw, 95vh);
+      max-width: 95vmin;
+      max-height: 95vmin;
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    body.performance-mode #performanceExit { display: inline-flex; }
+    body.performance-mode #performanceHud { display: flex; }
+
     .help-overlay {
       position: fixed;
       inset: 0;
@@ -860,19 +424,20 @@
       justify-content: center;
       z-index: 2300;
     }
-    .help-overlay[hidden] {
-      display: none;
-    }
+
+    .help-overlay[hidden] { display: none; }
+
     .help-card {
       max-width: 480px;
       width: 90%;
-      background: radial-gradient(circle at top left, var(--primary-overlay-strong), var(--darker));
+      background: radial-gradient(circle at top left, rgba(102, 126, 234, 0.35), var(--darker));
       border-radius: 1.5rem;
       border: 1px solid var(--glass-border);
       box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7);
       padding: 2rem 2.25rem 1.75rem;
       color: var(--text);
     }
+
     .help-card h2 {
       margin-top: 0;
       margin-bottom: 1rem;
@@ -882,15 +447,18 @@
       align-items: center;
       gap: 0.5rem;
     }
+
     .help-card h2::before {
       content: '⌨️';
       font-size: 1.4rem;
     }
+
     .help-card ul {
       list-style: none;
       padding-left: 0;
       margin: 0 0 1.5rem 0;
     }
+
     .help-card li {
       display: flex;
       align-items: center;
@@ -898,6 +466,7 @@
       margin-bottom: 0.6rem;
       line-height: 1.5;
     }
+
     .help-card kbd {
       display: inline-flex;
       align-items: center;
@@ -912,534 +481,205 @@
       font-weight: 600;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
-    .help-card li span {
-      opacity: 0.9;
-      font-size: 0.9rem;
-    }
-    .help-card .button {
-      width: 100%;
-      justify-content: center;
-    }
 
-    /* Responsive */
-    @media (max-width: 1200px) {
-      .game-wrapper {
-        flex-wrap: wrap;
-      }
+    .help-card li span { opacity: 0.9; font-size: 0.9rem; }
+    .help-card .button { width: 100%; justify-content: center; }
+
+    @media (max-width: 1400px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-stack { grid-template-columns: repeat(2, 1fr); }
+      .button-row { grid-template-columns: 1fr; }
     }
-    @media (max-width: 768px) {
-      .nav-container {
-        flex-direction: column;
-        gap: 1rem;
-      }
-      .hero h1 {
-        font-size: 2.5rem;
-      }
-      .game-wrapper {
-        flex-direction: column;
-      }
-      .controls-panel {
-        width: 100%;
-        min-width: 0;
-        max-width: none;
-        max-height: none;
-      }
-    }
-  </style>
+</style>
 </head>
 <body>
-  <!-- Navigation -->
-  <nav>
-    <div class="nav-container">
-      <div class="logo">Snake Simulation</div>
-      <ul class="nav-links">
-        <li><a href="#" class="nav-link active" data-page="game">Game</a></li>
-        <li><a href="#" class="nav-link" data-page="guide">Guide</a></li>
-        <li><a href="#" class="nav-link" data-page="ai">AI Handbook</a></li>
-        <li><a href="#" class="nav-link" data-page="facit">Presets</a></li>
-        <li><a href="#" class="nav-link" data-page="contact">Contact</a></li>
-      </ul>
+  <div class="container">
+    <div class="header">
+      <h1>ULTIMATE SNAKE AI</h1>
+      <p>Perfect algorithm combining Hamiltonian cycles, BFS pathfinding, and advanced heuristics</p>
     </div>
-  </nav>
-  <!-- Game Page -->
-  <div id="game-page" class="page active">
-    <div class="container">
-      <div class="hero">
-        <h1>Snake Simulation</h1>
-          <p>Your goal is to find the best adjustments to complete the board</p>
-          <p>Adjust Grid size for longer simulations</p>
-      </div>
-      <div class="game-wrapper">
-        <div class="game-container">
-          <canvas id="game" width="600" height="600"></canvas>
-          <div class="game-overlay">
-            <div class="progress-ring-wrapper">
-              <svg class="progress-ring" width="110" height="110">
-                <circle class="progress-ring-bg" cx="55" cy="55" r="46"></circle>
-                <circle class="progress-ring-value" cx="55" cy="55" r="46"></circle>
-              </svg>
-              <div class="progress-ring-label">
-                <span id="progressRingPercent">0%</span>
-                <small>Board filled</small>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="controls-panel">
-          <div class="controls-section">
-            <h3>Game Controls</h3>
-            <div class="speed-controls">
-              <button id="slowerBtn" class="button speed-btn">
-                <span style="font-size: 1.2rem;">🐌</span>
-                <span>Slower</span>
-              </button>
-              <div id="speedDisplay" class="speed-display">Speed: 100ms</div>
-              <button id="fasterBtn" class="button speed-btn">
-                <span style="font-size: 1.2rem;">⚡</span>
-                <span>Faster</span>
-              </button>
-            </div>
-            <div style="margin-top: 1rem;">
-              <button id="restartBtn" class="button danger" style="width: 100%;">🔄 Restart</button>
-            </div>
-            <div style="margin-top: 0.8rem;">
-              <button id="manualToggle" class="button" style="width: 100%;">🕹️ Try Manual Play</button>
-              <p id="manualHint" class="manual-hint">Manual mode off – AI is playing automatically.</p>
-            </div>
-            <div style="margin-top: 0.8rem;">
-              <button id="safetyNetToggle" class="button toggle-active" style="width: 100%;">🛡️ Safety Net: ON</button>
-              <p id="safetyNetHint" class="manual-hint">Safety net algorithms are active.</p>
-            </div>
-            <div style="margin-top: 0.8rem;">
-              <button id="performanceToggle" class="button" style="width: 100%;">🚀 Performance Mode</button>
-              <p id="performanceHint" class="manual-hint">Hide the interface to maximise performance.</p>
-            </div>
-            <div class="param-control" style="margin-top: 1.2rem;">
-              <label for="themeSelect">Color theme</label>
-              <select id="themeSelect" class="select-control">
-                <option value="aurora">Aurora · Lila &amp; blå</option>
-                <option value="sunset">Sunset · Guld &amp; rött</option>
-                <option value="emerald">Emerald · Grön</option>
-                <option value="glacier">Glacier · Turkos</option>
-                <option value="matrix">Matrix</option>
-              </select>
-              <small>Pick a palette to recolor the board, snake and interface.</small>
-            </div>
-          </div>
-          <div class="controls-section collapsible-section collapsed" id="gridSizeSection">
-            <div class="section-title-row">
-              <h3>Grid Size</h3>
-              <button id="gridSizeToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="gridSizeContent" title="Show or hide grid size settings">
-                <span class="chevron">▾</span>
-                <span class="collapse-label">Show settings</span>
-              </button>
-            </div>
-            <div id="gridSizeContent" class="collapsible-content" hidden aria-hidden="true">
-              <div class="param-control">
-                <label>Columns (COLS): <span id="colsValue">20</span></label>
-                <input type="range" id="colsSlider" class="size-slider" min="10" max="100" value="20" step="5">
-              </div>
-              <div class="param-control">
-                <label>Rows (ROWS): <span id="rowsValue">20</span></label>
-                <input type="range" id="rowsSlider" class="size-slider" min="10" max="100" value="20" step="5">
-              </div>
-              <small style="display: block; margin-top: -0.5rem; color: var(--warning); opacity: 0.8;">
-                ⚡Changing grid size will restart the game
-              </small>
-            </div>
-          </div>
-          <div class="controls-section collapsible-section collapsed" id="canvasSizeSection">
-            <div class="section-title-row">
-              <h3>Canvas Size</h3>
-              <button id="canvasSizeToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="canvasSizeContent" title="Show or hide canvas size settings">
-                <span class="chevron">▾</span>
-                <span class="collapse-label">Show settings</span>
-              </button>
-            </div>
-            <div id="canvasSizeContent" class="collapsible-content" hidden aria-hidden="true">
-              <div class="size-controls">
-                <span>Small</span>
-                <input type="range" id="sizeSlider" class="size-slider" min="300" max="800" value="400" step="50">
-                <span>Large</span>
-              </div>
-            </div>
-          </div>
-          <div class="controls-section collapsible-section collapsed" id="aiParamsSection">
-            <div class="section-title-row">
-              <h3>AI Parameters</h3>
-              <button id="aiParamsToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="aiParamsContent" title="Show or hide AI parameter settings">
-                <span class="chevron">▾</span>
-                <span class="collapse-label">Show settings</span>
-              </button>
-            </div>
-            <div id="aiParamsContent" class="collapsible-content" hidden aria-hidden="true">
-              <div class="param-control">
-                <label>Endgame Threshold: <span id="endgameValue">5</span></label>
-                <input type="range" id="endgameSlider" class="size-slider" min="0" max="100" value="5" step="5">
-                <small>Free cells for endgame mode</small>
-              </div>
-              <div class="param-control">
-                <label>Loop Streak Threshold: <span id="loopThreshValue">3</span></label>
-                <input type="range" id="loopThreshSlider" class="size-slider" min="1" max="10" value="3" step="1">
-                <small>Loops detected before → Hamilton mode</small>
-              </div>
-              <div class="param-control">
-                <label>No Progress Threshold: <span id="progThreshValue">70</span></label>
-                <input type="range" id="progThreshSlider" class="size-slider" min="10" max="200" value="70" step="5">
-                <small>Moves without progress → Hamilton mode</small>
-              </div>
-              <div class="param-control">
-                <label for="compactProfile">Compact Mode Style</label>
-                <select id="compactProfile" class="select-control">
-                  <option value="cautious">Extremely cautious</option>
-                  <option value="balanced" selected>Balanced (current)</option>
-                  <option value="risky">Extremely daring</option>
-                </select>
-                <small id="compactProfileHint">Default behaviour that reacts to pockets or loops.</small>
-              </div>
-              <div class="param-control">
-                <label>Compact Mode Steps: <span id="compactValue">200</span></label>
-                <input type="range" id="compactSlider" class="size-slider" min="0" max="300" value="200" step="10">
-                <small>Max steps in compact mode</small>
-              </div>
-            </div>
-          </div>
-          <div class="controls-section collapsible-section collapsed" id="gameStatusSection">
-            <div class="section-title-row">
-              <h3>Game Status</h3>
-              <button id="gameStatusToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="gameStatusContent" title="Show or hide live game status">
-                <span class="chevron">▾</span>
-                <span class="collapse-label">Show status</span>
-              </button>
-            </div>
-            <div id="gameStatusContent" class="collapsible-content" hidden aria-hidden="true">
-              <div class="status-display">
-                <div class="status-item">
-                  <span class="status-label">Length:</span>
-                  <span id="snakeLength" class="status-value">3</span>
-                </div>
-                <div class="status-item">
-                  <span class="status-label">Apples eaten:</span>
-                  <span id="applesEaten" class="status-value">0</span>
-                </div>
-                <div class="status-item">
-                  <span class="status-label">Apple high score:</span>
-                  <span id="appleHighScore" class="status-value">0</span>
-                </div>
-                <div class="status-item">
-                  <span class="status-label">Free cells:</span>
-                  <span id="freeCells" class="status-value">222</span>
-                </div>
-                <div class="status-item">
-                  <span class="status-label">Progress:</span>
-                  <span id="progress" class="status-value">1.3%</span>
-                </div>
-                <div class="status-item">
-                  <span class="status-label">Elapsed:</span>
-                  <span id="elapsedTime" class="status-value">00:00.0</span>
-                </div>
-                <div class="status-item">
-                  <span class="status-label">Best time:</span>
-                  <span id="bestTime" class="status-value">--</span>
-                </div>
-                <div class="status-item">
-                  <span class="status-label">Completed:</span>
-                  <span id="completedRounds" class="status-value">0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="controls-section collapsible-section collapsed" id="aiStatusSection">
-            <div class="section-title-row">
-              <h3>AI Status</h3>
-              <button id="aiStatusToggle" class="collapse-toggle" type="button" aria-expanded="false" aria-controls="aiStatusContent" title="Show or hide AI status updates">
-                <span class="chevron">▾</span>
-                <span class="collapse-label">Show status</span>
-              </button>
-            </div>
-            <div id="aiStatusContent" class="collapsible-content" hidden aria-hidden="true">
-              <div id="statusMessages">
-                <p id="strategyStatus">Strategy: Initializing</p>
-                <p id="strategyExplanation" class="status-explanation"></p>
-                <p id="completionStatus" class="status-explanation" hidden aria-live="polite"></p>
-                <p id="hamStatus"></p>
-                <p id="loopStatus"></p>
-                <p id="compactStatus"></p>
-                <p id="compactStepStatus"></p>
-              </div>
-            </div>
-          </div>
 
-        </div>
-      </div>
-      <button id="performanceExit" class="button warning" type="button" hidden>⬅️ Exit Performance</button>
-      <div id="performanceHud" class="performance-hud" hidden>
-        <div class="performance-stat">
-          <span class="performance-label">Length</span>
-          <span id="performanceLength" class="performance-value">3</span>
-        </div>
-        <div class="performance-stat">
-          <span class="performance-label">Elapsed</span>
-          <span id="performanceElapsed" class="performance-value">00:00.0</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Guide Page -->
-  <div id="guide-page" class="page">
-    <div class="container">
-      <div class="hero">
-        <h1>Parameter Guide</h1>
-        <p>Learn to fine-tune the AI for optimal performance</p>
-      </div>
-      <div class="info-content">
-        <div class="info-section">
-          <h2>🎯 Quick Guide</h2>
-          <p>Each parameter affects how cautious or aggressive the AI is. Start by adjusting <strong>Endgame Threshold</strong>, as it has the biggest impact on whether the snake plays safely or takes risks. Find the balance between speed and safety!</p>
-        </div>
-        <div class="info-section">
-          <h2>📏 Grid Size</h2>
-          <h3>Columns &amp; Rows (10-60)</h3>
-          <p><strong>What it does:</strong> Determines the game size - number of cells horizontally and vertically.</p>
-          <ul>
-            <li><strong>Small grids (10x10):</strong> Fast games, AI must be very careful</li>
-            <li><strong>Medium (20x20):</strong> Balanced gameplay, standard setting</li>
-            <li><strong>Large (30x30):</strong> Long games requiring patience, AI can take more risks</li>
-          </ul>
-          <p><strong>Tip:</strong> Start with 10x10 to learn the parameters.</p>
-        </div>
-        <div class="info-section">
-          <h2>🤖 AI Parameters</h2>
-          <!-- Endgame parameter first -->
-          <h3>1. Endgame Threshold (5-100+)</h3>
-          <p><strong>Why it matters most:</strong> This setting determines when the AI abandons risky fruit-hunting and switches to a safe Hamilton cycle. A lower value means the AI will stay aggressive until there are very few free cells left; a higher value makes it switch earlier.</p>
-          <p><strong>What it does:</strong> When the number of free cells remaining drops below this threshold, the AI enters "endgame" mode. In endgame it follows a pre‑built Hamilton cycle to avoid trapping itself and ensure it can eventually fill the board.</p>
-          <ul>
-            <li><strong>Low value (10-30):</strong> Endgame only at the very end – faster but riskier on tight grids</li>
-            <li><strong>Medium (40-60):</strong> Safer and suitable for medium grids</li>
-            <li><strong>High (70+):</strong> Very cautious – ideal for large boards or when you want maximum safety</li>
-          </ul>
-          <p><strong>When to adjust:</strong> On small grids, keep this low so the AI grabs fruit until the last moments. For bigger boards, increase it so the snake enters endgame earlier and follows a safe route.</p>
-          
-          <h3>2. Loop Streak Threshold (1-10)</h3>
-          <p><strong>What it does:</strong> Number of times the AI can detect a looping pattern before forcing a switch to the safe Hamilton mode. A loop happens when the snake keeps revisiting the same area.</p>
-          <ul>
-            <li><strong>Low value (1-3):</strong> Quickly switches to safe mode, good for small grids or when loops are deadly</li>
-            <li><strong>Medium (4-6):</strong> Balanced, allows some loops</li>
-            <li><strong>High (7-10):</strong> Allows many loops, risky but faster on open boards</li>
-          </ul>
-          <p><strong>When to adjust:</strong> Increase if the snake gets stuck in Hamilton too often. Decrease if it dies while looping.</p>
-          
-          <h3>3. No Progress Threshold (10-200+)</h3>
-          <p><strong>What it does:</strong> Number of moves without getting closer to the fruit before the AI gives up and goes safe. This helps avoid wasting time when fruit is inaccessible.</p>
-          <ul>
-            <li><strong>Low value (10-50):</strong> Gives up quickly, very safe but slower on large boards</li>
-            <li><strong>Medium (50-100):</strong> Standard patience</li>
-            <li><strong>High (100+):</strong> Persistent, keeps trying for a long time</li>
-          </ul>
-          <p><strong>When to adjust:</strong> Increase for larger grids where navigation takes time. Decrease if the snake "wanders" too much without making progress.</p>
-          
-          <h3>4. Compact Mode Steps (50-300+)</h3>
-          <p><strong>What it does:</strong> Maximum number of steps the AI can spend in compact zig‑zag mode when the fruit is trapped in a small pocket. This helps it navigate tight spaces without colliding.</p>
-          <ul>
-            <li><strong>Low value (50-100):</strong> Short zig‑zag, switches quickly back to other strategies</li>
-            <li><strong>Medium (100-200):</strong> Standard length</li>
-            <li><strong>High (200+):</strong> Long zig‑zag sequences – useful on large boards</li>
-          </ul>
-          <p><strong>When to adjust:</strong> Increase for larger grids. Decrease if the snake seems to "vibrate" too much in one area.</p>
-          <h3>Compact Mode Styles</h3>
-          <ul>
-            <li><strong>Extremely cautious:</strong> Waits for tight pockets and repeated loops before using zig-zag.</li>
-            <li><strong>Balanced:</strong> Original behaviour – reacts to pockets or clear loops.</li>
-            <li><strong>Extremely daring:</strong> Jumps in early to untangle loops or hard-to-reach fruit.</li>
-          </ul>
-          <p><strong>Tip:</strong> Pick the cautious style on small boards where every cell matters, and the daring style on large boards for faster recovery.</p>
-        </div>
-        <div class="info-section">
-          <h2>⚡ Optimization Strategy</h2>
-          <h3>For fastest possible game:</h3>
-          <ul>
-            <li>Loop Threshold: 5-7</li>
-            <li>No Progress: 80-120</li>
-            <li>Endgame: 5-30</li>
-            <li>Compact Steps: 150-200</li>
-          </ul>
-          <h3>For safest possible game:</h3>
-          <ul>
-            <li>Loop Threshold: 1-2</li>
-            <li>No Progress: 30-50</li>
-            <li>Endgame: 60-80</li>
-            <li>Compact Steps: 50-100</li>
-          </ul>
-          <h3>Balanced (recommended):</h3>
-          <ul>
-            <li>Loop Threshold: 3-4</li>
-            <li>No Progress: 50-80</li>
-            <li>Endgame: 40-50</li>
-            <li>Compact Steps: 100-150</li>
-          </ul>
-        </div>
-        <!-- Detailed algorithm explanations moved from About -->
-        <div class="info-section">
-          <h2>🔍 Algorithm Overview</h2>
-          <h3>Hamilton Cycle</h3>
-          <p>The Hamilton cycle is a pre‑computed path that visits every cell on the board exactly once. Following this path guarantees that the snake never crosses its own body. This path acts as a safety net when other strategies fail or when the board is nearly full. In endgame mode the AI follows the Hamilton cycle to fill the remaining cells without dying.</p>
-          <h3>Greedy Pathfinding</h3>
-          <p>When there is plenty of open space, the AI uses a greedy approach: it picks moves that reduce the Manhattan distance to the fruit. This allows quick fruit collection. However, greedy movement is only used if it keeps the snake’s tail reachable. Before each greedy move, the AI checks that it can still eventually reach the tail so it doesn’t trap itself.</p>
-          <h3>Loop Detection</h3>
-          <p>If the snake moves in circles without making progress, the AI identifies this as a loop. After a certain number of loops (controlled by the Loop Streak Threshold) it forces a switch to the Hamilton cycle. Breaking loops prevents the snake from wasting time or creating dead ends.</p>
-          <h3>Compact Mode</h3>
-          <p>When the fruit appears in a confined area or is surrounded by the snake’s body, the AI enters compact mode. In this mode the snake performs a zig‑zag pattern to efficiently fill small pockets of space and avoid cutting itself off. The maximum steps spent in this mode are controlled by the Compact Mode Steps parameter.</p>
-          <h3>Endgame Strategy</h3>
-          <p>As the board fills up, the risk of collision increases. Once the number of free cells falls below the endgame threshold, the AI commits to the Hamilton cycle. This ensures the snake can reach every remaining cell and eventually achieve a perfect game.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- AI Handbook Page -->
-  <div id="ai-page" class="page">
-    <div class="container">
-      <div class="hero">
-        <h1>AI Handbook</h1>
-        <p>Understand how the strategies work together: safety cycles, pathfinding, and heuristics.</p>
-      </div>
-      <div class="info-content">
-        <div class="info-section">
-          <h2>🧭 Core navigation toolkit</h2>
-          <h3>Hamilton safety cycle</h3>
-          <p>The Hamilton cycle is a pre-computed route that visits every cell exactly once. When the board is tight, following this path guarantees the snake will not trap itself.</p>
-          <h3>BFS pathfinding</h3>
-          <p>Breadth-first search calculates short, safe routes to the fruit or tail. It is the default option when space is open and a clean path exists.</p>
-          <h3>Greedy chase</h3>
-          <p>The greedy step tries to reduce the distance to the fruit, but only if the tail stays reachable. This keeps fruit collection fast without risking dead ends.</p>
-          <h3>Compact zig-zag</h3>
-          <p>When the fruit spawns in a pocket, the compact mode wriggles in a tight pattern to clear space and keep an escape route open.</p>
-        </div>
-        <div class="info-section">
-          <h2>🔗 How the parts work together</h2>
-          <ul>
-            <li><strong>Baseline safety via algorithms:</strong> The Hamilton cycle and BFS guarantee that the snake always has a safe route when the board gets tight.</li>
-            <li><strong>Heuristic switches:</strong> Loop and compact modes analyse the situation and hand over to safe patterns when needed.</li>
-            <li><strong>Heuristic scoring:</strong> When multiple safe moves exist, the AI scores them based on space, wall distance, and fruit access.</li>
-            <li><strong>Result:</strong> You combine the stability of the algorithms with flexible decision-making for faster, safer runs.</li>
-          </ul>
-          <p>The AI adapts on each move, but it always prioritizes safe reachability checks before taking a risk.</p>
-        </div>
-        <div class="info-section">
-          <h2>📊 Heuristic scoring highlights</h2>
-          <ul>
-            <li><strong>Open space:</strong> Moves that keep more reachable cells get a boost.</li>
-            <li><strong>Fruit distance:</strong> Shorter paths to the fruit are preferred when safe.</li>
-            <li><strong>Wall spacing:</strong> Staying away from edges is favored unless the board is nearly full.</li>
-            <li><strong>Momentum:</strong> Straight paths score slightly higher to reduce jittery movement.</li>
-          </ul>
-        </div>
-        <div class="info-section">
-          <h2>⚙️ Parameter tuning</h2>
-          <ul>
-            <li><strong>Endgame Threshold:</strong> Move this up to favor early safety, down to stay aggressive longer.</li>
-            <li><strong>Loop Streak Threshold:</strong> Lower values break loops faster on cramped boards.</li>
-            <li><strong>No Progress Threshold:</strong> Higher values keep the snake hunting for fruit longer.</li>
-            <li><strong>Compact Mode Steps:</strong> Increase on big grids to navigate tight pockets.</li>
-          </ul>
-          <p>Tweak a parameter and play a few rounds. Track progress in the <strong>AI Status</strong> panel and adjust based on how often the snake loops or stalls.</p>
-        </div>
-        <div class="info-section">
-          <h2>🧭 Recommended strategies</h2>
-          <ul>
-            <li><strong>Fast start:</strong> Lower Endgame Threshold and increase No Progress so fruit hunts stay aggressive.</li>
-            <li><strong>Balanced runs:</strong> Keep Loop Streak at 3–4 and Compact Steps around 100–150.</li>
-            <li><strong>Maximum safety:</strong> Raise Endgame Threshold and lower Loop Streak to avoid risky loops.</li>
-          </ul>
-          <p>Combine these sliders with the theme selector to match speed, safety, and visuals to your preference.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Facit Page (Presets) -->
-  <div id="facit-page" class="page">
-    <div class="container">
-      <div class="hero">
-        <h1>Presets - Proven Combinations</h1>
-        <p>Test these optimized settings for different game types</p>
-      </div>
-     <div class="info-section">
-          <h2>🐜 Small Grid (10x10)</h2>
-          <p><strong>Goal:</strong> Optimized for small, tight spaces</p>
-          <div class="combo-preset">
-            <ul>
-              <li>Grid: 10x10</li>
-              <li>Loop Threshold: 1</li>
-              <li>No Progress: 30</li>
-              <li>Endgame: 5</li>
-              <li>Compact Steps: 50</li>
-              <li>Speed: 120ms</li>
-            </ul>
-            <button class="button load-preset" data-preset="small">Load this</button>
+    <div class="main-grid">
+      <div class="panel">
+        <h3>Game Stats</h3>
+        <div class="stats-stack">
+          <div class="stat-card" style="border-bottom-color: var(--accent);">
+            <div class="stat-label">Length</div>
+            <div class="stat-value" id="snakeLength">3</div>
+          </div>
+          <div class="stat-card" style="border-bottom-color: var(--warning);">
+            <div class="stat-label">Free Cells</div>
+            <div class="stat-value" id="freeCells">0</div>
+          </div>
+          <div class="stat-card" style="border-bottom-color: var(--primary);">
+            <div class="stat-label">Elapsed</div>
+            <div class="stat-value" id="elapsedTime">00:00.0</div>
+          </div>
+          <div class="stat-card" style="border-bottom-color: var(--success);">
+            <div class="stat-label">Best Time</div>
+            <div class="stat-value" id="bestTime">--</div>
+          </div>
+          <div class="stat-card" style="border-bottom-color: var(--danger);">
+            <div class="stat-label">Completed</div>
+            <div class="stat-value" id="completedRounds">0</div>
           </div>
         </div>
-        <div class="info-section">
-          <h2>⚖️ Balanced (20x20)</h2>
-          <p><strong>Goal:</strong> Good balance between speed and safety</p>
-          <div class="combo-preset">
-            <ul>
-              <li>Grid: 20x20</li>
-              <li>Loop Threshold: 3</li>
-              <li>No Progress: 70</li>
-              <li>Endgame: 40</li>
-              <li>Compact Steps: 200</li>
-              <li>Speed: 80ms</li>
-            </ul>
-            <button class="button load-preset" data-preset="balanced">Load this</button>
+
+        <div class="strategy-display">
+          <div class="strategy-title">
+            <span class="status-indicator active"></span>
+            Current Strategy
+          </div>
+          <div class="strategy-text" id="strategyStatus">Strategy: Initializing</div>
+          <div class="strategy-text" id="strategyExplanation"></div>
+          <div class="strategy-text" id="completionStatus" hidden aria-live="polite"></div>
+        </div>
+
+        <div class="strategy-display" style="margin-top: 0.5rem;">
+          <div class="strategy-title">Algorithm Status</div>
+          <div class="strategy-text">
+            <div id="hamStatus"></div>
+            <div id="loopStatus"></div>
+            <div id="compactStatus"></div>
+            <div id="compactStepStatus"></div>
           </div>
         </div>
-        <div class="info-section">
-          <h2>🎯 Ultra Challenge (30x30)</h2>
-          <p><strong>Goal:</strong> For experts – maximum grid with aggressive settings</p>
-          <div class="combo-preset">
-            <ul>
-              <li>Grid: 30x30</li>
-              <li>Loop Threshold: 5</li>
-              <li>No Progress: 150</li>
-              <li>Endgame: 80</li>
-              <li>Compact Steps: 450</li>
-              <li>Speed: 40ms</li>
-            </ul>
-            <button class="button load-preset" data-preset="ultra">Load this</button>
+      </div>
+
+      <div class="game-container">
+        <div class="canvas-wrapper">
+          <canvas id="game" width="600" height="600"></canvas>
+
+          <div class="progress-ring">
+            <svg width="110" height="110">
+              <circle class="progress-ring-bg" cx="55" cy="55" r="46"></circle>
+              <circle class="progress-ring-value" cx="55" cy="55" r="46"></circle>
+            </svg>
+            <div class="progress-label">
+              <div class="progress-percent" id="progressRingPercent">0%</div>
+              <div class="progress-text">Board filled</div>
+            </div>
           </div>
         </div>
-        <div class="info-section" style="background: var(--glass); border: 2px solid var(--accent);">
-          <h2>💡 Tips for Custom Combinations</h2>
-          <ul>
-            <li><strong>Start conservatively:</strong> Set low thresholds and increase gradually</li>
-            <li><strong>Test in stages:</strong> Run 5-10 games before adjusting</li>
-            <li><strong>Document:</strong> Write down what works for different grid sizes</li>
-            <li><strong>Experiment:</strong> Try extreme values to understand the effect</li>
-            <li><strong>Share:</strong> Send us your best combinations!</li>
-          </ul>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Apples</div>
+            <div class="stat-value" id="applesEaten">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Best</div>
+            <div class="stat-value" id="appleHighScore">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Speed</div>
+            <div class="stat-value" id="speedDisplay">Speed: 100ms</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Progress</div>
+            <div class="stat-value" id="progress">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>AI Controls</h3>
+
+        <div class="control-group">
+          <div class="button-row">
+            <button id="slowerBtn" class="button">🐌 Slower</button>
+            <button id="fasterBtn" class="button">⚡ Faster</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <button id="restartBtn" class="button danger">🔄 Restart</button>
+        </div>
+
+        <div class="control-group">
+          <button id="manualToggle" class="button">🕹️ Try Manual Play</button>
+          <p id="manualHint" class="helper-text">Manual mode off – AI is playing automatically.</p>
+        </div>
+
+        <div class="control-group">
+          <button id="safetyNetToggle" class="button toggle-active">🛡️ Safety Net: ON</button>
+          <p id="safetyNetHint" class="helper-text">Safety net algorithms are active.</p>
+        </div>
+
+        <div class="control-group">
+          <button id="performanceToggle" class="button">🚀 Performance Mode</button>
+          <p id="performanceHint" class="helper-text">Hide the interface to maximise performance.</p>
+        </div>
+
+        <div class="control-group">
+          <label for="themeSelect">Color theme</label>
+          <select id="themeSelect">
+            <option value="aurora">Aurora · Lila &amp; blå</option>
+            <option value="sunset">Sunset · Guld &amp; rött</option>
+            <option value="emerald">Emerald · Grön</option>
+            <option value="glacier">Glacier · Turkos</option>
+            <option value="matrix">Matrix</option>
+          </select>
+          <p class="helper-text">Pick a palette to recolor the board, snake and interface.</p>
+        </div>
+
+        <h3 style="margin-top: 2rem;">Grid Size</h3>
+        <div class="control-group">
+          <label>Columns <span id="colsValue">20</span></label>
+          <input type="range" id="colsSlider" min="10" max="100" value="20" step="5">
+        </div>
+        <div class="control-group">
+          <label>Rows <span id="rowsValue">20</span></label>
+          <input type="range" id="rowsSlider" min="10" max="100" value="20" step="5">
+        </div>
+        <div class="control-group">
+          <label>Canvas Size</label>
+          <input type="range" id="sizeSlider" min="300" max="800" value="400" step="50">
+        </div>
+
+        <h3 style="margin-top: 2rem;">AI Parameters</h3>
+        <div class="control-group">
+          <label>Endgame Threshold <span id="endgameValue">5</span></label>
+          <input type="range" id="endgameSlider" min="0" max="100" value="5" step="5">
+        </div>
+        <div class="control-group">
+          <label>Loop Streak Threshold <span id="loopThreshValue">3</span></label>
+          <input type="range" id="loopThreshSlider" min="1" max="10" value="3" step="1">
+        </div>
+        <div class="control-group">
+          <label>No Progress Threshold <span id="progThreshValue">70</span></label>
+          <input type="range" id="progThreshSlider" min="10" max="200" value="70" step="5">
+        </div>
+        <div class="control-group">
+          <label for="compactProfile">Compact Mode Style</label>
+          <select id="compactProfile">
+            <option value="cautious">Extremely cautious</option>
+            <option value="balanced" selected>Balanced (current)</option>
+            <option value="risky">Extremely daring</option>
+          </select>
+          <p id="compactProfileHint" class="helper-text">Default behaviour that reacts to pockets or loops.</p>
+        </div>
+        <div class="control-group">
+          <label>Compact Mode Steps <span id="compactValue">200</span></label>
+          <input type="range" id="compactSlider" min="0" max="300" value="200" step="10">
         </div>
       </div>
     </div>
-  </div>
-  <!-- Contact Page -->
-  <div id="contact-page" class="page">
-    <div class="container">
-      <div class="hero">
-        <h1>Contact Me</h1>
-        <p>Have questions or feedback?</p>
+
+    <button id="performanceExit" class="button warning" type="button" hidden>⬅️ Exit Performance</button>
+    <div id="performanceHud" class="performance-hud" hidden>
+      <div class="performance-stat">
+        <span class="performance-label">Length</span>
+        <span id="performanceLength" class="performance-value">3</span>
       </div>
-      <div class="contact-content">
-        <div class="contact-card">
-          <h2>📬 Get in Touch</h2>
-          <p class="contact-info"></p>
-          <a href="mailto:nomarcus@hotmail.com" class="contact-email">✉️ nomarcus@hotmail.com</a>
-          <p style="margin-top:2rem;font-size:.9rem;opacity:.7;text-align:center;">
-            Last change by <strong>Marcus Petersson</strong> · 2025-09-08
-          </p>
-        </div>
+      <div class="performance-stat">
+        <span class="performance-label">Elapsed</span>
+        <span id="performanceElapsed" class="performance-value">00:00.0</span>
       </div>
     </div>
   </div>
+
   <!-- Embedded updated JS logic -->
   <script>
     /* ===== KONFIGURATION ===== */
