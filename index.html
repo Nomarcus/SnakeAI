@@ -292,38 +292,6 @@
 
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-    .progress-ring {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      width: 110px;
-      height: 110px;
-    }
-
-    .progress-ring circle { fill: none; stroke-width: 10; }
-    .progress-ring-bg { stroke: rgba(15, 23, 42, 0.75); }
-
-    .progress-ring-value {
-      stroke: var(--accent);
-      stroke-linecap: round;
-      transform: rotate(-90deg);
-      transform-origin: 50% 50%;
-      transition: stroke-dashoffset 0.3s;
-    }
-
-    .progress-label {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      font-family: 'Syncopate', sans-serif;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .progress-percent { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
-    .progress-text { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; }
-
     .help-overlay {
       position: fixed;
       inset: 0;
@@ -459,18 +427,7 @@
 
       <div class="game-container">
         <div class="canvas-wrapper">
-          <canvas id="game" width="600" height="600"></canvas>
-
-          <div class="progress-ring">
-            <svg width="110" height="110">
-              <circle class="progress-ring-bg" cx="55" cy="55" r="46"></circle>
-              <circle class="progress-ring-value" cx="55" cy="55" r="46"></circle>
-            </svg>
-            <div class="progress-label">
-              <div class="progress-percent" id="progressRingPercent">0%</div>
-              <div class="progress-text">Board filled</div>
-            </div>
-          </div>
+          <canvas id="game" width="400" height="400"></canvas>
         </div>
 
         <div class="stats-grid">
@@ -1036,6 +993,7 @@
     /* ===== CANVAS ===== */
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    CELL = canvas.width / COLS;
     let lastRender = performance.now();
     /* ===== AI PARAMETERS ===== */
     let LOOP_STREAK_THRESHOLD = 1;
@@ -2391,15 +2349,6 @@
     const aiStatusContentEl = document.getElementById('aiStatusContent');
     const helpOverlayEl = document.getElementById('helpOverlay');
     const helpCloseBtn = document.getElementById('helpCloseBtn');
-    const progressRingEl = document.querySelector('.progress-ring-value');
-    progressRingPercentLabel = document.getElementById('progressRingPercent');
-    if (progressRingEl) {
-      progressRingCircle = progressRingEl;
-      const radius = progressRingCircle.r.baseVal.value;
-      progressRingMaxLength = 2 * Math.PI * radius;
-      progressRingCircle.style.strokeDasharray = progressRingMaxLength;
-      progressRingCircle.style.strokeDashoffset = progressRingMaxLength;
-    }
     if (helpCloseBtn && helpOverlayEl) {
       helpCloseBtn.addEventListener('click', () => {
         helpOverlayEl.hidden = true;
@@ -3920,6 +3869,12 @@
     rlImportFileInput?.addEventListener('change', handleTrainingImport);
     /* ===== SIZE CONTROL ===== */
     const sizeSlider = document.getElementById('sizeSlider');
+    const initialCanvasSize = parseInt(sizeSlider.value);
+    if (!Number.isNaN(initialCanvasSize)) {
+      canvas.width = initialCanvasSize;
+      canvas.height = initialCanvasSize;
+      CELL = canvas.width / COLS;
+    }
     sizeSlider.addEventListener('input', (e) => {
       const size = parseInt(e.target.value);
       canvas.width = size;
