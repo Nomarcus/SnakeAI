@@ -594,6 +594,7 @@
     let elapsedTimerHandle = null;
     let elapsedTimeEl = null;
     let performanceElapsedEl = null;
+    let performanceLengthEl = null;
     let lastElapsedMs = 0;
     let bestTimeMs = null;
     let lastObservedReward = 0;
@@ -2906,6 +2907,7 @@
     updateRewardImpactUI();
     elapsedTimeEl = document.getElementById('elapsedTime');
     performanceElapsedEl = document.getElementById('performanceElapsed');
+    performanceLengthEl = document.getElementById('performanceLength');
     const bestTimeEl = document.getElementById('bestTime');
     const completedRoundsEl = document.getElementById('completedRounds');
     const applesEatenEl = document.getElementById('applesEaten');
