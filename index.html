@@ -266,6 +266,39 @@
       border: 1px solid var(--glass-border);
     }
 
+    .info-panel {
+      width: 100%;
+      max-width: 700px;
+    }
+
+    .info-panel p {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      opacity: 0.9;
+      margin-bottom: 0.75rem;
+    }
+
+    .info-panel ul {
+      list-style: none;
+      padding-left: 0;
+      display: grid;
+      gap: 0.6rem;
+      margin: 0;
+    }
+
+    .info-panel li {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    .info-panel li::before {
+      content: '✦';
+      color: var(--accent);
+      margin-top: 0.05rem;
+    }
+
     .strategy-title {
       font-size: 0.75rem;
       text-transform: uppercase;
@@ -447,6 +480,23 @@
             <div class="stat-label">Progress</div>
             <div class="stat-value" id="progress">0%</div>
           </div>
+        </div>
+
+        <div class="panel info-panel">
+          <h3>Experience Guide</h3>
+          <p>
+            You are watching the AI navigate toward apples while keeping a safe Hamiltonian path
+            ready. The live stats and strategy feed show whether it is exploring, compressing space,
+            or riding the safety loop.
+          </p>
+          <ul>
+            <li><strong>What you can adjust:</strong> speed, grid size, and AI thresholds that control when it switches
+            to loop safety or compact mode.</li>
+            <li><strong>Try manual mode:</strong> pause the autopilot and take control to feel how tight the pathing becomes
+            as the board fills up.</li>
+            <li><strong>Endgame threshold matters:</strong> raising it makes the AI pivot earlier to the endgame safety
+            cycle, which is often crucial to avoid trapping itself when only a few cells remain.</li>
+          </ul>
         </div>
       </div>
 
