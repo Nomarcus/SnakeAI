@@ -21,6 +21,9 @@
  *   dynamic   – shortest safe path to the apple, cycle rebuilt on the fly (fastest)
  *   shortcuts – one fixed cycle plus safe shortcuts along it
  *   hamilton  – follow one fixed cycle forever (slowest, simplest proof)
+ *   greedy    – baseline WITHOUT a proof: chase the apple, check only that the
+ *               tail is reachable. Included to show why the proof matters; it
+ *               can get trapped or loop forever.
  */
 (function (root) {
   'use strict';
@@ -36,7 +39,9 @@
     };
   }
 
-  const STRATEGIES = ['dynamic', 'shortcuts', 'hamilton'];
+  const STRATEGIES = ['dynamic', 'shortcuts', 'hamilton', 'greedy'];
+  const GUARANTEED = ['dynamic', 'shortcuts', 'hamilton'];
+  const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
   class PerfectSnake {
     constructor(options = {}) {
@@ -57,6 +62,11 @@
       this.rng = typeof options.rng === 'function'
         ? options.rng
         : (Number.isFinite(options.seed) ? mulberry32(options.seed) : Math.random);
+      // Apple positions come from their own seed, so games with the same
+      // appleSeed get the same apple sequence whatever the strategy does.
+      this.appleSeed = Number.isFinite(options.appleSeed)
+        ? options.appleSeed
+        : (Number.isFinite(options.seed) ? options.seed ^ 0x5bd1e995 : (Math.random() * 4294967296) >>> 0);
       // How many alternative cycles the dynamic strategy samples when the
       // direct path is not provably safe.
       // Effort spent reshaping the cycle when the direct path is not
@@ -140,20 +150,22 @@
       this.won = false;
       this.dead = false;
       this.lastMoveKind = 'start';
+      // Details of the latest decision, for commentary: `routeLength` is how
+      // many moves the chosen route needs to reach the apple.
+      this.decision = { kind: 'start', routeLength: 0, directLength: 0 };
+      this.lossReason = null;
+      this.lastAppleStep = 0;
       this.food = this.spawnFood();
     }
 
+    // Apple n is drawn from its own seeded stream; occupied cells are skipped.
     spawnFood() {
-      const free = this.N - this.body.length;
-      if (free <= 0) return -1;
-      let k = (this.rng() * free) | 0;
-      for (let c = 0; c < this.N; c++) {
-        if (this.occ[c] === -1) {
-          if (k === 0) return c;
-          k--;
-        }
+      if (this.N - this.body.length <= 0) return -1;
+      const rand = mulberry32((this.appleSeed + Math.imul(this.apples + 1, 0x9E3779B1)) >>> 0);
+      for (;;) {
+        const c = (rand() * this.N) | 0;
+        if (this.occ[c] === -1) return c;
       }
-      return -1;
     }
 
     find(a) {
@@ -400,7 +412,86 @@
 
     decideHamilton() {
       this.lastMoveKind = 'cycle';
+      this.decision = { kind: 'cycle', routeLength: (this.order[this.food] - this.order[this.body[0]] + this.N) % this.N };
       return this.next[this.body[0]];
+    }
+
+    /* ----------------------- greedy baseline (no proof) ---------------------- */
+
+    freeForHead(c, ate) {
+      const tail = this.body[this.body.length - 1];
+      return this.occ[c] === -1 || (c === tail && !ate);
+    }
+
+    neighbors(c) {
+      const x = c % this.W, y = (c / this.W) | 0, out = [];
+      for (const [dx, dy] of DIRS) {
+        const nx = x + dx, ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < this.W && ny < this.H) out.push(ny * this.W + nx);
+      }
+      return out;
+    }
+
+    // Plain BFS from `from` over cells allowed by `blocked`; returns parents.
+    bfs(from, blocked) {
+      const prev = new Int32Array(this.N).fill(-2);
+      const queue = [from];
+      prev[from] = -1;
+      for (let qh = 0; qh < queue.length; qh++) {
+        const c = queue[qh];
+        for (const n of this.neighbors(c)) {
+          if (prev[n] !== -2 || blocked[n]) continue;
+          prev[n] = c;
+          queue.push(n);
+        }
+      }
+      return prev;
+    }
+
+    // After moving the head to `cell`, can it still reach its own tail?
+    tailReachableAfter(cell) {
+      const ate = cell === this.food;
+      const body = [cell, ...this.body.slice(0, ate ? this.body.length : this.body.length - 1)];
+      const blocked = new Uint8Array(this.N);
+      for (let i = 0; i < body.length - 1; i++) blocked[body[i]] = 1;
+      blocked[cell] = 0;
+      const prev = this.bfs(cell, blocked);
+      return body.length < 2 || prev[body[body.length - 1]] !== -2;
+    }
+
+    floodArea(cell) {
+      const blocked = new Uint8Array(this.N);
+      for (let i = 0; i < this.body.length - 1; i++) blocked[this.body[i]] = 1;
+      const prev = this.bfs(cell, blocked);
+      let area = 0;
+      for (let c = 0; c < this.N; c++) if (prev[c] !== -2) area++;
+      return area;
+    }
+
+    decideGreedy() {
+      const head = this.body[0], food = this.food;
+      const blocked = new Uint8Array(this.N);
+      for (let i = 0; i < this.body.length - 1; i++) blocked[this.body[i]] = 1;
+      const prev = this.bfs(head, blocked);
+      if (prev[food] !== -2) {
+        let first = food, length = 1;
+        while (prev[first] !== head) { first = prev[first]; length++; }
+        if (this.tailReachableAfter(first)) {
+          this.lastMoveKind = 'path';
+          this.decision = { kind: 'path', routeLength: length };
+          return first;
+        }
+      }
+      // Apple not safely reachable: wander to the move with the most room.
+      let best = -1, bestScore = -1;
+      for (const n of this.neighbors(head)) {
+        if (!this.freeForHead(n, n === food)) continue;
+        const score = this.floodArea(n) * 2 + (this.tailReachableAfter(n) ? this.N * 4 : 0);
+        if (score > bestScore) { bestScore = score; best = n; }
+      }
+      this.lastMoveKind = 'wander';
+      this.decision = { kind: 'wander', routeLength: 0 };
+      return best;
     }
 
     // Fixed cycle plus shortcuts that never jump past the tail in cycle
@@ -427,26 +518,31 @@
         if (d <= allowed && d > bestD) { best = n; bestD = d; }
       }
       this.lastMoveKind = bestD > 1 ? 'shortcut' : 'cycle';
+      this.decision = { kind: this.lastMoveKind, skipped: bestD - 1, routeLength: toFood };
       return best;
     }
 
     decideDynamic() {
       if (this.plan.length) {
         this.lastMoveKind = 'path';
+        this.decision = { kind: 'path', routeLength: this.plan.length, committed: true };
         return this.plan.shift();
       }
       const food = this.food;
       const lastApple = this.body.length + 1 === this.N;
       // Try the shortest route first, then a few equally short variants.
+      let directLength = 0;
       for (let attempt = 0; attempt <= this.pathTries; attempt++) {
         const path = this.shortestPath(food, attempt > 0);
         if (!path) break;
+        directLength = path.length;
         const grown = this.bodyAfter(path, true);
         const tree = lastApple ? this.tree : this.buildTree(grown, true);
         if (tree) {
           this.plan = path;
           this.planTree = tree;
           this.lastMoveKind = 'path';
+          this.decision = { kind: 'path', routeLength: path.length, committed: false };
           return this.plan.shift();
         }
       }
@@ -460,6 +556,11 @@
         this.computeNext(tree);
       }
       this.lastMoveKind = 'cycle';
+      this.decision = {
+        kind: 'cycle',
+        routeLength: this.treeDistance(this.tree, head, food),
+        directLength
+      };
       return this.next[this.body[0]];
     }
 
@@ -471,6 +572,7 @@
       let nxt;
       if (this.strategy === 'dynamic') nxt = this.decideDynamic();
       else if (this.strategy === 'shortcuts') nxt = this.decideShortcuts();
+      else if (this.strategy === 'greedy') nxt = this.decideGreedy();
       else nxt = this.decideHamilton();
 
       const tail = this.body[this.body.length - 1];
@@ -481,6 +583,7 @@
       const blocked = this.occ[nxt] !== -1 && !(nxt === tail && !ate);
       if (!adjacent || blocked) {
         this.dead = true;
+        this.lossReason = nxt < 0 ? 'trapped' : 'crashed';
         return { won: false, dead: true, ate: false };
       }
       if (!ate) {
@@ -490,6 +593,8 @@
       this.occ[nxt] = ++this.clock;
       this.steps++;
       if (ate) {
+        this.lastAppleSteps = this.steps - this.lastAppleStep;
+        this.lastAppleStep = this.steps;
         this.apples++;
         if (this.strategy === 'dynamic' && this.planTree) {
           this.tree = this.planTree;
@@ -504,18 +609,20 @@
           this.food = this.spawnFood();
         }
       }
+      // A proven strategy reaches every apple within one lap; anything that
+      // takes far longer is going round in circles.
+      if (!this.won && this.steps - this.lastAppleStep > 4 * this.N) {
+        this.dead = true;
+        this.lossReason = 'looping';
+        return { won: false, dead: true, ate };
+      }
       return { won: this.won, dead: false, ate };
-    }
-
-    setStrategy(strategy) {
-      if (!STRATEGIES.includes(strategy)) return;
-      this.strategy = strategy;
-      this.reset();
     }
 
     // The cycle that currently guarantees the win: while a planned path is
     // being followed that is the cycle proven to exist after the apple.
     safetyCycle() {
+      if (this.strategy === 'greedy') return null;
       if (this.strategy === 'dynamic' && this.plan.length && this.planTree) {
         if (this.shownTree !== this.planTree) {
           this.shownTree = this.planTree;
@@ -529,7 +636,7 @@
     // Cells of the planned route ahead (for drawing).
     upcomingRoute(limit = Infinity) {
       if (this.strategy === 'dynamic' && this.plan.length) return this.plan.slice(0, limit);
-      if (this.food < 0) return [];
+      if (this.food < 0 || this.strategy === 'greedy') return [];
       const route = [];
       let c = this.body[0];
       while (c !== this.food && route.length < Math.min(limit, this.N)) {
@@ -541,7 +648,7 @@
 
     // Invariant check: the body must be one unbroken piece of a valid cycle.
     verifyInvariant() {
-      if (this.won || this.dead) return true;
+      if (this.won || this.dead || this.strategy === 'greedy') return true;
       if (this.strategy === 'dynamic' && this.plan.length) return true;
       if (this.strategy === 'shortcuts') {
         // Body segments must appear in cycle order from tail to head,
@@ -563,6 +670,7 @@
   }
 
   PerfectSnake.STRATEGIES = STRATEGIES;
+  PerfectSnake.GUARANTEED = GUARANTEED;
   PerfectSnake.mulberry32 = mulberry32;
 
   if (typeof module === 'object' && module.exports) module.exports = PerfectSnake;

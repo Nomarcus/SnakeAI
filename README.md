@@ -11,25 +11,34 @@ An intelligent Snake game with sophisticated AI algorithms and real-time paramet
 
 ## 🏆 Perfect Snake AI (`/perfect`)
 
-A second, selectable version that lives next to the classic game (the classic `index.html` is untouched). Switch between them with the toggle at the top of the Perfect page.
+A second, selectable version that lives next to the classic game (the classic `index.html` is untouched). Switch between them with the buttons in the top bar.
 
-- **Guaranteed win on every even-sized board.** Before every move the AI proves that a Hamiltonian cycle (a closed route through every cell) still exists with the snake's body as one unbroken piece of it. With that cycle in hand the snake can never be trapped.
-- **Fast.** The cycles are built from spanning trees over 2×2 blocks. The AI takes the time-aware shortest path to the apple whenever it can prove the result is safe, and otherwise reshapes the cycle with a local search so the apple comes closer.
-- **Three algorithms to compare:** dynamic cycle (fastest), fixed cycle + shortcuts, and plain Hamiltonian cycle.
-- **Built-in benchmark** that plays hundreds of games without graphics.
+- **Guaranteed win on every even-sized board.** Before every move the AI proves that a Hamiltonian loop (a closed route through every cell) still exists with the snake's body as one unbroken piece of it. With that loop in hand the snake can never be trapped.
+- **Fast.** The loops are built from spanning trees over 2×2 blocks. The AI takes the time-aware shortest path to the apple whenever it can prove the result is safe, and otherwise reshapes the loop with a local search so the apple comes closer.
 
-Measured on 10×10:
+Three views:
 
-| Algorithm | Wins | Avg. moves |
-|---|---|---|
-| Classic AI | ≈ 74 % | ≈ 2 700 |
-| Plain Hamiltonian cycle | 100 % | ≈ 2 430 |
-| Fixed cycle + shortcuts | 100 % | ≈ 1 490 |
-| Dynamic cycle | 100 % | ≈ 980 |
+- **👁 Watch** – one big board with live numbers, plain-English commentary on every decision ("the direct route could trap the snake later, so it follows its safety loop"), a moves-per-apple chart, an event log and an end-of-game summary.
+- **🏁 Race** – four methods side by side with the same apple sequence, a live "board filled vs. moves" chart and a scoreboard.
+- **📊 Stats** – every finished game is recorded in the browser. Compare average moves, win rate, best/worst games, export CSV, run a benchmark, or start a **marathon** that keeps playing in a background thread (also when the tab is hidden).
 
-Odd × odd boards have no Hamiltonian cycle, so no algorithm can guarantee a win there; the Perfect version therefore offers even sizes only (4×4 – 40×40).
+**TV mode** (`T`) goes full screen, hides the controls, keeps the screen awake and keeps playing game after game – handy to leave running.
 
-Run the automated test (plays every algorithm on several board sizes and fails unless every game is won):
+The four methods, measured on 10×10:
+
+| Method | Proof | Wins | Avg. moves |
+|---|---|---|---|
+| Dynamic Loop | ✔ | 100 % | ≈ 980 |
+| Loop + Shortcuts | ✔ | 100 % | ≈ 1 490 |
+| Pure Hamilton Loop | ✔ | 100 % | ≈ 2 430 |
+| Greedy (no proof) | ✖ | ≈ 4 % | – |
+| *Classic AI (`index.html`)* | ✖ | ≈ 74 % | ≈ 2 700 |
+
+Odd × odd boards have no Hamiltonian loop, so no algorithm can guarantee a win there; the Perfect version therefore offers even sizes only (4×4 – 40×40).
+
+Keyboard: `1`/`2`/`3` switch views, `Space` pause, `R` new game, `S` single step, `T` TV mode.
+
+Run the automated test (plays every proven method on several board sizes and fails unless every game is won):
 
 ```bash
 node tests/perfect-engine.test.js
