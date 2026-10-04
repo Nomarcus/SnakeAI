@@ -65,8 +65,11 @@
 
   const settings = Object.assign({
     tab: 'watch', wMethod: 'dynamic', wSize: 10, wSpeed: 4, wShowLoop: true, wShowRoute: true, wAuto: true,
-    rSize: 10, rSpeed: 6, rAuto: true, sSize: 10, sCount: 100
+    rSize: 10, rSpeed: 6, rAuto: true, sSize: 10, sCount: 100,
+    nextDelay: 3000, music: false, musicVol: 0.6
   }, load('perfectSnake.settings.v1', {}));
+  const DELAYS = [[0, 'Instant'], [500, '0.5 s'], [1000, '1 s'], [2000, '2 s'], [3000, '3 s'], [5000, '5 s'], [10000, '10 s']];
+  const Ambient = window.Ambient;
   function saveSettings() { save('perfectSnake.settings.v1', settings); }
 
   /* ------------------------------ statistics --------------------------- */
@@ -509,6 +512,7 @@
       logEvent('🛡️', `Direct route (${fmt(d.directLength)} moves) would risk a trap → using the safety loop`);
     }
     if (res.ate) {
+      if (!game.won) Ambient.apple(game.body.length / game.N);
       const how = appleHow(watch.cur);
       const moves = game.lastAppleSteps;
       watch.apples.push({ v: moves, how });
@@ -532,8 +536,10 @@
     const size = game.W;
     Stats.record(size, watch.method, { won: game.won, moves: game.steps, apples: game.apples });
     const direct = watch.apples.filter((a) => a.how === 'direct route').length;
+    if (game.won) Ambient.win(); else Ambient.loss();
+    const quick = settings.wAuto && settings.nextDelay < 800;
     const overlay = $('watchOverlay');
-    overlay.classList.add('show');
+    overlay.classList.toggle('show', !quick);
     overlay.classList.toggle('lost', !game.won);
     $('overlayTitle').textContent = game.won ? 'PERFECT!' : 'TRAPPED';
     const tiles = [
@@ -553,14 +559,14 @@
     } else if (!game.won) {
       note = 'This method has no proof. Try Dynamic Loop: it has never lost a game.';
     }
-    if (settings.wAuto) note += `${note ? ' ' : ''}Next game starts in a few seconds.`;
+    if (settings.wAuto) note += `${note ? ' ' : ''}Next game in ${DELAYS.find((d) => d[0] === settings.nextDelay)?.[1] || `${settings.nextDelay / 1000} s`}.`;
     $('overlayNote').textContent = note;
     if (game.won) logEvent('🏆', `<b>Board filled</b> in ${fmt(game.steps)} moves (${formatTime(watch.elapsed)})`);
     else logEvent('💥', `<b>Game over</b> at ${Math.round((game.body.length / game.N) * 100)}% (${game.lossReason})`);
     updateWatchText(true);
     renderWatchChart();
     renderLog();
-    if (settings.wAuto) watch.restartTimer = setTimeout(newWatchGame, 4500);
+    if (settings.wAuto) watch.restartTimer = setTimeout(newWatchGame, settings.nextDelay);
   }
 
   function updateWatchText(force) {
@@ -724,6 +730,7 @@
       if (g.won || g.dead) continue;
       const res = g.step();
       if (res.ate || g.won || g.dead) b.points.push([g.steps, (g.body.length / g.N) * 100]);
+      if (res.ate && b.key === 'dynamic' && !g.won) Ambient.apple(g.body.length / g.N);
       if (g.won) finishedThisTick.push(b);
       else if (g.dead) {
         b.place = 'lost';
@@ -735,6 +742,7 @@
     if (finishedThisTick.length) {
       const place = race.finishedOrder + 1;
       race.finishedOrder += finishedThisTick.length;
+      Ambient.place(place);
       finishedThisTick.forEach((b) => {
         b.place = place;
         const st = $(`rc-${b.key}-status`);
@@ -755,7 +763,7 @@
     Stats.recordRace(race.size, results, race.boards.filter((b) => b.place === 1).map((b) => b.key));
     renderRaceChart();
     renderRaceTable();
-    if (settings.rAuto) race.timer = setTimeout(newRace, 5000);
+    if (settings.rAuto) race.timer = setTimeout(newRace, settings.nextDelay);
   }
 
   function updateRaceText() {
@@ -841,7 +849,7 @@
   $('rAuto').addEventListener('change', (e) => {
     settings.rAuto = e.target.checked;
     saveSettings();
-    if (settings.rAuto && race.done) race.timer = setTimeout(newRace, 1500);
+    if (settings.rAuto && race.done) race.timer = setTimeout(newRace, Math.min(1500, settings.nextDelay));
   });
   $('rPlay').addEventListener('click', () => setRaceRunning(!race.running));
   $('rNew').addEventListener('click', newRace);
@@ -1070,6 +1078,57 @@
   });
   setInterval(() => { if (runner.active) renderRunner(); }, 1000);
 
+  /* ====================== between rounds & music ======================= */
+
+  document.querySelectorAll('.delay-select').forEach((sel) => {
+    DELAYS.forEach(([ms, label]) => {
+      const o = document.createElement('option');
+      o.value = String(ms);
+      o.textContent = label;
+      sel.appendChild(o);
+    });
+    if (!DELAYS.some(([ms]) => ms === settings.nextDelay)) settings.nextDelay = 3000;
+    sel.value = String(settings.nextDelay);
+    sel.addEventListener('change', (e) => {
+      settings.nextDelay = Number(e.target.value);
+      document.querySelectorAll('.delay-select').forEach((other) => { other.value = e.target.value; });
+      saveSettings();
+    });
+  });
+
+  function renderMusicButton() {
+    $('musicBtn').textContent = Ambient.on ? '♪ Music: on' : '♪ Music: off';
+    $('musicBtn').setAttribute('aria-pressed', String(Ambient.on));
+  }
+  function setMusic(on) {
+    if (on) { if (!Ambient.start()) return; } else Ambient.stop();
+    settings.music = on;
+    saveSettings();
+    renderMusicButton();
+  }
+  Ambient.setVolume(settings.musicVol);
+  $('musicVol').value = String(Math.round(settings.musicVol * 100));
+  $('musicVol').addEventListener('input', (e) => {
+    settings.musicVol = Number(e.target.value) / 100;
+    Ambient.setVolume(settings.musicVol);
+    saveSettings();
+  });
+  $('musicBtn').addEventListener('click', () => setMusic(!Ambient.on));
+  // Browsers only allow sound after a click or key press, so a saved
+  // "music on" starts with the first interaction.
+  if (settings.music) {
+    const resume = (e) => {
+      window.removeEventListener('pointerdown', resume, true);
+      window.removeEventListener('keydown', resume, true);
+      if (e.target && e.target.closest && e.target.closest('#musicBtn')) return;
+      if (e.key && e.key.toLowerCase() === 'm') return;
+      if (settings.music && !Ambient.on) setMusic(true);
+    };
+    window.addEventListener('pointerdown', resume, true);
+    window.addEventListener('keydown', resume, true);
+  }
+  renderMusicButton();
+
   /* ============================ tabs & TV mode ========================= */
 
   function showTab(tab) {
@@ -1129,6 +1188,8 @@
       else if (settings.tab === 'race') newRace();
     } else if (k === 's' && settings.tab === 'watch') {
       $('wStep').click();
+    } else if (k === 'm') {
+      setMusic(!Ambient.on);
     } else if (k === 't') {
       setTv(!document.body.classList.contains('tv'));
     } else if (k === '1' || k === '2' || k === '3') {

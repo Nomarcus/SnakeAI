@@ -79,7 +79,10 @@ h3 { font-size: 0.95rem; font-weight: 600; }
   cursor: pointer;
 }
 .tab-btn[aria-selected="true"] { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; }
-.top-actions { display: flex; gap: 0.5rem; }
+.top-actions { display: flex; gap: 0.5rem; align-items: center; }
+.music-ctl { display: flex; align-items: center; gap: 0.45rem; }
+.music-ctl input { width: 84px; }
+#musicBtn[aria-pressed="true"] { background: linear-gradient(135deg, var(--primary), var(--secondary)); border-color: transparent; color: #fff; }
 .ghost-btn {
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -111,6 +114,7 @@ h3 { font-size: 0.95rem; font-weight: 600; }
 .ctl { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.75rem; color: var(--muted); min-width: 150px; }
 .ctl b { color: var(--text); font-weight: 600; }
 .ctl-speed { min-width: 190px; }
+.ctl-narrow { min-width: 120px; }
 select {
   background: rgba(0, 0, 0, 0.35);
   color: var(--text);
@@ -276,6 +280,7 @@ body.tv .race-head { margin-bottom: 0.6rem; }
   .tabs { order: 3; width: 100%; justify-content: space-between; }
   .tab-btn { flex: 1; padding: 0.5rem 0.4rem; }
   .top-actions { margin-left: auto; }
+  .music-ctl input { display: none; }
   .view { padding: 1rem; }
   .stats-hero { grid-template-columns: minmax(0, 1fr); }
   .tiles { grid-template-columns: repeat(2, 1fr); }

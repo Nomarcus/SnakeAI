@@ -17,6 +17,10 @@
       <button class="tab-btn" role="tab" data-tab="stats" aria-selected="false">📊 Stats</button>
     </nav>
     <div class="top-actions">
+      <div class="music-ctl">
+        <button class="ghost-btn" id="musicBtn" aria-pressed="false" title="Generative ambient music (M)">♪ Music: off</button>
+        <input type="range" id="musicVol" min="0" max="100" step="1" value="60" aria-label="Music volume">
+      </div>
       <a class="ghost-btn" href="../">Classic AI</a>
       <button class="ghost-btn" id="tvBtn" title="Full screen, keeps the screen awake (T)">⛶ TV mode</button>
     </div>
@@ -47,6 +51,10 @@
           <label class="ctl ctl-speed">
             <span>Speed <b id="wSpeedLabel"></b></span>
             <input type="range" id="wSpeed" min="0" max="9" step="1" value="4">
+          </label>
+          <label class="ctl ctl-narrow">
+            <span>Between rounds</span>
+            <select id="wDelay" class="delay-select" title="Pause before the next round starts"></select>
           </label>
           <div class="ctl-buttons">
             <button class="btn" id="wPlay">⏸ Pause</button>
@@ -120,6 +128,10 @@
         <label class="ctl ctl-speed">
           <span>Speed <b id="rSpeedLabel"></b></span>
           <input type="range" id="rSpeed" min="0" max="9" step="1" value="6">
+        </label>
+        <label class="ctl ctl-narrow">
+          <span>Between rounds</span>
+          <select id="rDelay" class="delay-select" title="Pause before the next round starts"></select>
         </label>
         <div class="ctl-buttons">
           <button class="btn" id="rPlay">⏸ Pause</button>
@@ -246,6 +258,7 @@
   <div class="tooltip" id="tooltip" role="status" hidden></div>
 
   <script src="snake-engine.js"></script>
+  <script src="ambient.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
