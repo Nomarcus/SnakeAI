@@ -24,6 +24,10 @@ Three views:
 
 **TV mode** (`T`) goes full screen, hides the controls, keeps the screen awake and keeps playing game after game – handy to leave running.
 
+**Ambient music** (`M` or the ♪ button) is generated live in the browser with the Web Audio API – slow pad chords, a soft drone and bell notes, no audio files. Apples chime higher as the board fills, wins play an arpeggio, and race placings get their own chime.
+
+**Between rounds** sets the pause before the next game or race (Instant, 0.5 s … 10 s). With *Instant* and speed *Max* the AI plays dozens of games per second.
+
 The four methods, measured on 10×10:
 
 | Method | Proof | Wins | Avg. moves |
@@ -36,7 +40,7 @@ The four methods, measured on 10×10:
 
 Odd × odd boards have no Hamiltonian loop, so no algorithm can guarantee a win there; the Perfect version therefore offers even sizes only (4×4 – 40×40).
 
-Keyboard: `1`/`2`/`3` switch views, `Space` pause, `R` new game, `S` single step, `T` TV mode.
+Keyboard: `1`/`2`/`3` switch views, `Space` pause, `R` new game, `S` single step, `T` TV mode, `M` music.
 
 Run the automated test (plays every proven method on several board sizes and fails unless every game is won):
 
