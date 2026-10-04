@@ -2,10 +2,38 @@
 
 Try the AI simulation here https://nomarcus.github.io/SnakeAI/
 
+**New: Perfect Snake AI** – a separate version that wins every single game, proven by calculation: https://nomarcus.github.io/SnakeAI/perfect/
+
 An intelligent Snake game with sophisticated AI algorithms and real-time parameter tuning. Experience perfect gameplay through advanced pathfinding and adaptive strategies.
 
 ![image](https://github.com/user-attachments/assets/1813b35b-1039-436f-b93e-65ea9753dcad)
 
+
+## 🏆 Perfect Snake AI (`/perfect`)
+
+A second, selectable version that lives next to the classic game (the classic `index.html` is untouched). Switch between them with the toggle at the top of the Perfect page.
+
+- **Guaranteed win on every even-sized board.** Before every move the AI proves that a Hamiltonian cycle (a closed route through every cell) still exists with the snake's body as one unbroken piece of it. With that cycle in hand the snake can never be trapped.
+- **Fast.** The cycles are built from spanning trees over 2×2 blocks. The AI takes the time-aware shortest path to the apple whenever it can prove the result is safe, and otherwise reshapes the cycle with a local search so the apple comes closer.
+- **Three algorithms to compare:** dynamic cycle (fastest), fixed cycle + shortcuts, and plain Hamiltonian cycle.
+- **Built-in benchmark** that plays hundreds of games without graphics.
+
+Measured on 10×10:
+
+| Algorithm | Wins | Avg. moves |
+|---|---|---|
+| Classic AI | ≈ 74 % | ≈ 2 700 |
+| Plain Hamiltonian cycle | 100 % | ≈ 2 430 |
+| Fixed cycle + shortcuts | 100 % | ≈ 1 490 |
+| Dynamic cycle | 100 % | ≈ 980 |
+
+Odd × odd boards have no Hamiltonian cycle, so no algorithm can guarantee a win there; the Perfect version therefore offers even sizes only (4×4 – 40×40).
+
+Run the automated test (plays every algorithm on several board sizes and fails unless every game is won):
+
+```bash
+node tests/perfect-engine.test.js
+```
 
 ## ✨ Features
 
